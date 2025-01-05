@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  ai-service:
+    build: 
+      context: ./ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-service:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - tripvar-network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - ai-service
+    environment:
+      - VITE_API_URL=http://ai-service:8000
+    networks:
+      - tripvar-network
+
+networks:
+  tripvar-network:
+    driver: bridge 

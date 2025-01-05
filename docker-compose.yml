@@ -1,35 +1,38 @@
 version: '3.8'
 
 services:
-  ai-service:
-    build: 
-      context: ./ai-service
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./ai-service:/app
-    environment:
-      - PYTHONUNBUFFERED=1
-    networks:
-      - tripvar-network
-
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
     ports:
-      - "5173:5173"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
+      - "5173:80"
     depends_on:
       - ai-service
-    environment:
-      - VITE_API_URL=http://ai-service:8000
     networks:
-      - tripvar-network
+      - app-network
+    environment:
+      - VITE_API_URL=/api
+      - VITE_HF_API_KEY=${HF_API_KEY}
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+    environment:
+      - PORT=8000
+      - HF_API_KEY=${HF_API_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
-  tripvar-network:
+  app-network:
     driver: bridge 

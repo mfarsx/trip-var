@@ -1,59 +1,100 @@
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from text_generation import TextGenerationPipeline
+import requests
 
 app = FastAPI()
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite default port
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize model and pipeline
-model_name = "gpt2-medium"
-model = AutoModelForCausalLM.from_pretrained(model_name)
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+# Hugging Face API configuration
+HF_API_URL = "https://api-inference.huggingface.co/models"
+HF_API_KEY = os.getenv("HF_API_KEY")
 
-# Ensure proper tokenizer settings
-if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
-    model.config.pad_token_id = tokenizer.eos_token_id
-
-# Create pipeline
-pipeline = TextGenerationPipeline(
-    model=model,
-    tokenizer=tokenizer,
-    device=-1  # Use CPU. Change to 0 for GPU if available
-)
+# Available models
+MODELS = {
+    "gpt2": "gpt2",
+    "bart": "facebook/bart-large",
+    "t5": "google/t5-v1_1-base",
+}
 
 class GenerationRequest(BaseModel):
     prompt: str
+    model_id: Optional[str] = None
     max_length: Optional[int] = 100
     temperature: Optional[float] = 0.7
 
 @app.post("/generate")
 async def generate_text(request: GenerationRequest):
-    generation_config = {
-        "max_new_tokens": request.max_length,
-        "do_sample": True,
-        "temperature": request.temperature,
-        "top_k": 50,
-        "top_p": 0.95,
-        "repetition_penalty": 1.2,
-        "pad_token_id": tokenizer.eos_token_id,
-        "eos_token_id": tokenizer.eos_token_id,
-    }
+    if not HF_API_KEY:
+        raise HTTPException(status_code=500, detail="API key not configured")
     
-    outputs = pipeline(request.prompt, **generation_config)
-    generated_text = outputs[0]["generated_text"].strip()
-    return {"generated_text": generated_text}
+    try:
+        # Select model endpoint
+        model = MODELS.get(request.model_id, MODELS["gpt2"])
+        
+        # Prepare headers
+        headers = {
+            "Authorization": f"Bearer {HF_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        
+        # Prepare payload
+        payload = {
+            "inputs": request.prompt,
+            "parameters": {
+                "max_new_tokens": min(request.max_length, 1024),
+                "temperature": request.temperature,
+                "top_p": 0.9,
+                "do_sample": True,
+                "return_full_text": False,
+            }
+        }
+        
+        # Make request to Hugging Face API
+        response = requests.post(
+            f"{HF_API_URL}/{model}",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        # Handle errors
+        response.raise_for_status()
+        
+        # Process response
+        result = response.json()
+        if isinstance(result, list):
+            generated_text = result[0].get("generated_text", "")
+        else:
+            generated_text = result.get("generated_text", "")
+            
+        return {"generated_text": generated_text.strip()}
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = str(e)
+        if hasattr(e, 'response') and e.response is not None:
+            error_msg = e.response.json().get('error', str(e))
+        raise HTTPException(status_code=500, detail=f"API Error: {error_msg}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/models")
+async def list_models():
+    return {"models": MODELS}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
 
 if __name__ == "__main__":
     import uvicorn

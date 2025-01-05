@@ -1,24 +1,32 @@
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
 # Install dependencies
+COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the application
+# Copy source code and build
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Install serve to run the built application
-RUN npm install -g serve
+# Serve stage
+FROM nginx:alpine
 
-# Expose the port the app runs on
-EXPOSE 5173
+# Remove default nginx static assets
+RUN rm -rf /usr/share/nginx/html/*
 
-# Command to run the application
-CMD ["npm", "run", "dev", "--", "--host"] 
+# Copy built assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Make sure files are owned by nginx user
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chmod -R 755 /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"] 

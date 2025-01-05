@@ -97,7 +97,10 @@ class AIService {
 
           return { generated_text: generatedText };
         } catch (error) {
-          console.error("Hugging Face API Error:", error);
+          // Log error in development only
+          if (import.meta.env.DEV) {
+            console.error("Hugging Face API Error:", error);
+          }
           if (error.response?.status === 401) {
             throw new Error(
               "Geçersiz Hugging Face API token'ı. Lütfen token'ınızı kontrol edin."
@@ -115,7 +118,10 @@ class AIService {
           });
           return response.data;
         } catch (error) {
-          console.error("Local API Error:", error);
+          // Log error in development only
+          if (import.meta.env.DEV) {
+            console.error("Local API Error:", error);
+          }
           throw new Error(`API Hatası: ${error.message}`);
         }
       }

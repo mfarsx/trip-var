@@ -42,7 +42,7 @@ export function TextGenerator() {
 
       try {
         if (selectedModel && !hfToken) {
-          throw new Error("Hugging Face API token'ı gerekli");
+          throw new Error("Hugging Face API token&apos;ı gerekli");
         }
 
         if (hfToken) {
@@ -55,7 +55,6 @@ export function TextGenerator() {
         );
         setResult(response.generated_text);
       } catch (error) {
-        console.error("Error:", error);
         setError(error.message);
       } finally {
         setLoading(false);
@@ -126,7 +125,7 @@ export function TextGenerator() {
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Metin üretmek için bir prompt girin..."
+            placeholder="Metin üretmek için bir prompt girin&hellip;"
             rows={4}
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-colors dark:text-white resize-none"
             disabled={loading}

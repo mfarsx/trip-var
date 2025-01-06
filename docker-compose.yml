@@ -1,31 +1,22 @@
 version: '3.8'
 
 services:
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    ports:
-      - "5173:80"
-    depends_on:
-      - ai-service
-    networks:
-      - app-network
-    environment:
-      - VITE_API_URL=/api
-      - VITE_HF_API_KEY=${HF_API_KEY}
-
   ai-service:
     build:
       context: ./ai-service
       dockerfile: Dockerfile
+    container_name: ai-service
     ports:
       - "8000:8000"
+    environment:
+      - HF_API_KEY=${HF_API_KEY}
+      - LLM_STUDIO_URL=http://host.docker.internal:1234/v1
+    volumes:
+      - ./ai-service:/app
     networks:
       - app-network
-    environment:
-      - PORT=8000
-      - HF_API_KEY=${HF_API_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -33,6 +24,24 @@ services:
       retries: 3
       start_period: 10s
 
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: client
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    depends_on:
+      - ai-service
+
 networks:
   app-network:
+    name: ai-network
     driver: bridge 

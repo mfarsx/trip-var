@@ -84,3 +84,22 @@ AI Service:
 ## License
 
 MIT
+
+## Environment Setup
+
+1. Copy the example environment file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Update the `.env` file with your API keys:
+
+   ```env
+   HF_API_KEY=your_huggingface_api_key
+   ```
+
+3. Start the services:
+   ```bash
+   docker-compose up --build
+   ```

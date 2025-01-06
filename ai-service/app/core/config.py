@@ -7,7 +7,7 @@ load_dotenv()
 
 # API configurations
 HF_API_URL = "https://api-inference.huggingface.co/models"
-LLM_STUDIO_URL = "http://127.0.0.1:1234/v1"  # LLM Studio local endpoint
+LLM_STUDIO_URL = os.getenv("LLM_STUDIO_URL", "http://127.0.0.1:1234/v1")
 LLM_STUDIO_TIMEOUT = 30  # Timeout in seconds
 
 # Default API keys from environment variables

@@ -65,91 +65,65 @@ async def generate_with_huggingface(prompt: str, model: Dict, api_key: str):
             detail=f"Hugging Face API Error: {str(e)}"
         ) 
 
-async def generate_with_llm_studio(prompt: str, model: Dict, api_key: str = None):
+async def generate_with_llm_studio(prompt: str, model: Dict, timeout: int = LLM_STUDIO_TIMEOUT) -> str:
     try:
-        headers = {
-            "Content-Type": "application/json",
-        }
+        url = f"{LLM_STUDIO_URL}/chat/completions"
         
-        # Format the prompt according to OpenAI chat format
+        # OpenAI formatında mesajları hazırla
         payload = {
-            "model": model.get("model", "llama-3.2-3b-instruct"),
+            "model": "llama-3.2-3b-instruct:2",  # Model identifier'ı doğru formatta kullan
             "messages": [
                 {
                     "role": "system",
                     "content": "You are a helpful AI assistant. Answer the questions clearly and concisely."
                 },
                 {
-                    "role": "user",
+                    "role": "user", 
                     "content": prompt
                 }
             ],
             "temperature": 0.7,
-            "max_tokens": model.get("max_tokens", 1000),
+            "max_tokens": model.get("max_tokens", -1),
             "top_p": 0.95,
             "frequency_penalty": 0,
             "presence_penalty": 0,
             "stream": False
         }
         
-        print(f"Making request to LLM Studio: {LLM_STUDIO_URL}/chat/completions")
+        headers = {
+            "Content-Type": "application/json"
+        }
         
-        try:
-            response = requests.post(
-                f"{LLM_STUDIO_URL}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=30  # Fixed timeout value instead of using config
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=timeout
+        )
+        response.raise_for_status()
+        
+        result = response.json()
+        if "choices" not in result or not result["choices"]:
+            raise HTTPException(
+                status_code=500,
+                detail="Invalid response format from LLM Studio"
             )
             
-            if response.status_code == 404:
-                raise HTTPException(
-                    status_code=503,
-                    detail="LLM Studio server not found. Please ensure LLM Studio is running and a model is loaded."
-                )
-                
-        except requests.exceptions.ConnectionError:
+        return result["choices"][0]["message"]["content"].strip()
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"LLM Studio error: {str(e)}")
+        if isinstance(e, requests.exceptions.ConnectionError):
             raise HTTPException(
                 status_code=503,
-                detail="Could not connect to LLM Studio. Please ensure the LLM Studio server is running at http://127.0.0.1:1234"
+                detail="Could not connect to LLM Studio. Please ensure the server is running."
             )
-        except requests.exceptions.Timeout:
+        elif isinstance(e, requests.exceptions.Timeout):
             raise HTTPException(
                 status_code=504,
                 detail="LLM Studio request timed out. The server might be overloaded."
             )
-        
-        if response.status_code == 200:
-            result = response.json()
-            if "choices" not in result or not result["choices"]:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Invalid response format from LLM Studio"
-                )
-            return result["choices"][0]["message"]["content"].strip()
-            
-        # Handle specific error cases
-        if response.status_code == 422:
-            raise HTTPException(
-                status_code=422,
-                detail="Invalid request format. Please check the model configuration."
-            )
-        if response.status_code == 503:
-            raise HTTPException(
-                status_code=503,
-                detail="LLM Studio model not loaded. Please load a model in LLM Studio first."
-            )
-            
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"LLM Studio Error: {response.text}"
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error in generate_with_llm_studio: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"LLM Studio Error: {str(e)}"
+            detail=f"LLM Studio error: {str(e)}"
         ) 

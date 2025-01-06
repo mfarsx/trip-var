@@ -43,4 +43,11 @@ env/
 
 # Model files and cache
 ai-service/models/
-.cache/ 
+.cache/
+
+# Environment Variables
+.env
+**/.env
+
+# Keep examples
+!.env.example 

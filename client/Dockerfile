@@ -1,32 +1,16 @@
-# Build stage
-FROM node:18-alpine AS builder
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
-RUN npm install
+# Install dependencies first (better caching)
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Copy source code and build
+# Copy the rest of the application
 COPY . .
-RUN npm run build
 
-# Serve stage
-FROM nginx:alpine
+# Expose Vite's default port
+EXPOSE 5173
 
-# Remove default nginx static assets
-RUN rm -rf /usr/share/nginx/html/*
-
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Make sure files are owned by nginx user
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chmod -R 755 /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"] 
+# Start Vite dev server with host flag to allow external access
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"] 

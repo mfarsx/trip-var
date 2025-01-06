@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.request_models import GenerationRequest
 from app.services.ai_providers import generate_with_huggingface, generate_with_llm_studio
-from app.core.config import DEFAULT_HF_API_KEY, Provider
+from app.core.config import DEFAULT_HF_API_KEY, Provider, LLM_STUDIO_URL
 import os
+import requests
 
 router = APIRouter()
 
@@ -84,4 +85,56 @@ async def list_models():
                 "max_tokens": 2000
             }
         }
-    } 
+    }
+
+@router.get("/test-llm-connection")
+async def test_llm_connection():
+    try:
+        # Önce modelleri kontrol et
+        models_response = requests.get(f"{LLM_STUDIO_URL}/models", timeout=5)
+        
+        if not models_response.ok:
+            return {
+                "status": "failed",
+                "url": LLM_STUDIO_URL,
+                "error": "Could not get models list"
+            }
+            
+        # Basit bir test mesajı gönder
+        test_payload = {
+            "model": "llama-3.2-3b-instruct:2",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant."
+                },
+                {
+                    "role": "user",
+                    "content": "Hi"
+                }
+            ],
+            "temperature": 0.7,
+            "max_tokens": 10,
+            "stream": False
+        }
+        
+        chat_response = requests.post(
+            f"{LLM_STUDIO_URL}/chat/completions",
+            headers={"Content-Type": "application/json"},
+            json=test_payload,
+            timeout=5
+        )
+        
+        return {
+            "status": "connected" if chat_response.ok else "failed",
+            "url": LLM_STUDIO_URL,
+            "models": models_response.json() if models_response.ok else None,
+            "chat_test": chat_response.json() if chat_response.ok else str(chat_response.status_code)
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "url": LLM_STUDIO_URL,
+            "error": str(e)
+        } 

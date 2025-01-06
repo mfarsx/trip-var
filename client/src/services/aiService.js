@@ -2,6 +2,7 @@ import fetch from "cross-fetch";
 import config from "../config";
 import { analytics } from "../utils/analytics";
 import { captureError } from "../utils/errorReporting";
+import { requestCache } from "../utils/cache";
 
 // AI Model configurations
 export const AI_MODELS = {
@@ -50,6 +51,13 @@ class AIService {
   }
 
   async generateText(prompt, modelId = null) {
+    // Check cache first
+    const cachedResult = requestCache.get(prompt, modelId);
+    if (cachedResult) {
+      analytics.trackEvent("text_generation", "cache_hit", modelId);
+      return cachedResult;
+    }
+
     const startTime = performance.now();
     try {
       const response = await fetch(`${this.baseUrl}/generate`, {
@@ -71,6 +79,9 @@ class AIService {
       }
 
       const data = await response.json();
+
+      // Cache the successful response
+      requestCache.set(prompt, modelId, data);
 
       // Track successful generation
       analytics.trackEvent("text_generation", "success", modelId);

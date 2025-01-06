@@ -1,17 +1,89 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect } from "react";
+import PropTypes from "prop-types";
 import { aiService, AI_MODELS } from "../services/aiService";
+import { useTextGenerator } from "../hooks/useTextGenerator";
 
-export function TextGenerator() {
-  const [prompt, setPrompt] = useState("");
-  const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [selectedModel, setSelectedModel] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState("");
+function ModelSelector({
+  selectedModel,
+  onChange,
+  showApiKeyInput,
+  selectedProvider,
+  apiKey,
+  onApiKeyChange,
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+          AI Model
+        </label>
+        <select
+          value={selectedModel}
+          onChange={onChange}
+          className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent dark:text-white transition-colors cursor-pointer"
+        >
+          <option value="">Default Model</option>
+          {Object.entries(AI_MODELS).map(([id, model]) => (
+            <option key={id} value={id}>
+              {model.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-  // Örnek promptlar
+      {showApiKeyInput && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            {selectedProvider.charAt(0).toUpperCase() +
+              selectedProvider.slice(1)}{" "}
+            API Key
+          </label>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => onApiKeyChange(e.target.value)}
+            placeholder={`${selectedProvider}_xxx...`}
+            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent dark:text-white transition-colors"
+          />
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            You can store the API key in the .env file: VITE_
+            {selectedProvider.toUpperCase()}_API_KEY
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ModelSelector.propTypes = {
+  selectedModel: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  showApiKeyInput: PropTypes.bool.isRequired,
+  selectedProvider: PropTypes.string.isRequired,
+  apiKey: PropTypes.string.isRequired,
+  onApiKeyChange: PropTypes.func.isRequired,
+};
+
+function ModelInfo({ selectedModel }) {
+  if (!selectedModel) return null;
+
+  return (
+    <div className="bg-violet-50 dark:bg-violet-900/20 p-4 rounded-lg mb-4">
+      <h4 className="font-medium text-violet-800 dark:text-violet-300 mb-2">
+        {AI_MODELS[selectedModel].name}
+      </h4>
+      <p className="text-sm text-violet-600 dark:text-violet-400">
+        {AI_MODELS[selectedModel].description}
+      </p>
+    </div>
+  );
+}
+
+ModelInfo.propTypes = {
+  selectedModel: PropTypes.string,
+};
+
+function ExamplePrompts({ onSelect }) {
   const examplePrompts = [
     {
       title: "Quantum Physics Explanation",
@@ -22,6 +94,52 @@ export function TextGenerator() {
       text: "How are AI models trained? Explain step by step.",
     },
   ];
+
+  return (
+    <div className="mt-4">
+      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        Example Prompts:
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {examplePrompts.map((example, index) => (
+          <button
+            key={index}
+            type="button"
+            onClick={() => onSelect(example.text)}
+            className="text-left p-2 text-sm bg-violet-50 dark:bg-violet-900/20 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors"
+          >
+            <span className="font-medium text-violet-700 dark:text-violet-300">
+              {example.title}
+            </span>
+            <p className="text-violet-600 dark:text-violet-400 mt-1 line-clamp-2">
+              {example.text}
+            </p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ExamplePrompts.propTypes = {
+  onSelect: PropTypes.func.isRequired,
+};
+
+export function TextGenerator() {
+  const {
+    prompt,
+    setPrompt,
+    result,
+    loading,
+    error,
+    selectedModel,
+    apiKey,
+    setApiKey,
+    showApiKeyInput,
+    selectedProvider,
+    handleSubmit,
+    handleModelChange,
+  } = useTextGenerator();
 
   useEffect(() => {
     // Check for default API keys
@@ -46,109 +164,19 @@ export function TextGenerator() {
     }
   }, []);
 
-  // Memoize form submission handler
-  const handleSubmit = useCallback(
-    async (e) => {
-      e.preventDefault();
-      if (!prompt.trim()) return;
-
-      setLoading(true);
-      setError("");
-      setResult("");
-
-      try {
-        if (selectedModel) {
-          const model = AI_MODELS[selectedModel];
-          if (model.requiresKey && !aiService.getApiKey(model.provider)) {
-            throw new Error(`API key required for ${model.name}`);
-          }
-
-          if (apiKey) {
-            aiService.setApiKey(model.provider, apiKey);
-          }
-        }
-
-        const response = await aiService.generateText(prompt, selectedModel);
-        setResult(response.generated_text);
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [prompt, selectedModel, apiKey]
-  );
-
-  const handleModelChange = (e) => {
-    const newModel = e.target.value;
-    setSelectedModel(newModel);
-
-    if (newModel) {
-      const model = AI_MODELS[newModel];
-      setSelectedProvider(model.provider);
-      setShowApiKeyInput(
-        model.requiresKey && !aiService.getApiKey(model.provider)
-      );
-    } else {
-      setSelectedProvider("");
-      setShowApiKeyInput(false);
-    }
-  };
-
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-purple-900/20 p-6 transition-all duration-300 hover:shadow-xl">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-              AI Model
-            </label>
-            <select
-              value={selectedModel}
-              onChange={handleModelChange}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent dark:text-white transition-colors cursor-pointer"
-            >
-              <option value="">Default Model</option>
-              {Object.entries(AI_MODELS).map(([id, model]) => (
-                <option key={id} value={id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <ModelSelector
+          selectedModel={selectedModel}
+          onChange={handleModelChange}
+          showApiKeyInput={showApiKeyInput}
+          selectedProvider={selectedProvider}
+          apiKey={apiKey}
+          onApiKeyChange={setApiKey}
+        />
 
-          {showApiKeyInput && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                {selectedProvider.charAt(0).toUpperCase() +
-                  selectedProvider.slice(1)}{" "}
-                API Key
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={`${selectedProvider}_xxx...`}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent dark:text-white transition-colors"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                You can store the API key in the .env file: VITE_
-                {selectedProvider.toUpperCase()}_API_KEY
-              </p>
-            </div>
-          )}
-        </div>
-
-        {selectedModel && (
-          <div className="bg-violet-50 dark:bg-violet-900/20 p-4 rounded-lg mb-4">
-            <h4 className="font-medium text-violet-800 dark:text-violet-300 mb-2">
-              {AI_MODELS[selectedModel].name}
-            </h4>
-            <p className="text-sm text-violet-600 dark:text-violet-400">
-              {AI_MODELS[selectedModel].description}
-            </p>
-          </div>
-        )}
+        <ModelInfo selectedModel={selectedModel} />
 
         <div className="relative">
           <textarea
@@ -186,29 +214,7 @@ export function TextGenerator() {
           )}
         </button>
 
-        {/* Example Prompts */}
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Example Prompts:
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {examplePrompts.map((example, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => setPrompt(example.text)}
-                className="text-left p-2 text-sm bg-violet-50 dark:bg-violet-900/20 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors"
-              >
-                <span className="font-medium text-violet-700 dark:text-violet-300">
-                  {example.title}
-                </span>
-                <p className="text-violet-600 dark:text-violet-400 mt-1 line-clamp-2">
-                  {example.text}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
+        <ExamplePrompts onSelect={setPrompt} />
       </form>
 
       {error && (

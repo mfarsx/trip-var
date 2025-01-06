@@ -50,4 +50,13 @@ ai-service/models/
 **/.env
 
 # Keep examples
-!.env.example 
+!.env.example
+
+# ESLint
+.eslintcache
+
+# Coverage
+coverage/
+
+# Vite
+.vite/ 

@@ -6,13 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint . --fix",
+    "build:prod": "vite build --mode production",
+    "lint": "eslint . --ext .js,.jsx --fix",
+    "lint:check": "eslint . --ext .js,.jsx",
+    "analyze": "source-map-explorer 'dist/**/*.js'",
     "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.7.9",
     "cross-fetch": "^4.1.0",
-    "lodash": "4.17.21",
+    "@sentry/react": "^7.120.2",
+    "lodash": "^4.17.21",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -20,12 +24,29 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "@eslint/eslintrc": "^3.0.0",
     "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "glob": "^10.3.10",
+    "rimraf": "^5.0.5",
+    "lru-cache": "^10.2.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "source-map-explorer": "^2.5.3"
+  },
+  "overrides": {
+    "glob": "^10.3.10",
+    "rimraf": "^5.0.5",
+    "inflight": "npm:lru-cache@^10.2.0"
+  },
+  "resolutions": {
+    "glob": "^10.3.10",
+    "rimraf": "^5.0.5",
+    "inflight": "npm:lru-cache@^10.2.0"
   }
 }

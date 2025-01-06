@@ -14,12 +14,12 @@ export function TextGenerator() {
   // Örnek promptlar
   const examplePrompts = [
     {
-      title: "Kuantum Fiziği Açıklaması",
-      text: "Kuantum fiziğini 5 yaşındaki bir çocuğa nasıl açıklardın?",
+      title: "Quantum Physics Explanation",
+      text: "How would you explain quantum physics to a 5-year-old?",
     },
     {
-      title: "AI Eğitimi",
-      text: "Yapay zeka modelleri nasıl eğitilir? Adım adım açıkla.",
+      title: "AI Training",
+      text: "How are AI models trained? Explain step by step.",
     },
   ];
 
@@ -60,7 +60,7 @@ export function TextGenerator() {
         if (selectedModel) {
           const model = AI_MODELS[selectedModel];
           if (model.requiresKey && !aiService.getApiKey(model.provider)) {
-            throw new Error(`${model.name} için API anahtarı gerekli`);
+            throw new Error(`API key required for ${model.name}`);
           }
 
           if (apiKey) {
@@ -101,14 +101,14 @@ export function TextGenerator() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-              AI Modeli
+              AI Model
             </label>
             <select
               value={selectedModel}
               onChange={handleModelChange}
               className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent dark:text-white transition-colors cursor-pointer"
             >
-              <option value="">Varsayılan Model</option>
+              <option value="">Default Model</option>
               {Object.entries(AI_MODELS).map(([id, model]) => (
                 <option key={id} value={id}>
                   {model.name}
@@ -122,7 +122,7 @@ export function TextGenerator() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 {selectedProvider.charAt(0).toUpperCase() +
                   selectedProvider.slice(1)}{" "}
-                API Anahtarı
+                API Key
               </label>
               <input
                 type="password"
@@ -132,7 +132,7 @@ export function TextGenerator() {
                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent dark:text-white transition-colors"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                API anahtarını .env dosyasında saklayabilirsiniz: VITE_
+                You can store the API key in the .env file: VITE_
                 {selectedProvider.toUpperCase()}_API_KEY
               </p>
             </div>
@@ -154,7 +154,7 @@ export function TextGenerator() {
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Metin üretmek için bir prompt girin..."
+            placeholder="Enter a prompt to generate text..."
             rows={4}
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-colors dark:text-white resize-none"
             disabled={loading}
@@ -162,7 +162,7 @@ export function TextGenerator() {
             autoComplete="off"
           />
           <div className="absolute bottom-3 right-3 text-sm text-gray-400 dark:text-gray-500">
-            {prompt.length} karakter
+            {prompt.length} characters
           </div>
         </div>
 
@@ -179,17 +179,17 @@ export function TextGenerator() {
           {loading ? (
             <div className="flex items-center justify-center space-x-2">
               <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
-              <span>Üretiliyor...</span>
+              <span>Generating...</span>
             </div>
           ) : (
-            "Metin Üret"
+            "Generate Text"
           )}
         </button>
 
         {/* Example Prompts */}
         <div className="mt-4">
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Örnek Promptlar:
+            Example Prompts:
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {examplePrompts.map((example, index) => (
@@ -233,7 +233,7 @@ export function TextGenerator() {
       {result && (
         <div className="mt-6 animate-fade-in">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-            Üretilen Metin:
+            Generated Text:
           </h3>
           <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
             <p className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">

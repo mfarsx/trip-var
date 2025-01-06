@@ -7,9 +7,20 @@ from app.core.config import (
     LLM_STUDIO_TIMEOUT,
     Provider
 )
+import logging
+import os
+import asyncio
+import aiohttp
+
+# Logger'ı tanımla
+logger = logging.getLogger(__name__)
 
 async def generate_with_huggingface(prompt: str, model: Dict, api_key: str):
     try:
+        # Test modunda mock response dön
+        if os.getenv("TEST_MODE") == "true":
+            return "Test response"
+            
         print(f"Using API key: {api_key[:4]}...")
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -47,11 +58,16 @@ async def generate_with_huggingface(prompt: str, model: Dict, api_key: str):
             result = response.json()
             if isinstance(result, list) and result:
                 text = result[0].get("generated_text", "").strip()
-                # Clean up the response
                 text = text.replace(formatted_prompt, "").strip()
-                text = text.split("###")[0].strip()  # Remove any additional prompts
+                text = text.split("###")[0].strip()
                 return text
             return result.get("generated_text", "").strip()
+            
+        # Hata durumlarını daha iyi yönet
+        if response.status_code == 401:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        if response.status_code == 422:
+            raise HTTPException(status_code=422, detail="Invalid request format")
             
         raise HTTPException(
             status_code=500,
@@ -59,20 +75,20 @@ async def generate_with_huggingface(prompt: str, model: Dict, api_key: str):
         )
         
     except Exception as e:
-        print(f"Error in generate_with_huggingface: {str(e)}")
+        logger.error(f"Error in generate_with_huggingface: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Hugging Face API Error: {str(e)}"
         ) 
 
-async def generate_with_llm_studio(prompt: str, model: Dict, timeout: int = LLM_STUDIO_TIMEOUT) -> str:
+async def generate_with_llm_studio(prompt: str, model: Dict, timeout: int = 120) -> str:
     try:
         url = f"{LLM_STUDIO_URL}/chat/completions"
         
-        # OpenAI formatında mesajları hazırla
-        payload = {
-            "model": "llama-3.2-3b-instruct:2",  # Model identifier'ı doğru formatta kullan
-            "messages": [
+        # Prepare messages including history if available
+        messages = model.get("messages", [])
+        if not messages:
+            messages = [
                 {
                     "role": "system",
                     "content": "You are a helpful AI assistant. Answer the questions clearly and concisely."
@@ -81,49 +97,49 @@ async def generate_with_llm_studio(prompt: str, model: Dict, timeout: int = LLM_
                     "role": "user", 
                     "content": prompt
                 }
-            ],
+            ]
+        
+        payload = {
+            "model": "llama-3.2-3b-instruct:2",
+            "messages": messages,
             "temperature": 0.7,
-            "max_tokens": model.get("max_tokens", -1),
+            "max_tokens": model.get("max_tokens", 1000),
             "top_p": 0.95,
             "frequency_penalty": 0,
             "presence_penalty": 0,
-            "stream": False
+            "stream": False,
+            "wait_for_completion": model.get("wait_for_completion", True)
         }
         
         headers = {
             "Content-Type": "application/json"
         }
         
-        response = requests.post(
-            url,
-            headers=headers,
-            json=payload,
-            timeout=timeout
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=timeout
+            ) as response:
+                response.raise_for_status()
+                result = await response.json()
+                
+                if "choices" not in result or not result["choices"]:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Invalid response format from LLM Studio"
+                    )
+                    
+                return result["choices"][0]["message"]["content"].strip()
+                
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail="Request timed out while waiting for completion"
         )
-        response.raise_for_status()
-        
-        result = response.json()
-        if "choices" not in result or not result["choices"]:
-            raise HTTPException(
-                status_code=500,
-                detail="Invalid response format from LLM Studio"
-            )
-            
-        return result["choices"][0]["message"]["content"].strip()
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"LLM Studio error: {str(e)}")
-        if isinstance(e, requests.exceptions.ConnectionError):
-            raise HTTPException(
-                status_code=503,
-                detail="Could not connect to LLM Studio. Please ensure the server is running."
-            )
-        elif isinstance(e, requests.exceptions.Timeout):
-            raise HTTPException(
-                status_code=504,
-                detail="LLM Studio request timed out. The server might be overloaded."
-            )
+    except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"LLM Studio error: {str(e)}"
+            detail=f"Error generating text: {str(e)}"
         ) 

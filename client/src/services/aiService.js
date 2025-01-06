@@ -1,4 +1,7 @@
 import fetch from "cross-fetch";
+import config from "../config";
+import { analytics } from "../utils/analytics";
+import { captureError } from "../utils/errorReporting";
 
 // AI Model configurations
 export const AI_MODELS = {
@@ -6,28 +9,28 @@ export const AI_MODELS = {
     name: "GPT-2",
     provider: "huggingface",
     model: "gpt2",
-    description: "OpenAI'ın GPT-2 dil modeli",
+    description: "OpenAI's GPT-2 language model",
     requiresKey: true,
   },
   mistral: {
     name: "Mistral-7B",
     provider: "mistral",
     model: "mistralai/Mistral-7B-Instruct-v0.1",
-    description: "Mistral AI'nin 7B parametreli açık kaynak modeli",
+    description: "Mistral AI's open source 7B parameter model",
     requiresKey: true,
   },
   llama2: {
     name: "Llama 2",
     provider: "meta",
     model: "meta-llama/Llama-2-70b-chat-hf",
-    description: "Meta'nın Llama 2 70B chat modeli",
+    description: "Meta's Llama 2 70B chat model",
     requiresKey: true,
   },
   "llama-3.2-3b-instruct": {
     name: "Llama 3.2B Instruct",
     provider: "llm_studio",
     model: "llama-3.2-3b-instruct",
-    description: "Yerel Llama 3.2B Instruct modeli",
+    description: "Local Llama 3.2B Instruct model",
     requiresKey: false,
   },
 };
@@ -35,8 +38,7 @@ export const AI_MODELS = {
 class AIService {
   constructor() {
     this.apiKeys = new Map();
-    this.baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-    console.log("API URL:", this.baseUrl);
+    this.baseUrl = config.apiUrl;
   }
 
   setApiKey(provider, key) {
@@ -48,14 +50,8 @@ class AIService {
   }
 
   async generateText(prompt, modelId = null) {
+    const startTime = performance.now();
     try {
-      console.log(
-        `Sending request - Model: ${modelId}, Prompt: ${prompt.substring(
-          0,
-          50
-        )}...`
-      );
-
       const response = await fetch(`${this.baseUrl}/generate`, {
         method: "POST",
         headers: {
@@ -64,21 +60,30 @@ class AIService {
         body: JSON.stringify({
           prompt: prompt.trim(),
           model_id: modelId || "gpt2",
-          max_tokens: 100,
+          max_tokens: 1000,
+          wait_for_completion: true,
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        console.error("API Error:", error);
         throw new Error(error.detail || "API request failed");
       }
 
       const data = await response.json();
-      console.log("API Response:", data);
+
+      // Track successful generation
+      analytics.trackEvent("text_generation", "success", modelId);
+      analytics.trackTiming(
+        "text_generation",
+        "api_call",
+        performance.now() - startTime
+      );
+
       return data;
     } catch (error) {
-      console.error("Error generating text:", error);
+      captureError(error, { prompt, modelId });
+      analytics.trackError(error);
       throw error;
     }
   }

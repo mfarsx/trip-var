@@ -1,14 +1,15 @@
 import time
+import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch
-from main import app
+from app.main import app
 
-client = TestClient(app)
+@pytest.fixture
+def client():
+    return TestClient(app)
 
-def test_response_time():
-    mock_response = {
-        "generated_text": "Quick response"
-    }
+def test_response_time(client):
+    mock_response = "Quick response"
     
     with patch('app.services.ai_providers.generate_with_huggingface') as mock_generate:
         mock_generate.return_value = mock_response

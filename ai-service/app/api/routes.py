@@ -4,8 +4,26 @@ from app.services.ai_providers import generate_with_huggingface, generate_with_l
 from app.core.config import DEFAULT_HF_API_KEY, Provider, LLM_STUDIO_URL
 import os
 import requests
+from pydantic import ValidationError
+from app.services.chat_service import chat_service
+from typing import Optional
 
 router = APIRouter()
+
+def get_model_config(model_id: str = None):
+    """Get model configuration based on model ID"""
+    if model_id == "llama-3.2-3b-instruct":
+        return {
+            "provider": Provider.LLM_STUDIO,
+            "model": "llama-3.2-3b-instruct",
+            "max_tokens": 2000
+        }
+    else:
+        return {
+            "provider": Provider.HUGGINGFACE,
+            "model": model_id or "gpt2",
+            "max_tokens": 1000
+        }
 
 async def get_api_key():
     api_key = os.getenv("HF_API_KEY", DEFAULT_HF_API_KEY)
@@ -14,48 +32,47 @@ async def get_api_key():
     return api_key
 
 @router.post("/generate")
-async def generate_text(request: GenerationRequest, api_key: str = Depends(get_api_key)):
+async def generate_text(request: GenerationRequest):
     try:
-        if not request.prompt or not request.prompt.strip():
-            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-            
-        prompt = request.prompt.strip()
-        print(f"Received request - Prompt: {prompt[:50]}... Model: {request.model_id}")
+        model_config = get_model_config(request.model_id)
         
-        # Configure model based on provider
-        if request.model_id == "llama-3.2-3b-instruct":
-            model_config = {
-                "provider": Provider.LLM_STUDIO,
-                "model": "llama-3.2-3b-instruct",
-                "max_tokens": min(request.max_tokens or 1000, 2000)
-            }
-            response = await generate_with_llm_studio(
-                prompt=prompt,
-                model=model_config
-            )
-        else:
-            model_config = {
-                "provider": Provider.HUGGINGFACE,
-                "model": request.model_id or "gpt2",
-                "max_tokens": min(request.max_tokens or 100, 1000)
-            }
-            response = await generate_with_huggingface(
-                prompt=prompt,
-                model=model_config,
-                api_key=api_key
-            )
+        # Get conversation history if available
+        messages = []
+        if request.conversation_id and request.include_history:
+            messages = chat_service.get_conversation_history(request.conversation_id)
         
-        if not response:
-            raise HTTPException(
-                status_code=500,
-                detail="No response generated from the model"
-            )
-            
-        return {"generated_text": response}
+        # Add current prompt to messages
+        messages.append({"role": "user", "content": request.prompt})
+        
+        # Get the full response
+        response = await generate_with_llm_studio(
+            prompt=request.prompt,
+            model={
+                **model_config,
+                "max_tokens": request.max_tokens or 1000,
+                "wait_for_completion": True,
+                "messages": messages
+            },
+            timeout=120
+        )
+        
+        # Save the conversation
+        if request.conversation_id:
+            chat_service.add_message(request.conversation_id, "user", request.prompt)
+            chat_service.add_message(request.conversation_id, "assistant", response)
+        
+        return {
+            "generated_text": response,
+            "model": request.model_id,
+            "status": "complete",
+            "conversation_id": request.conversation_id
+        }
         
     except Exception as e:
-        print(f"Error in generate_text: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Text generation failed: {str(e)}"
+        )
 
 @router.get("/health")
 async def health_check():
@@ -138,3 +155,15 @@ async def test_llm_connection():
             "url": LLM_STUDIO_URL,
             "error": str(e)
         } 
+
+@router.post("/conversations")
+async def create_conversation(model_id: Optional[str] = None):
+    conversation_id = chat_service.create_conversation(model_id)
+    return {"conversation_id": conversation_id}
+
+@router.get("/conversations/{conversation_id}")
+async def get_conversation(conversation_id: str):
+    conversation = chat_service.get_conversation(conversation_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return conversation 

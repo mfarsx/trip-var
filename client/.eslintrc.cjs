@@ -2,7 +2,8 @@ module.exports = {
   root: true,
   env: {
     browser: true,
-    es2020: true,
+    es2022: true,
+    node: true,
   },
   extends: [
     "eslint:recommended",
@@ -14,10 +15,13 @@ module.exports = {
   parserOptions: {
     ecmaVersion: "latest",
     sourceType: "module",
+    ecmaFeatures: {
+      jsx: true,
+    },
   },
   settings: {
     react: {
-      version: "18.2",
+      version: "detect",
     },
   },
   plugins: ["react-refresh"],
@@ -28,5 +32,6 @@ module.exports = {
     ],
     "react/prop-types": "off",
     "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    "react/react-in-jsx-scope": "off",
   },
 };

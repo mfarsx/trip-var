@@ -1,23 +1,16 @@
 import js from "@eslint/js";
-import reactPlugin from "eslint-plugin-react";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
-import reactRefreshPlugin from "eslint-plugin-react-refresh";
+import globals from "globals";
 
 export default [
+  js.configs.recommended,
   {
-    ignores: ["dist/*"],
-  },
-  {
-    files: ["src/**/*.{js,jsx}"],
+    files: ["**/*.{js,jsx}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
       globals: {
-        window: "readonly",
-        document: "readonly",
-        console: "readonly",
-        module: "readonly",
-        process: "readonly",
+        ...globals.browser,
+        ...globals.es2021,
       },
       parserOptions: {
         ecmaFeatures: {
@@ -26,31 +19,23 @@ export default [
       },
     },
     plugins: {
-      react: reactPlugin,
-      "react-hooks": reactHooksPlugin,
-      "react-refresh": reactRefreshPlugin,
-    },
-    rules: {
-      ...js.configs.recommended.rules,
-      ...reactPlugin.configs.recommended.rules,
-      ...reactPlugin.configs["jsx-runtime"].rules,
-      "react/prop-types": "off",
-      "react/jsx-uses-react": "off",
-      "react/react-in-jsx-scope": "off",
-      "react/jsx-uses-vars": "error",
-      "react/no-unescaped-entities": "off",
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true },
-      ],
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      react: await import("eslint-plugin-react"),
+      "react-hooks": await import("eslint-plugin-react-hooks"),
+      "react-refresh": await import("eslint-plugin-react-refresh"),
     },
     settings: {
       react: {
         version: "detect",
       },
+    },
+    rules: {
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
+      "react-refresh/only-export-components": [
+        "warn",
+        { allowConstantExport: true },
+      ],
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
     },
   },
 ];

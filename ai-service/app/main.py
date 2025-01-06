@@ -1,24 +1,31 @@
 from fastapi import FastAPI
-from app.core.config import settings
-from app.core.logging import configure_logging
-from app.core.middleware import setup_middleware
-from app.api import health, generate
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.mongodb import connect_to_mongo, close_mongo_connection
+from app.api import auth
+import uvicorn
 
-configure_logging()
+app = FastAPI(title="Tripvar API")
 
-def create_app() -> FastAPI:
-    app = FastAPI(
-        title=settings.PROJECT_NAME,
-        version=settings.VERSION,
-        openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    )
-    
-    setup_middleware(app)
-    
-    # Add routers with API prefix
-    app.include_router(health, prefix=settings.API_V1_STR)
-    app.include_router(generate, prefix=settings.API_V1_STR)
-    
-    return app
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Add your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app = create_app() 
+# Event handlers
+@app.on_event("startup")
+async def startup_event():
+    await connect_to_mongo()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await close_mongo_connection()
+
+# Include routers
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

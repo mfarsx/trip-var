@@ -1,63 +1,51 @@
 from pydantic_settings import BaseSettings
-from typing import List, Optional
-from functools import lru_cache
-import json
-import logging
-
-logger = logging.getLogger(__name__)
+from typing import Optional, List
+from pydantic import validator, field_validator
 
 class Settings(BaseSettings):
-    # API Settings
     API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str = "AI Text Generation API"
-    VERSION: str = "1.0.0"
+    PROJECT_NAME: str = "AI Service"
     
-    # Security
+    # MongoDB settings
+    MONGODB_URL: str
+    MONGODB_NAME: str = "tripvar_db"
+    MONGODB_MAX_POOL_SIZE: int = 10
+    MONGODB_MIN_POOL_SIZE: int = 1
+    REQUEST_TIMEOUT: int = 30
+    
+    # API Keys
+    DEFAULT_HF_API_KEY: Optional[str] = None
+    DEFAULT_OPENAI_API_KEY: Optional[str] = None
+    DEFAULT_ANTHROPIC_API_KEY: Optional[str] = None
+    DEFAULT_GOOGLE_API_KEY: Optional[str] = None
+    
+    # JWT settings
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # CORS
-    BACKEND_CORS_ORIGINS: str = '["*"]'
-    
-    @property
-    def BACKEND_CORS_ORIGINS_LIST(self) -> List[str]:
-        try:
-            return json.loads(self.BACKEND_CORS_ORIGINS)
-        except (json.JSONDecodeError, TypeError):
-            logger.warning("Failed to parse CORS origins, using default")
-            return ["*"]
-    
-    # External Services
-    HF_API_URL: str = "https://api-inference.huggingface.co/models"
-    LLM_STUDIO_URL: str = "http://localhost:1234/v1"
-    
-    # API Keys
-    HF_API_KEY: str
-    DEFAULT_HF_API_KEY: Optional[str] = None
-    
-    # Rate Limiting
-    RATE_LIMIT_PER_MINUTE: int = 60
-    
-    # Timeouts
-    REQUEST_TIMEOUT: int = 60
-    HEALTH_CHECK_TIMEOUT: int = 5
-    
-    # Provider Settings
-    class Provider:
-        HUGGINGFACE = "huggingface"
-        LLM_STUDIO = "llm_studio"
-        MISTRAL = "mistral"
-        META = "meta"
+    # CORS settings
+    BACKEND_CORS_ORIGINS: List[str] = []
     
     class Config:
-        env_file = ".env"
         case_sensitive = True
-        env_file_encoding = 'utf-8'
-        extra = "ignore"
+        env_file = ".env"
 
-@lru_cache()
-def get_settings():
-    return Settings()
+    @validator("SECRET_KEY")
+    def secret_key_must_be_set(cls, v):
+        if not v or v == "your-secret-key-here":
+            raise ValueError("SECRET_KEY must be set")
+        return v
 
-settings = get_settings() 
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    def validate_cors_origins(cls, v):
+        if isinstance(v, str):
+            try:
+                if "," in v:
+                    return [i.strip() for i in v.split(",")]
+                return [v.strip()]
+            except Exception:
+                return []
+        return v or []
+
+settings = Settings() 

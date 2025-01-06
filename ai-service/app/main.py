@@ -1,26 +1,24 @@
 from fastapi import FastAPI
 from app.core.config import settings
+from app.core.logging import configure_logging
 from app.core.middleware import setup_middleware
-from app.core.logging_config import setup_logging
-from app.api.routes import router
-from contextlib import asynccontextmanager
+from app.api import health, generate
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Setup
-    setup_logging()
-    yield
-    # Cleanup
-    pass
+configure_logging()
 
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
-)
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        version=settings.VERSION,
+        openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    )
+    
+    setup_middleware(app)
+    
+    # Add routers with API prefix
+    app.include_router(health, prefix=settings.API_V1_STR)
+    app.include_router(generate, prefix=settings.API_V1_STR)
+    
+    return app
 
-# Setup middleware
-setup_middleware(app)
-
-# Include routers
-app.include_router(router, prefix=settings.API_V1_STR) 
+app = create_app() 

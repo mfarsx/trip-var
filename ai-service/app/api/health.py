@@ -9,12 +9,7 @@ router = APIRouter()
 async def health_check():
     return {
         "status": "healthy",
-        "timestamp": time.time(),
-        "version": "1.0.0",
-        "system": {
-            "cpu_percent": psutil.cpu_percent(),
-            "memory_percent": psutil.virtual_memory().percent
-        }
+        "api_key_configured": bool(settings.DEFAULT_HF_API_KEY)
     }
 
 @router.get("/health/ready")

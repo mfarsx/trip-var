@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.request_models import GenerationRequest
 from app.services.ai_providers import generate_with_huggingface, generate_with_llm_studio
-from app.core.config import DEFAULT_HF_API_KEY, Provider, LLM_STUDIO_URL
+from app.core.config import settings
 import os
 import requests
 from pydantic import ValidationError
@@ -14,19 +14,19 @@ def get_model_config(model_id: str = None):
     """Get model configuration based on model ID"""
     if model_id == "llama-3.2-3b-instruct":
         return {
-            "provider": Provider.LLM_STUDIO,
+            "provider": settings.Provider.LLM_STUDIO,
             "model": "llama-3.2-3b-instruct",
             "max_tokens": 2000
         }
     else:
         return {
-            "provider": Provider.HUGGINGFACE,
+            "provider": settings.Provider.HUGGINGFACE,
             "model": model_id or "gpt2",
             "max_tokens": 1000
         }
 
 async def get_api_key():
-    api_key = os.getenv("HF_API_KEY", DEFAULT_HF_API_KEY)
+    api_key = os.getenv("HF_API_KEY", settings.HF_API_KEY)
     if not api_key:
         raise HTTPException(status_code=500, detail="HF_API_KEY not found")
     return api_key
@@ -78,7 +78,7 @@ async def generate_text(request: GenerationRequest):
 async def health_check():
     return {
         "status": "healthy",
-        "api_key_configured": bool(DEFAULT_HF_API_KEY)
+        "api_key_configured": bool(settings.DEFAULT_HF_API_KEY)
     }
 
 @router.get("/models")
@@ -108,12 +108,12 @@ async def list_models():
 async def test_llm_connection():
     try:
         # Önce modelleri kontrol et
-        models_response = requests.get(f"{LLM_STUDIO_URL}/models", timeout=5)
+        models_response = requests.get(f"{settings.LLM_STUDIO_URL}/models", timeout=5)
         
         if not models_response.ok:
             return {
                 "status": "failed",
-                "url": LLM_STUDIO_URL,
+                "url": settings.LLM_STUDIO_URL,
                 "error": "Could not get models list"
             }
             
@@ -136,7 +136,7 @@ async def test_llm_connection():
         }
         
         chat_response = requests.post(
-            f"{LLM_STUDIO_URL}/chat/completions",
+            f"{settings.LLM_STUDIO_URL}/chat/completions",
             headers={"Content-Type": "application/json"},
             json=test_payload,
             timeout=5
@@ -144,7 +144,7 @@ async def test_llm_connection():
         
         return {
             "status": "connected" if chat_response.ok else "failed",
-            "url": LLM_STUDIO_URL,
+            "url": settings.LLM_STUDIO_URL,
             "models": models_response.json() if models_response.ok else None,
             "chat_test": chat_response.json() if chat_response.ok else str(chat_response.status_code)
         }
@@ -152,7 +152,7 @@ async def test_llm_connection():
     except Exception as e:
         return {
             "status": "error",
-            "url": LLM_STUDIO_URL,
+            "url": settings.LLM_STUDIO_URL,
             "error": str(e)
         } 
 

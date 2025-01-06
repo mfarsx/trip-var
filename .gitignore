@@ -44,6 +44,7 @@ env/
 # Model files and cache
 ai-service/models/
 .cache/
+.pytest_cache
 
 # Environment Variables
 .env

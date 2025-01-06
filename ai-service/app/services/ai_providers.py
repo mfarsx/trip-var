@@ -1,12 +1,7 @@
 from typing import Dict
 import requests
 from fastapi import HTTPException
-from app.core.config import (
-    HF_API_URL,
-    LLM_STUDIO_URL,
-    LLM_STUDIO_TIMEOUT,
-    Provider
-)
+from app.core.config import settings
 import logging
 import os
 import asyncio
@@ -15,75 +10,41 @@ import aiohttp
 # Logger'ı tanımla
 logger = logging.getLogger(__name__)
 
-async def generate_with_huggingface(prompt: str, model: Dict, api_key: str):
+async def generate_with_huggingface(prompt: str, model_config: dict, api_key: str = None):
     try:
-        # Test modunda mock response dön
-        if os.getenv("TEST_MODE") == "true":
-            return "Test response"
-            
-        print(f"Using API key: {api_key[:4]}...")
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-        
-        # Better prompt formatting
-        formatted_prompt = f"### Question: {prompt}\n\n### Answer:"
-        
-        # Updated parameters for better generation
-        payload = {
-            "inputs": formatted_prompt,
-            "parameters": {
-                "max_new_tokens": model["max_tokens"],
-                "temperature": 0.7,
-                "top_k": 50,
-                "top_p": 0.9,
-                "do_sample": True,
-                "repetition_penalty": 1.2,
-                "stop": ["###", "\n\n"],
-                "return_full_text": False
-            }
-        }
-        
-        print(f"Making request to: {HF_API_URL}/{model['model']}")
-        
-        response = requests.post(
-            f"{HF_API_URL}/{model['model']}",
-            headers=headers,
-            json=payload,
-            timeout=60
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
-            if isinstance(result, list) and result:
-                text = result[0].get("generated_text", "").strip()
-                text = text.replace(formatted_prompt, "").strip()
-                text = text.split("###")[0].strip()
-                return text
-            return result.get("generated_text", "").strip()
-            
-        # Hata durumlarını daha iyi yönet
-        if response.status_code == 401:
-            raise HTTPException(status_code=401, detail="Invalid API key")
-        if response.status_code == 422:
-            raise HTTPException(status_code=422, detail="Invalid request format")
-            
-        raise HTTPException(
-            status_code=500,
-            detail=f"Hugging Face API Error: {response.text}"
-        )
-        
+        if not api_key:
+            api_key = settings.HF_API_KEY
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{settings.HF_API_URL}/{model_config['model']}",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={"inputs": prompt, "max_length": model_config.get('max_tokens', 100)},
+                timeout=settings.REQUEST_TIMEOUT
+            ) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    logger.error(f"HF API error: {response.status} - {error_text}")
+                    raise HTTPException(
+                        status_code=response.status,
+                        detail=f"Text generation failed: {error_text}"
+                    )
+                
+                result = await response.json()
+                if isinstance(result, list) and len(result) > 0:
+                    return result[0]["generated_text"]
+                raise HTTPException(status_code=500, detail="Invalid response format")
+                
+    except aiohttp.ClientError as e:
+        logger.error(f"Network error: {str(e)}")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
     except Exception as e:
-        logger.error(f"Error in generate_with_huggingface: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Hugging Face API Error: {str(e)}"
-        ) 
+        logger.error(f"Generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Text generation failed: {str(e)}")
 
 async def generate_with_llm_studio(prompt: str, model: Dict, timeout: int = 120) -> str:
     try:
-        url = f"{LLM_STUDIO_URL}/chat/completions"
+        url = f"{settings.LLM_STUDIO_URL}/chat/completions"
         
         # Prepare messages including history if available
         messages = model.get("messages", [])

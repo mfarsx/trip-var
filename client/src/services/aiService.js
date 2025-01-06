@@ -38,7 +38,7 @@ export const AI_MODELS = {
 class AIService {
   constructor() {
     this.apiKeys = new Map();
-    this.baseUrl = config.apiUrl;
+    this.baseUrl = `${config.apiUrl}/api/v1`;
   }
 
   setApiKey(provider, key) {
@@ -82,6 +82,9 @@ class AIService {
 
       return data;
     } catch (error) {
+      if (!navigator.onLine) {
+        throw new Error("No internet connection");
+      }
       captureError(error, { prompt, modelId });
       analytics.trackError(error);
       throw error;
@@ -91,6 +94,9 @@ class AIService {
   async checkHealth() {
     try {
       const response = await fetch(`${this.baseUrl}/health`);
+      if (!response.ok) {
+        throw new Error("Health check failed");
+      }
       return response.json();
     } catch (error) {
       console.error("Health check failed:", error);

@@ -6,8 +6,11 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 import time
+from fastapi.responses import JSONResponse
+import logging
 
 limiter = Limiter(key_func=get_remote_address)
+logger = logging.getLogger(__name__)
 
 def setup_middleware(app: FastAPI) -> None:
     # CORS
@@ -42,4 +45,15 @@ def setup_middleware(app: FastAPI) -> None:
         return HTTPException(
             status_code=429,
             detail="Too many requests"
-        ) 
+        )
+
+    @app.middleware("http")
+    async def error_handler(request: Request, call_next):
+        try:
+            return await call_next(request)
+        except Exception as e:
+            logger.error(f"Unhandled error: {str(e)}")
+            return JSONResponse(
+                status_code=500,
+                content={"detail": str(e)}
+            ) 

@@ -14,12 +14,17 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
-      "/api": {
-        target: "http://ai-service:8000",
+      "/generate": {
+        target: "http://localhost:8000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-        secure: false,
-        ws: true,
+      },
+      "/health": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+      "/models": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
       },
     },
   },

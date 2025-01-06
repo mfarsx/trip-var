@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { aiService, HF_MODELS } from "../services/aiService";
+import { aiService, AI_MODELS } from "../services/aiService";
 
 export function TextGenerator() {
   const [prompt, setPrompt] = useState("");
@@ -7,8 +7,9 @@ export function TextGenerator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [hfToken, setHfToken] = useState("");
-  const [showTokenInput, setShowTokenInput] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState("");
 
   // Örnek promptlar
   const examplePrompts = [
@@ -23,10 +24,25 @@ export function TextGenerator() {
   ];
 
   useEffect(() => {
-    // .env'den token varsa al
-    const defaultToken = aiService.getHuggingFaceToken();
-    if (defaultToken) {
-      setHfToken(defaultToken);
+    // Check for default API keys
+    const defaultHfToken = import.meta.env.VITE_HF_API_KEY;
+    if (defaultHfToken) {
+      aiService.setApiKey("huggingface", defaultHfToken);
+    }
+
+    const defaultOpenAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (defaultOpenAIKey) {
+      aiService.setApiKey("openai", defaultOpenAIKey);
+    }
+
+    const defaultAnthropicKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (defaultAnthropicKey) {
+      aiService.setApiKey("anthropic", defaultAnthropicKey);
+    }
+
+    const defaultGoogleKey = import.meta.env.VITE_GOOGLE_API_KEY;
+    if (defaultGoogleKey) {
+      aiService.setApiKey("google", defaultGoogleKey);
     }
   }, []);
 
@@ -41,18 +57,18 @@ export function TextGenerator() {
       setResult("");
 
       try {
-        if (selectedModel && !hfToken) {
-          throw new Error("Hugging Face API token&apos;ı gerekli");
+        if (selectedModel) {
+          const model = AI_MODELS[selectedModel];
+          if (model.requiresKey && !aiService.getApiKey(model.provider)) {
+            throw new Error(`${model.name} için API anahtarı gerekli`);
+          }
+
+          if (apiKey) {
+            aiService.setApiKey(model.provider, apiKey);
+          }
         }
 
-        if (hfToken) {
-          aiService.setHuggingFaceToken(hfToken);
-        }
-
-        const response = await aiService.generateText(
-          prompt,
-          selectedModel || null
-        );
+        const response = await aiService.generateText(prompt, selectedModel);
         setResult(response.generated_text);
       } catch (error) {
         setError(error.message);
@@ -60,13 +76,23 @@ export function TextGenerator() {
         setLoading(false);
       }
     },
-    [prompt, selectedModel, hfToken]
+    [prompt, selectedModel, apiKey]
   );
 
   const handleModelChange = (e) => {
     const newModel = e.target.value;
     setSelectedModel(newModel);
-    setShowTokenInput(!aiService.getHuggingFaceToken() && !!newModel);
+
+    if (newModel) {
+      const model = AI_MODELS[newModel];
+      setSelectedProvider(model.provider);
+      setShowApiKeyInput(
+        model.requiresKey && !aiService.getApiKey(model.provider)
+      );
+    } else {
+      setSelectedProvider("");
+      setShowApiKeyInput(false);
+    }
   };
 
   return (
@@ -83,28 +109,31 @@ export function TextGenerator() {
               className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent dark:text-white transition-colors cursor-pointer"
             >
               <option value="">Varsayılan Model</option>
-              {Object.values(HF_MODELS).map((model) => (
-                <option key={model.id} value={model.id}>
+              {Object.entries(AI_MODELS).map(([id, model]) => (
+                <option key={id} value={id}>
                   {model.name}
                 </option>
               ))}
             </select>
           </div>
 
-          {showTokenInput && (
+          {showApiKeyInput && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                Hugging Face API Token
+                {selectedProvider.charAt(0).toUpperCase() +
+                  selectedProvider.slice(1)}{" "}
+                API Anahtarı
               </label>
               <input
                 type="password"
-                value={hfToken}
-                onChange={(e) => setHfToken(e.target.value)}
-                placeholder="hf_xxx..."
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={`${selectedProvider}_xxx...`}
                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent dark:text-white transition-colors"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Token'ı .env dosyasında saklayabilirsiniz: VITE_HF_API_KEY
+                API anahtarını .env dosyasında saklayabilirsiniz: VITE_
+                {selectedProvider.toUpperCase()}_API_KEY
               </p>
             </div>
           )}
@@ -113,10 +142,10 @@ export function TextGenerator() {
         {selectedModel && (
           <div className="bg-violet-50 dark:bg-violet-900/20 p-4 rounded-lg mb-4">
             <h4 className="font-medium text-violet-800 dark:text-violet-300 mb-2">
-              {HF_MODELS[selectedModel].name}
+              {AI_MODELS[selectedModel].name}
             </h4>
             <p className="text-sm text-violet-600 dark:text-violet-400">
-              {HF_MODELS[selectedModel].description}
+              {AI_MODELS[selectedModel].description}
             </p>
           </div>
         )}
@@ -125,7 +154,7 @@ export function TextGenerator() {
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Metin üretmek için bir prompt girin&hellip;"
+            placeholder="Metin üretmek için bir prompt girin..."
             rows={4}
             className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-colors dark:text-white resize-none"
             disabled={loading}

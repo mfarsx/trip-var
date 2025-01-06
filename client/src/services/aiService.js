@@ -1,134 +1,94 @@
-import axios from "axios";
+import fetch from "cross-fetch";
 
-const API_URL = import.meta.env.VITE_API_URL || "/api";
-const HF_API_URL = "https://api-inference.huggingface.co/models";
-const DEFAULT_HF_API_KEY = import.meta.env.VITE_HF_API_KEY;
-
-// Hugging Face için kullanılabilir modeller
-export const HF_MODELS = {
+// AI Model configurations
+export const AI_MODELS = {
   gpt2: {
-    id: "gpt2",
     name: "GPT-2",
-    description: "OpenAI tarafından geliştirilen GPT-2 dil modeli",
-    endpoint: "gpt2",
+    provider: "huggingface",
+    model: "gpt2",
+    description: "OpenAI'ın GPT-2 dil modeli",
+    requiresKey: true,
   },
-  bart: {
-    id: "bart",
-    name: "BART",
-    description: "Facebook tarafından geliştirilen metin üretme modeli",
-    endpoint: "facebook/bart-large",
+  mistral: {
+    name: "Mistral-7B",
+    provider: "mistral",
+    model: "mistralai/Mistral-7B-Instruct-v0.1",
+    description: "Mistral AI'nin 7B parametreli açık kaynak modeli",
+    requiresKey: true,
   },
-  t5: {
-    id: "t5",
-    name: "T5",
-    description: "Google tarafından geliştirilen çok amaçlı dil modeli",
-    endpoint: "google/t5-v1_1-base",
+  llama2: {
+    name: "Llama 2",
+    provider: "meta",
+    model: "meta-llama/Llama-2-70b-chat-hf",
+    description: "Meta'nın Llama 2 70B chat modeli",
+    requiresKey: true,
+  },
+  "llama-3.2-3b-instruct": {
+    name: "Llama 3.2B Instruct",
+    provider: "llm_studio",
+    model: "llama-3.2-3b-instruct",
+    description: "Yerel Llama 3.2B Instruct modeli",
+    requiresKey: false,
   },
 };
 
-// Add request timeout
-const axiosInstance = axios.create({
-  timeout: 30000, // 30 seconds
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
 class AIService {
   constructor() {
-    this.hfToken = DEFAULT_HF_API_KEY || null;
+    this.apiKeys = new Map();
+    this.baseUrl = import.meta.env.VITE_API_URL || "";
   }
 
-  setHuggingFaceToken(token) {
-    this.hfToken = token || DEFAULT_HF_API_KEY;
+  setApiKey(provider, key) {
+    this.apiKeys.set(provider, key);
   }
 
-  getHuggingFaceToken() {
-    return this.hfToken;
+  getApiKey(provider) {
+    return this.apiKeys.get(provider);
   }
 
   async generateText(prompt, modelId = null) {
     try {
-      // Add input validation
-      if (!prompt || typeof prompt !== "string") {
-        throw new Error("Invalid prompt");
+      console.log(
+        `Sending request - Model: ${modelId}, Prompt: ${prompt.substring(
+          0,
+          50
+        )}...`
+      );
+
+      const response = await fetch(`${this.baseUrl}/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          model_id: modelId || "gpt2",
+          max_tokens: 100,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("API Error:", error);
+        throw new Error(error.detail || "API request failed");
       }
 
-      if (prompt.length > 1000) {
-        throw new Error("Prompt too long (max 1000 characters)");
-      }
-
-      if (modelId) {
-        // Hugging Face modeli kullan
-        const model = HF_MODELS[modelId];
-        if (!model) {
-          throw new Error("Geçersiz model seçimi");
-        }
-
-        if (!this.hfToken) {
-          throw new Error(
-            "Hugging Face API token'ı gerekli. Lütfen .env dosyasında VITE_HF_API_KEY'i ayarlayın veya token girişi yapın."
-          );
-        }
-
-        try {
-          const response = await axiosInstance.post(
-            `${HF_API_URL}/${model.endpoint}`,
-            { inputs: prompt },
-            {
-              headers: {
-                Authorization: `Bearer ${this.hfToken}`,
-                "Content-Type": "application/json",
-              },
-              timeout: 60000, // Timeout süresini 60 saniyeye çıkar
-            }
-          );
-
-          // Model yanıtını işle
-          let generatedText = "";
-          if (Array.isArray(response.data)) {
-            generatedText =
-              response.data[0]?.generated_text ||
-              response.data[0] ||
-              response.data;
-          } else {
-            generatedText = response.data.generated_text || response.data;
-          }
-
-          return { generated_text: generatedText };
-        } catch (error) {
-          // Log error in development only
-          if (import.meta.env.DEV) {
-            console.error("Hugging Face API Error:", error);
-          }
-          if (error.response?.status === 401) {
-            throw new Error(
-              "Geçersiz Hugging Face API token'ı. Lütfen token'ınızı kontrol edin."
-            );
-          }
-          throw new Error(`Hugging Face API Hatası: ${error.message}`);
-        }
-      } else {
-        // Varsayılan API'yi kullan
-        try {
-          const response = await axiosInstance.post(`${API_URL}/generate`, {
-            prompt,
-            max_length: 1024,
-            temperature: 0.7,
-          });
-          return response.data;
-        } catch (error) {
-          // Log error in development only
-          if (import.meta.env.DEV) {
-            console.error("Local API Error:", error);
-          }
-          throw new Error(`API Hatası: ${error.message}`);
-        }
-      }
+      const data = await response.json();
+      console.log("API Response:", data);
+      return data;
     } catch (error) {
-      // Improved error handling
-      const errorMessage = error.response?.data?.detail || error.message;
-      throw new Error(`Text generation failed: ${errorMessage}`);
+      console.error("Error generating text:", error);
+      throw error;
+    }
+  }
+
+  async checkHealth() {
+    try {
+      const response = await fetch(`${this.baseUrl}/health`);
+      return response.json();
+    } catch (error) {
+      console.error("Health check failed:", error);
+      return { status: "error", error: error.message };
     }
   }
 }

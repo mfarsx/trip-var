@@ -1,11 +1,12 @@
 import { useState } from "react";
 import axios from "axios";
+import { ModelSelector } from "../components";
 
 export function TextGeneratorPage() {
   const [formData, setFormData] = useState({
     prompt: "",
     temperature: 0.7,
-    model: "llama-3.2-3b-instruct:2",
+    model: "",
   });
   const [generatedText, setGeneratedText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,6 +14,11 @@ export function TextGeneratorPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.model) {
+      setError("Please select an AI model");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
@@ -74,6 +80,11 @@ export function TextGeneratorPage() {
             )}
 
             <form onSubmit={handleSubmit} className="mt-5 space-y-6">
+              <ModelSelector
+                selectedModel={formData.model}
+                onModelChange={handleChange}
+              />
+
               <div>
                 <label
                   htmlFor="prompt"

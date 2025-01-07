@@ -1,8 +1,6 @@
-import fetch from "cross-fetch";
 import config from "../config";
 import { analytics } from "../utils/analytics";
 import { captureError } from "../utils/errorReporting";
-import { requestCache } from "../utils/cache";
 
 // AI Model configurations
 export const AI_MODELS = {
@@ -30,7 +28,7 @@ export const AI_MODELS = {
   "llama-3.2-3b-instruct": {
     name: "Llama 3.2B Instruct",
     provider: "llm_studio",
-    model: "llama-3.2-3b-instruct",
+    model: "llama-3.2-3b-instruct:2",
     description: "Local Llama 3.2B Instruct model",
     requiresKey: false,
   },
@@ -39,7 +37,7 @@ export const AI_MODELS = {
 class AIService {
   constructor() {
     this.apiKeys = new Map();
-    this.baseUrl = `${config.apiUrl}/api/v1`;
+    this.baseUrl = config.ai.apiEndpoint;
   }
 
   setApiKey(provider, key) {
@@ -65,36 +63,37 @@ class AIService {
         },
       ];
 
-      const response = await fetch(
-        "http://localhost:1234/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: modelId || "llama-3.2-3b-instruct:2",
-            messages: messages,
-            temperature: 0.7,
-            max_tokens: -1,
-            stream: false,
-          }),
-        }
-      );
+      const selectedModel = modelId || config.ai.defaultModel;
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: -1,
+          stream: false,
+        }),
+      });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "API request failed");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.detail ||
+            `API request failed with status ${response.status}`
+        );
       }
 
       const data = await response.json();
       const result = {
         generated_text: data.choices[0].message.content,
-        model: modelId || "llama-3.2-3b-instruct:2",
+        model: selectedModel,
       };
 
       // Track successful generation
-      analytics.trackEvent("text_generation", "success", modelId);
+      analytics.trackEvent("text_generation", "success", selectedModel);
       analytics.trackTiming(
         "text_generation",
         "api_call",
@@ -107,7 +106,7 @@ class AIService {
         throw new Error("No internet connection");
       }
       captureError(error, { prompt, modelId });
-      analytics.trackError(error);
+      analytics.trackEvent("text_generation", "error", modelId);
       throw error;
     }
   }
@@ -116,7 +115,7 @@ class AIService {
     try {
       const response = await fetch(`${this.baseUrl}/health`);
       if (!response.ok) {
-        throw new Error("Health check failed");
+        throw new Error(`Health check failed with status ${response.status}`);
       }
       return response.json();
     } catch (error) {

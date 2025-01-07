@@ -5,12 +5,17 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
+      interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 3
       start_period: 10s
+    logging:
+      driver: "local"
+      options:
+        mode: "non-blocking"
     networks:
       - app-network
 
@@ -28,6 +33,19 @@ services:
     environment:
       - MONGODB_URL=mongodb://mongodb:27017
       - MONGODB_NAME=tripvar_db
+      - PYTHONUNBUFFERED=1
+      - PYTHONIOENCODING=UTF-8
+      - LOG_LEVEL=INFO
+    logging:
+      driver: "local"
+      options:
+        mode: "non-blocking"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - app-network
 
@@ -42,6 +60,19 @@ services:
       - /app/node_modules
     depends_on:
       - ai-service
+    environment:
+      - NODE_ENV=development
+      - DEBUG=app:*
+    logging:
+      driver: "local"
+      options:
+        mode: "non-blocking"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - app-network
 

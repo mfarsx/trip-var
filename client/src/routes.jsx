@@ -1,22 +1,19 @@
 import { Routes, Route } from "react-router-dom";
-import { Login } from "./components/Login";
-import { Signup } from "./components/Signup";
-import { Profile } from "./components/Profile";
-import { TextGenerator } from "./components/TextGenerator";
+import { LoginPage, SignupPage, ProfilePage, TextGeneratorPage } from "./pages";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./components/Layout";
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route
         path="/"
         element={
           <ProtectedRoute>
             <Layout>
-              <TextGenerator />
+              <TextGeneratorPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -26,7 +23,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Profile />
+              <ProfilePage />
             </Layout>
           </ProtectedRoute>
         }

@@ -1,9 +1,8 @@
 """User models."""
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional
 from datetime import datetime
-from bson import ObjectId
 
 class UserBase(BaseModel):
     """Base user model."""
@@ -12,23 +11,50 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """User creation model."""
-    password: str
+    password: str = Field(..., min_length=6)
+    
+    @validator('password')
+    def validate_password(cls, v):
+        if not v or len(v) < 6:
+            raise ValueError('Password must be at least 6 characters')
+        return v
 
-class UserInDB(UserBase):
-    """User database model."""
-    id: str = Field(default_factory=lambda: str(ObjectId()))
-    hashed_password: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    @validator('email')
+    def validate_email(cls, v):
+        if not v or '@' not in v:
+            raise ValueError('Invalid email format')
+        return v
 
     class Config:
-        json_encoders = {ObjectId: str}
+        json_schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "password": "password123",
+                "full_name": "John Doe"
+            }
+        }
 
-class User(UserBase):
+class UserResponse(UserBase):
     """User response model."""
     id: str
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        json_encoders = {ObjectId: str} 
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+class UserInDB(UserBase):
+    """User database model."""
+    id: str
+    hashed_password: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        } 

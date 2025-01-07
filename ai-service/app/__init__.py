@@ -2,45 +2,33 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api import api_router
 from app.core.config import settings
-from app.core.mongodb import connect_to_mongo, close_mongo_connection
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 def create_app() -> FastAPI:
     """Create FastAPI application."""
-    app = FastAPI(
-        title=settings.PROJECT_NAME,
-        version=settings.VERSION,
-        openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    app = FastAPI(title="AI Service API")
+    
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
-
-    # Set up CORS
-    if settings.BACKEND_CORS_ORIGINS:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-
-    # Event handlers
-    @app.on_event("startup")
-    async def startup_event():
-        print("Connecting to MongoDB...")
-        await connect_to_mongo()
-
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        await close_mongo_connection()
-
-    # Health check
-    @app.get(f"{settings.API_V1_STR}/health")
-    async def health_check():
-        """Health check endpoint."""
-        return {"status": "ok"}
-
-    # Include routers
-    from app.api.v1 import api_router
+    
+    # Include API router with prefix from settings
     app.include_router(api_router, prefix=settings.API_V1_STR)
-
+    
+    @app.get("/")
+    async def root():
+        return {"message": "Welcome to AI Service API"}
+    
     return app

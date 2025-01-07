@@ -2,45 +2,76 @@ import config from "../config";
 
 class AuthService {
   constructor() {
-    this.baseUrl = `${config.apiUrl}/api/v1/auth`;
+    this.baseUrl = `${config.apiUrl}${config.apiPath}/auth`;
   }
 
   async login(email, password) {
-    const response = await fetch(`${this.baseUrl}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        username: email, // FastAPI OAuth2 expects 'username'
-        password: password,
-      }),
-    });
+    try {
+      console.log("Attempting login for:", email);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Login failed");
+      const formData = new URLSearchParams();
+      formData.append("username", email);
+      formData.append("password", password);
+
+      const response = await fetch(`${this.baseUrl}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log("Login response:", data);
+
+      if (!response.ok) {
+        const error = data.detail || "Login failed";
+        console.error("Login failed:", error);
+        throw new Error(error);
+      }
+
+      if (data.access_token) {
+        localStorage.setItem("token", data.access_token);
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data;
   }
 
   async register(userData) {
-    const response = await fetch(`${this.baseUrl}/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    });
+    try {
+      const requestData = {
+        email: userData.email,
+        password: userData.password,
+        full_name: userData.full_name,
+      };
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Registration failed");
+      console.log("Sending registration data:", requestData);
+
+      const response = await fetch(`${this.baseUrl}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Registration failed:", data);
+        throw new Error(data.detail || "Registration failed");
+      }
+
+      console.log("Registration successful:", data);
+      return data;
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async getCurrentUser() {

@@ -1,51 +1,50 @@
 version: '3.8'
 
 services:
-  ai-service:
-    build:
-      context: ./ai-service
-      dockerfile: Dockerfile
-    container_name: ai-service
+  mongodb:
+    image: mongo:latest
     ports:
-      - "8000:8000"
-    environment:
-      - SECRET_KEY=${SECRET_KEY}
-      - HF_API_KEY=${HF_API_KEY}
-      - LLM_STUDIO_URL=http://host.docker.internal:1234/v1
-      - BACKEND_CORS_ORIGINS='["http://localhost:5173", "http://localhost:3000"]'
-      - API_V1_STR=/api/v1
+      - "27017:27017"
     volumes:
-      - ./ai-service:/app
-      - ./.env:/app/.env:ro
-    networks:
-      - app-network
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 30s
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 10s
 
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    container_name: client
+  ai-service:
+    build: ./ai-service
     ports:
-      - "5173:5173"
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./ai-service:/app
+    depends_on:
+      mongodb:
+        condition: service_healthy
     environment:
-      - VITE_API_URL=${VITE_API_URL}
+      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_NAME=tripvar_db
+
+  client:
+    build: ./client
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
     volumes:
       - ./client:/app
       - /app/node_modules
-    networks:
-      - app-network
     depends_on:
       - ai-service
 
 networks:
-  app-network:
-    name: ai-network
-    driver: bridge 
+  default:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    name: mongodb_data

@@ -2,32 +2,19 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   plugins: [react()],
-  build: {
-    outDir: "dist",
-    sourcemap: mode === "development",
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ["react", "react-dom"],
-          utils: ["lodash", "cross-fetch"],
-        },
-      },
-    },
-    minify: mode === "production",
-    target: "es2015",
-  },
   server: {
+    port: 3000,
     host: true,
-    port: 5173,
-    proxy: {
-      "/api": {
-        target: process.env.VITE_API_URL || "http://localhost:8000",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
+    watch: {
+      usePolling: true,
+    },
+    historyApiFallback: true,
+  },
+  resolve: {
+    alias: {
+      "@": "/src",
     },
   },
-  base: "/",
-}));
+});

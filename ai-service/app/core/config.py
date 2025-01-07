@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from typing import Optional, List
-from pydantic import validator, field_validator
+from pydantic import validator
+from pydantic import ConfigDict
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
@@ -25,11 +26,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS settings
-    BACKEND_CORS_ORIGINS: List[str] = []
+    BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
     
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
+    model_config = ConfigDict(
+        case_sensitive=True,
+        env_file=".env",
+        extra="allow"
+    )
 
     @validator("SECRET_KEY")
     def secret_key_must_be_set(cls, v):
@@ -37,15 +40,7 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY must be set")
         return v
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
-    def validate_cors_origins(cls, v):
-        if isinstance(v, str):
-            try:
-                if "," in v:
-                    return [i.strip() for i in v.split(",")]
-                return [v.strip()]
-            except Exception:
-                return []
-        return v or []
+settings = Settings()
 
-settings = Settings() 
+def get_cors_origins() -> List[str]:
+    return [origin.strip() for origin in settings.BACKEND_CORS_ORIGINS.split(",") if origin.strip()] 

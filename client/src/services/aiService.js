@@ -51,27 +51,36 @@ class AIService {
   }
 
   async generateText(prompt, modelId = null) {
-    // Check cache first
-    const cachedResult = requestCache.get(prompt, modelId);
-    if (cachedResult) {
-      analytics.trackEvent("text_generation", "cache_hit", modelId);
-      return cachedResult;
-    }
-
     const startTime = performance.now();
     try {
-      const response = await fetch(`${this.baseUrl}/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const messages = [
+        {
+          role: "system",
+          content:
+            "You are a helpful AI assistant. Answer the questions clearly and concisely.",
         },
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          model_id: modelId || "gpt2",
-          max_tokens: 1000,
-          wait_for_completion: true,
-        }),
-      });
+        {
+          role: "user",
+          content: prompt.trim(),
+        },
+      ];
+
+      const response = await fetch(
+        "http://localhost:1234/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: modelId || "llama-3.2-3b-instruct:2",
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: -1,
+            stream: false,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -79,9 +88,10 @@ class AIService {
       }
 
       const data = await response.json();
-
-      // Cache the successful response
-      requestCache.set(prompt, modelId, data);
+      const result = {
+        generated_text: data.choices[0].message.content,
+        model: modelId || "llama-3.2-3b-instruct:2",
+      };
 
       // Track successful generation
       analytics.trackEvent("text_generation", "success", modelId);
@@ -91,7 +101,7 @@ class AIService {
         performance.now() - startTime
       );
 
-      return data;
+      return result;
     } catch (error) {
       if (!navigator.onLine) {
         throw new Error("No internet connection");

@@ -4,9 +4,8 @@ import axios from "axios";
 export function TextGenerator() {
   const [formData, setFormData] = useState({
     prompt: "",
-    maxLength: 100,
     temperature: 0.7,
-    topP: 0.9,
+    model: "llama-3.2-3b-instruct:2",
   });
   const [generatedText, setGeneratedText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,20 +17,30 @@ export function TextGenerator() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/v1/text/generate`,
+      const messages = [
         {
-          prompt: formData.prompt,
-          max_length: formData.maxLength,
-          temperature: formData.temperature,
-          top_p: formData.topP,
+          role: "system",
+          content:
+            "You are a helpful AI assistant. Answer the questions clearly and concisely.",
         },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          role: "user",
+          content: formData.prompt.trim(),
+        },
+      ];
+
+      const response = await axios.post(
+        "http://localhost:1234/v1/chat/completions",
+        {
+          model: formData.model,
+          messages: messages,
+          temperature: formData.temperature,
+          max_tokens: -1,
+          stream: false,
         }
       );
-      setGeneratedText(response.data.generated_text);
+
+      setGeneratedText(response.data.choices[0].message.content);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to generate text");
     } finally {
@@ -82,22 +91,23 @@ export function TextGenerator() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label
-                htmlFor="maxLength"
+                htmlFor="temperature"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Max Length
+                Temperature
               </label>
               <input
                 type="number"
-                id="maxLength"
-                name="maxLength"
-                min="1"
-                max="1000"
+                id="temperature"
+                name="temperature"
+                min="0.1"
+                max="1.0"
+                step="0.1"
                 className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                value={formData.maxLength}
+                value={formData.temperature}
                 onChange={handleChange}
               />
             </div>

@@ -9,6 +9,7 @@ import {
   WrappedTextGeneratorPage,
   WrappedProfilePage,
   WrappedTestUserPage,
+  WrappedHomePage,
 } from "../pages";
 
 // PublicRoute component for login/signup pages
@@ -29,6 +30,15 @@ const PublicRoute = ({ children }) => {
   }
 
   return children;
+};
+
+// ProtectedLayout component that combines Layout and ProtectedRoute
+const ProtectedLayout = ({ children }) => {
+  return (
+    <ProtectedRoute>
+      <Layout>{children}</Layout>
+    </ProtectedRoute>
+  );
 };
 
 export default function AppRoutes() {
@@ -66,31 +76,33 @@ export default function AppRoutes() {
       <Route
         path="/"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <WrappedTextGeneratorPage />
-            </Layout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <WrappedHomePage />
+          </ProtectedLayout>
+        }
+      />
+      <Route
+        path="/text-generator"
+        element={
+          <ProtectedLayout>
+            <WrappedTextGeneratorPage />
+          </ProtectedLayout>
         }
       />
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <WrappedProfilePage />
-            </Layout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <WrappedProfilePage />
+          </ProtectedLayout>
         }
       />
       <Route
         path="/test"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <WrappedTestUserPage />
-            </Layout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <WrappedTestUserPage />
+          </ProtectedLayout>
         }
       />
 

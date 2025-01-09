@@ -1,0 +1,146 @@
+/* Navbar Container */
+.navbar {
+  @apply sticky top-0 z-50;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .navbar {
+  background: rgba(15, 23, 42, 0.95);
+}
+
+/* Logo Animation */
+.navbar-logo {
+  @apply relative flex items-center transition-all duration-200 text-white;
+}
+
+.navbar-logo:hover {
+  @apply transform scale-105;
+}
+
+.navbar-logo::after {
+  content: "";
+  @apply absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg opacity-0 transition-opacity duration-200 -z-10;
+  filter: blur(8px);
+}
+
+.navbar-logo:hover::after {
+  @apply opacity-30;
+}
+
+/* Navigation Items */
+.nav-item {
+  @apply relative flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 text-gray-200 hover:text-white;
+}
+
+.nav-item::before {
+  content: "";
+  @apply absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-md opacity-0 transition-opacity duration-200;
+}
+
+.nav-item:hover::before {
+  @apply opacity-10;
+}
+
+.nav-item-icon {
+  @apply transition-transform duration-200;
+}
+
+.nav-item:hover .nav-item-icon {
+  @apply transform scale-110 rotate-3;
+}
+
+/* User Menu Button */
+.user-menu-button {
+  @apply relative flex items-center transition-all duration-200;
+}
+
+.user-menu-button::before {
+  content: "";
+  @apply absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full opacity-0 transition-opacity duration-200 -z-10;
+  filter: blur(8px);
+}
+
+.user-menu-button:hover::before {
+  @apply opacity-50;
+}
+
+.user-avatar {
+  @apply bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg transition-transform duration-200;
+}
+
+.user-menu-button:hover .user-avatar {
+  @apply transform scale-110;
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+  @apply absolute right-0 mt-2 w-48 rounded-lg shadow-lg divide-y divide-gray-700 ring-1 ring-black ring-opacity-5 transform origin-top-right;
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: dropdown 0.2s ease-out forwards;
+}
+
+.dark .dropdown-menu {
+  background: rgba(15, 23, 42, 0.98);
+}
+
+@keyframes dropdown {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Mobile Menu */
+.mobile-menu {
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: mobileMenu 0.2s ease-out forwards;
+}
+
+.dark .mobile-menu {
+  background: rgba(15, 23, 42, 0.98);
+}
+
+@keyframes mobileMenu {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Menu Items */
+.menu-item {
+  @apply relative flex items-center w-full px-4 py-2 text-sm transition-colors duration-200;
+}
+
+.menu-item::before {
+  content: "";
+  @apply absolute inset-0 bg-current opacity-0 transition-opacity duration-200;
+}
+
+.menu-item:hover::before {
+  @apply opacity-5;
+}
+
+/* Active Indicator */
+.active-indicator {
+  @apply absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full opacity-0 transform scale-0 transition-all duration-200;
+}
+
+.nav-item.active .active-indicator {
+  @apply opacity-100 scale-100;
+}

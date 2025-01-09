@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from app.services.auth import auth_service
-from app.models.user import UserCreate, UserResponse
+from app.domain.services.auth import auth_service
+from app.domain.models.user import UserCreate, UserResponse
 from typing import Dict
 from jose import JWTError, jwt
 from app.core.config import settings

@@ -1,152 +1,107 @@
-import { createContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import PropTypes from "prop-types";
-import { ErrorBoundary } from "../components/ErrorBoundary";
-import { validateToken, getTokenExpiration } from "../utils/authUtils";
-import config from "../config";
+import { authService } from "../services/authService";
+import { logError } from "../utils/logger";
+import { AuthenticationError, NetworkError, handleError } from "../utils/error";
 
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => authService.getUser());
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userData");
-    setUser(null);
-    navigate("/login");
-  }, [navigate]);
-
+  // Check auth status on mount
   useEffect(() => {
-    // Check initial auth state
-    const checkAuth = async () => {
+    const initializeAuth = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const storedUserData = localStorage.getItem("userData");
-
-        if (token && storedUserData) {
-          // Validate token with backend
-          await validateToken(token);
-          setUser(JSON.parse(storedUserData));
+        if (authService.getToken()) {
+          const userData = await authService.checkAuth();
+          setUser(userData);
         }
       } catch (error) {
-        console.error("Auth validation error:", error);
-        localStorage.removeItem("token");
-        localStorage.removeItem("userData");
+        handleError(error, "auth.initialize");
+        authService.clearAuth();
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
+    initializeAuth();
   }, []);
 
-  const login = useCallback(
-    async (token, userData) => {
+  const signup = useCallback(
+    async (userData) => {
+      setLoading(true);
       try {
-        localStorage.setItem("token", token);
-        localStorage.setItem("userData", JSON.stringify(userData));
-        setUser(userData);
-
-        const tokenExp = getTokenExpiration(token);
-        if (tokenExp) {
-          const timeUntilExpiry = tokenExp - Date.now() - 60000; // 1 minute before expiration
-          if (timeUntilExpiry > 0) {
-            setTimeout(logout, timeUntilExpiry);
-          } else {
-            logout();
-          }
-        }
+        const response = await authService.signup(userData);
+        setUser(response.user);
+        navigate("/", { replace: true });
+        return response;
       } catch (error) {
-        console.error("Error setting auth state:", error);
+        handleError(error, "auth.signup");
         throw error;
+      } finally {
+        setLoading(false);
       }
     },
-    [logout]
+    [navigate]
   );
 
-  useEffect(() => {
-    let timeoutId;
-
-    const setupTokenExpiration = () => {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const exp = getTokenExpiration(token);
-        if (exp) {
-          const timeUntilExpiry = exp - Date.now() - 60000;
-          if (timeUntilExpiry > 0) {
-            timeoutId = setTimeout(logout, timeUntilExpiry);
-          } else {
-            logout();
-          }
-        }
-      }
-    };
-
-    setupTokenExpiration();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [logout]);
-
-  const signup = async (userData) => {
+  const login = useCallback(async (email, password) => {
+    setLoading(true);
     try {
-      console.log("Attempting signup with:", userData);
-
-      const response = await fetch(
-        `${config.apiUrl}${config.apiPath}/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: userData.email,
-            password: userData.password,
-            full_name: userData.fullName,
-          }),
-        }
-      );
-
-      console.log("Signup response status:", response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Signup error response:", errorData);
-        throw new Error(errorData.detail || "Registration failed");
-      }
-
-      const data = await response.json();
-      console.log("Signup success:", data);
-      return data;
+      const response = await authService.login(email, password);
+      setUser(response.user);
+      return response;
     } catch (error) {
-      console.error("Signup error:", error);
-      throw error;
+      handleError(error, "auth.login");
+      throw error; // Re-throw to let components handle specific cases
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
+
+  const logout = useCallback(async () => {
+    setLoading(true);
+    try {
+      await authService.logout();
+      setUser(null);
+      navigate("/login", { replace: true });
+    } catch (error) {
+      handleError(error, "auth.logout");
+      // Still clear local state even if server logout fails
+      setUser(null);
+      navigate("/login", { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const userData = await authService.checkAuth();
+      if (userData) {
+        setUser(userData);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      handleError(error, "auth.checkAuth");
+      return false;
+    }
+  }, []);
 
   const value = {
     user,
+    loading,
     login,
     logout,
     signup,
-    loading,
+    checkAuth,
+    isAuthenticated: !!user,
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  return (
-    <ErrorBoundary>
-      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-    </ErrorBoundary>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
-AuthProvider.propTypes = {
-  children: PropTypes.node.isRequired,
-};

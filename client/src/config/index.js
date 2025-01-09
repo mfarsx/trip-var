@@ -1,35 +1,50 @@
 /**
  * Application configuration
- * All environment variables should be defined in .env.example
+ * Using unified .env file at the project root
  */
+
+const getEnvVar = (key, defaultValue = "") => {
+  const value = import.meta.env[key];
+  if (value === undefined && defaultValue === undefined) {
+    console.warn(`Environment variable ${key} is not defined`);
+  }
+  return value ?? defaultValue;
+};
+
 const config = {
   // API Configuration
-  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  apiPath: import.meta.env.VITE_API_PATH || "/api/v1",
-  apiTimeout: parseInt(import.meta.env.VITE_API_TIMEOUT || "30000", 10),
+  api: {
+    url: import.meta.env.VITE_API_URL || "http://localhost:8000",
+    timeout: 10000,
+  },
 
-  // Environment & Version
-  environment: import.meta.env.MODE,
-  isDevelopment: import.meta.env.VITE_DEV_MODE === "true",
-  version: import.meta.env.VITE_APP_VERSION || "1.0.0",
+  // App Settings
+  app: {
+    name: getEnvVar("VITE_APP_NAME", "TripVar"),
+    version: getEnvVar("VITE_APP_VERSION", "1.0.0"),
+  },
 
-  // Error Reporting
-  sentryDsn: import.meta.env.VITE_SENTRY_DSN,
+  // Authentication
+  auth: {
+    tokenKey: getEnvVar("VITE_AUTH_TOKEN_KEY", "tripvar_token"),
+    storageKey: getEnvVar("VITE_AUTH_STORAGE_KEY", "tripvar_auth"),
+  },
 
   // Feature Flags
   features: {
-    enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === "true",
-    enableErrorReporting:
-      import.meta.env.VITE_ENABLE_ERROR_REPORTING === "true",
+    analytics: getEnvVar("VITE_ENABLE_ANALYTICS") === "true",
+    errorReporting: getEnvVar("VITE_ENABLE_ERROR_REPORTING") === "true",
   },
 
-  // Auth Configuration
-  auth: {
-    tokenKey: "token",
-    userDataKey: "userData",
-    googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    githubClientId: import.meta.env.VITE_GITHUB_CLIENT_ID,
+  // Error Reporting
+  sentry: {
+    dsn: getEnvVar("VITE_SENTRY_DSN"),
+    enabled: getEnvVar("VITE_ENABLE_ERROR_REPORTING") === "true",
   },
+
+  // Environment
+  isDevelopment: getEnvVar("VITE_DEV_MODE") === "true",
+  isProduction: import.meta.env.MODE === "production",
 };
 
 export default config;

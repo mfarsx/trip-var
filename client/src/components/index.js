@@ -1,4 +1,6 @@
-export { Layout } from "./Layout";
-export { ProtectedRoute } from "./ProtectedRoute";
+export { default as Layout } from "./Layout";
+export { default as WrappedLayout } from "./Layout";
+export { default as ProtectedRoute } from "./ProtectedRoute";
 export { ErrorBoundary } from "./ErrorBoundary";
-export { ModelSelector } from "./ModelSelector";
+export { ErrorFallback } from "./ErrorFallback";
+export { default as ModelSelector } from "./ModelSelector";

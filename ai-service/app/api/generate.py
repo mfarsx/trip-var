@@ -1,12 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.models.request_models import GenerationRequest
-from app.services.ai_providers import generate_with_huggingface, generate_with_llm_studio
+from app.domain.models.request_models import GenerationRequest
+from app.domain.services.ai_providers import generate_with_huggingface, generate_with_llm_studio
 from app.core.config import settings
 import os
 import requests
 from pydantic import ValidationError
-from app.services.chat_service import chat_service
+from app.domain.services.chat_service import chat_service
 from typing import Optional
+from app.core.exceptions import CustomException
+from app.domain.models.responses import DataResponse
 
 router = APIRouter()
 
@@ -26,10 +28,10 @@ def get_model_config(model_id: str = None):
         }
 
 async def get_api_key():
-    api_key = os.getenv("HF_API_KEY", settings.HF_API_KEY)
-    if not api_key:
-        raise HTTPException(status_code=500, detail="HF_API_KEY not found")
-    return api_key
+    """Get API key from settings"""
+    if not settings.HF_API_KEY:
+        raise HTTPException(status_code=500, detail="HF_API_KEY not configured")
+    return settings.HF_API_KEY
 
 @router.post("/generate")
 async def generate_text(request: GenerationRequest):
@@ -78,7 +80,7 @@ async def generate_text(request: GenerationRequest):
 async def health_check():
     return {
         "status": "healthy",
-        "api_key_configured": bool(settings.DEFAULT_HF_API_KEY)
+        "api_key_configured": bool(settings.HF_API_KEY)
     }
 
 @router.get("/models")

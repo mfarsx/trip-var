@@ -1,7 +1,8 @@
-import { Component } from "react";
+import React from "react";
 import PropTypes from "prop-types";
+import { ErrorFallback } from "./ErrorFallback";
 
-export class ErrorBoundary extends Component {
+export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -12,28 +13,45 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error in development only
-    if (import.meta.env.DEV) {
-      console.error("Error caught by boundary:", error, errorInfo);
+    // Log the error
+    console.error("Error caught by boundary:", error, errorInfo);
+
+    // Call onError prop if provided
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
     }
   }
 
+  resetErrorBoundary = () => {
+    this.setState({ hasError: false, error: null });
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
+  };
+
   render() {
-    if (this.state.hasError) {
+    const { hasError, error } = this.state;
+    const { children, fallback: FallbackComponent = ErrorFallback } =
+      this.props;
+
+    if (hasError) {
       return (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-          <h2 className="text-red-700 dark:text-red-400">
-            Something went wrong
-          </h2>
-          <pre className="text-sm">{this.state.error?.message}</pre>
-        </div>
+        <FallbackComponent
+          error={error}
+          resetErrorBoundary={this.resetErrorBoundary}
+        />
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }
 
 ErrorBoundary.propTypes = {
   children: PropTypes.node.isRequired,
+  fallback: PropTypes.elementType,
+  onError: PropTypes.func,
+  onReset: PropTypes.func,
 };
+
+export default ErrorBoundary;

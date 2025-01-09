@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from app.services.ai_providers import generate_with_huggingface
+from app.domain.services.ai_providers import generate_with_huggingface
 from fastapi import HTTPException
 
 @pytest.mark.asyncio

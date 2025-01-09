@@ -1,11 +1,13 @@
 """Main module for the FastAPI application."""
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import api_router
+from fastapi.responses import JSONResponse
 from app.core.config import settings
-from app.core.middleware import setup_middleware
+from app.core.exceptions import CustomException
+from app.api import api_router
+from app.domain.services.auth import auth_service
 import logging
 from contextlib import asynccontextmanager
 
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.debug("Starting application lifecycle...")
     try:
-        from app.services.auth import auth_service
+        from app.domain.services.auth import auth_service
         await auth_service.init_db()
         logger.info("Database initialized successfully")
         yield
@@ -30,21 +32,22 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     logger.debug("Creating FastAPI application...")
     app = FastAPI(
-        title=settings.PROJECT_NAME,
+        title=settings.APP_NAME,
+        version=settings.APP_VERSION,
         lifespan=lifespan
     )
     
-    # Setup CORS
+    # Setup CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
     
     # Add API router
-    app.include_router(api_router, prefix=settings.API_V1_STR)
+    app.include_router(api_router, prefix=settings.API_V1_PREFIX)
     
     logger.debug("Application created successfully")
     return app
@@ -54,8 +57,8 @@ app = create_app()
 if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="debug"
+        host=settings.HOST,
+        port=settings.PORT,
+        reload=settings.DEBUG,
+        log_level=settings.LOG_LEVEL.lower()
     ) 

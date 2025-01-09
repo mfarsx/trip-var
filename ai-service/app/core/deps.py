@@ -20,7 +20,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
 
     # Import here to avoid circular import
-    from app.services.auth import auth_service
+    from app.domain.services.auth import auth_service
     user = await auth_service.get_user_by_id(user_id)
     if user is None:
         raise credentials_exception

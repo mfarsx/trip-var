@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,10 +11,10 @@ def setup_middleware(app: FastAPI) -> None:
     # CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure this for production
+        allow_origins=settings.ALLOWED_ORIGINS,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=settings.ALLOWED_METHODS,
+        allow_headers=settings.ALLOWED_HEADERS,
     )
 
     @app.middleware("http")

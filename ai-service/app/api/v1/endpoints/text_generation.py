@@ -1,10 +1,10 @@
 """Text generation endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.models.text import TextGenerationRequest, TextGenerationResponse
-from app.services.text_generation import TextGenerationService
-from app.core.deps import get_current_user
-from app.models.user import User
+from app.core.dependencies import get_current_user
+from app.domain.models.text import TextGenerationRequest, TextGenerationResponse
+from app.domain.services.text_generation import TextGenerationService
+from app.domain.models.user import User
 
 router = APIRouter()
 

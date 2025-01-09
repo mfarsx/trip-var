@@ -3,10 +3,7 @@ import sys
 from typing import Dict, Any
 from loguru import logger
 from pathlib import Path
-
-LOG_LEVEL = "INFO"
-JSON_LOGS = True
-LOG_FILE = "logs/app.log"
+from app.core.config import settings
 
 class InterceptHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
@@ -36,12 +33,12 @@ def setup_logging():
         handlers=[
             {
                 "sink": sys.stdout,
-                "level": LOG_LEVEL,
+                "level": settings.LOG_LEVEL,
                 "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
             },
             {
-                "sink": LOG_FILE,
-                "level": LOG_LEVEL,
+                "sink": "logs/app.log",
+                "level": settings.LOG_LEVEL,
                 "rotation": "500 MB",
                 "retention": "1 month",
                 "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"

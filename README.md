@@ -103,3 +103,133 @@ MIT
    ```bash
    docker-compose up --build
    ```
+
+## API Endpoints
+
+### Authentication Endpoints
+
+Base URL: `http://localhost:8000/api/v1`
+
+#### 1. Register User
+
+```http
+POST /auth/register
+Content-Type: application/json
+
+Request Body:
+{
+    "email": "test@example.com",
+    "password": "password123",
+    "full_name": "Test User"
+}
+
+Response (201 Created):
+{
+    "user": {
+        "id": "user_id",
+        "email": "test@example.com",
+        "full_name": "Test User",
+        "created_at": "2024-01-08T10:00:00Z"
+    },
+    "access_token": "jwt_token_here"
+}
+```
+
+#### 2. Login
+
+```http
+POST /auth/login
+Content-Type: application/json
+
+Request Body:
+{
+    "username": "test@example.com",
+    "password": "password123"
+}
+
+Response (200 OK):
+{
+    "access_token": "jwt_token_here",
+    "token_type": "bearer",
+    "user": {
+        "id": "user_id",
+        "email": "test@example.com",
+        "full_name": "Test User"
+    }
+}
+
+Error Responses:
+// 422 Unprocessable Entity
+{
+    "detail": [
+        {
+            "type": "missing",
+            "loc": ["body", "username"],
+            "msg": "Field required",
+            "input": null
+        }
+    ]
+}
+
+// 401 Unauthorized
+{
+    "detail": "Incorrect username or password"
+}
+```
+
+#### 3. Verify Token
+
+```http
+GET /auth/verify
+Authorization: Bearer your_jwt_token_here
+
+Response (200 OK):
+{
+    "user": {
+        "id": "user_id",
+        "email": "test@example.com",
+        "full_name": "Test User"
+    }
+}
+```
+
+#### 4. Logout
+
+```http
+POST /auth/logout
+Authorization: Bearer your_jwt_token_here
+
+Response (200 OK):
+{
+    "message": "Successfully logged out"
+}
+```
+
+### Testing with Postman
+
+1. Create a new environment in Postman with these variables:
+
+   - `base_url`: http://localhost:8000/api/v1
+   - `token`: (will be set after login)
+
+2. Test sequence:
+
+   ```bash
+   # 1. Register a new user
+   POST {{base_url}}/auth/register
+
+   # 2. Login with the registered user
+   POST {{base_url}}/auth/login
+   Body: {
+       "username": "test@example.com",
+       "password": "password123"
+   }
+
+   # 3. Save the token from the login response
+   # In "Tests" tab of the login request:
+   pm.environment.set("token", pm.response.json().access_token);
+
+   # 4. Use the token for authenticated requests
+   GET {{base_url}}/auth/verify
+   Authorization: Bearer {{token}}
+   ```

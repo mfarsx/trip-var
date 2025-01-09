@@ -1,126 +1,65 @@
 import config from "../config";
-import { analytics } from "../utils/analytics";
-import { captureError } from "../utils/errorReporting";
-
-// AI Model configurations
-export const AI_MODELS = {
-  gpt2: {
-    name: "GPT-2",
-    provider: "huggingface",
-    model: "gpt2",
-    description: "OpenAI's GPT-2 language model",
-    requiresKey: true,
-  },
-  mistral: {
-    name: "Mistral-7B",
-    provider: "mistral",
-    model: "mistralai/Mistral-7B-Instruct-v0.1",
-    description: "Mistral AI's open source 7B parameter model",
-    requiresKey: true,
-  },
-  llama2: {
-    name: "Llama 2",
-    provider: "meta",
-    model: "meta-llama/Llama-2-70b-chat-hf",
-    description: "Meta's Llama 2 70B chat model",
-    requiresKey: true,
-  },
-  "llama-3.2-3b-instruct": {
-    name: "Llama 3.2B Instruct",
-    provider: "llm_studio",
-    model: "llama-3.2-3b-instruct:2",
-    description: "Local Llama 3.2B Instruct model",
-    requiresKey: false,
-  },
-};
+import { logInfo } from "../utils/logger";
 
 class AIService {
   constructor() {
-    this.apiKeys = new Map();
-    this.baseUrl = config.ai.apiEndpoint;
+    this.baseUrl = `${config.api.url}${config.api.path}/text`;
+    logInfo("AIService initialized", "ai.init", { baseUrl: this.baseUrl });
   }
 
-  setApiKey(provider, key) {
-    this.apiKeys.set(provider, key);
-  }
-
-  getApiKey(provider) {
-    return this.apiKeys.get(provider);
-  }
-
-  async generateText(prompt, modelId = null) {
-    const startTime = performance.now();
+  async generateText(prompt, systemPrompt = null) {
     try {
-      const messages = [
-        {
-          role: "system",
-          content:
-            "You are a helpful AI assistant. Answer the questions clearly and concisely.",
-        },
-        {
-          role: "user",
-          content: prompt.trim(),
-        },
-      ];
+      logInfo("Generating text", "ai.generate", { prompt });
 
-      const selectedModel = modelId || config.ai.defaultModel;
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      const response = await fetch(`${this.baseUrl}/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem(config.auth.tokenKey)}`,
         },
         body: JSON.stringify({
-          model: selectedModel,
-          messages: messages,
-          temperature: 0.7,
-          max_tokens: -1,
-          stream: false,
+          prompt,
+          system_prompt: systemPrompt,
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.detail ||
-            `API request failed with status ${response.status}`
-        );
-      }
-
       const data = await response.json();
-      const result = {
-        generated_text: data.choices[0].message.content,
-        model: selectedModel,
-      };
 
-      // Track successful generation
-      analytics.trackEvent("text_generation", "success", selectedModel);
-      analytics.trackTiming(
-        "text_generation",
-        "api_call",
-        performance.now() - startTime
-      );
-
-      return result;
-    } catch (error) {
-      if (!navigator.onLine) {
-        throw new Error("No internet connection");
+      if (!response.ok) {
+        throw new Error(data.detail || "Text generation failed");
       }
-      captureError(error, { prompt, modelId });
-      analytics.trackEvent("text_generation", "error", modelId);
+
+      return data.text;
+    } catch (error) {
+      logInfo("Text generation failed", "ai.generate", {
+        error: error.message,
+      });
       throw error;
     }
   }
 
-  async checkHealth() {
+  async getHistory() {
     try {
-      const response = await fetch(`${this.baseUrl}/health`);
+      logInfo("Getting history", "ai.history");
+
+      const response = await fetch(`${this.baseUrl}/history`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem(config.auth.tokenKey)}`,
+        },
+      });
+
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(`Health check failed with status ${response.status}`);
+        throw new Error(data.detail || "Failed to get history");
       }
-      return response.json();
+
+      return data;
     } catch (error) {
-      console.error("Health check failed:", error);
-      return { status: "error", error: error.message };
+      logInfo("Failed to get history", "ai.history", { error: error.message });
+      throw error;
     }
   }
 }

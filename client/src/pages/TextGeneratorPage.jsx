@@ -1,157 +1,147 @@
-import { useState } from "react";
-import axios from "axios";
-import { ModelSelector } from "../components";
+import React, { useState } from "react";
+import PropTypes from "prop-types";
+import { withErrorHandling, NetworkError } from "../utils/error";
+import { useErrorHandler } from "../hooks/useErrorHandler";
+import { logError } from "../utils/logger";
 
 export function TextGeneratorPage() {
-  const [formData, setFormData] = useState({
-    prompt: "",
-    temperature: 0.7,
-    model: "",
-  });
+  const [text, setText] = useState("");
   const [generatedText, setGeneratedText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { error, setError, clearError } = useErrorHandler("text-generator");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.model) {
-      setError("Please select an AI model");
+    if (!text.trim()) {
+      setError("Please enter some text to generate from");
       return;
     }
 
-    setError("");
     setLoading(true);
+    clearError();
 
     try {
-      const messages = [
-        {
-          role: "system",
-          content:
-            "You are a helpful AI assistant. Answer the questions clearly and concisely.",
+      // TODO: Replace with actual API call
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          role: "user",
-          content: formData.prompt.trim(),
-        },
-      ];
+        body: JSON.stringify({ text }),
+      });
 
-      const response = await axios.post(
-        "http://localhost:1234/v1/chat/completions",
-        {
-          model: formData.model,
-          messages: messages,
-          temperature: formData.temperature,
-          max_tokens: -1,
-          stream: false,
-        }
-      );
+      if (!response.ok) {
+        throw new NetworkError("Failed to generate text");
+      }
 
-      setGeneratedText(response.data.choices[0].message.content);
-    } catch (err) {
-      setError(err.response?.data?.detail || "Failed to generate text");
+      const data = await response.json();
+      setGeneratedText(data.generated_text);
+    } catch (error) {
+      logError("Failed to generate text", "text-generator.submit", {
+        error: error?.message,
+        text_length: text.length,
+      });
+      setError(error.message || "Failed to generate text. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleTextChange = (e) => {
+    setText(e.target.value);
+    if (error) {
+      clearError();
+    }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 shadow sm:rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-              Text Generator
-            </h3>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+        Text Generator
+      </h1>
 
-            {error && (
-              <div className="mt-4 rounded-md bg-red-50 dark:bg-red-900/50 p-4">
-                <div className="text-sm text-red-700 dark:text-red-200">
-                  {error}
-                </div>
-              </div>
-            )}
+      {error && (
+        <div className="rounded-md bg-red-50 dark:bg-red-900/50 p-4 mb-4">
+          <div className="text-sm text-red-700 dark:text-red-200">{error}</div>
+        </div>
+      )}
 
-            <form onSubmit={handleSubmit} className="mt-5 space-y-6">
-              <ModelSelector
-                selectedModel={formData.model}
-                onModelChange={handleChange}
-              />
-
-              <div>
-                <label
-                  htmlFor="prompt"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label
+            htmlFor="text-input"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
+            Input Text
+          </label>
+          <textarea
+            id="text-input"
+            value={text}
+            onChange={handleTextChange}
+            className="w-full h-32 p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            placeholder="Enter your text here..."
+            disabled={loading}
+          />
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          >
+            {loading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
                 >
-                  Prompt
-                </label>
-                <textarea
-                  id="prompt"
-                  name="prompt"
-                  rows={4}
-                  required
-                  className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                  placeholder="Enter your prompt here..."
-                  value={formData.prompt}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="temperature"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    Temperature
-                  </label>
-                  <input
-                    type="number"
-                    id="temperature"
-                    name="temperature"
-                    min="0.1"
-                    max="1.0"
-                    step="0.1"
-                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                    value={formData.temperature}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
-                  disabled={loading}
-                >
-                  {loading ? "Generating..." : "Generate"}
-                </button>
-              </div>
-            </form>
-
-            {generatedText && (
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Generated Text
-                </h4>
-                <div className="mt-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-md">
-                  <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-                    {generatedText}
-                  </p>
-                </div>
-              </div>
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              "Generate"
             )}
+          </button>
+        </div>
+      </form>
+
+      {generatedText && (
+        <div className="mt-8">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+            Generated Text
+          </h2>
+          <div className="bg-white dark:bg-gray-800 shadow overflow-hidden rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                {generatedText}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
+
+TextGeneratorPage.propTypes = {
+  error: PropTypes.string,
+  onError: PropTypes.func,
+  clearError: PropTypes.func,
+};
+
+export default withErrorHandling(TextGeneratorPage, "text-generator");

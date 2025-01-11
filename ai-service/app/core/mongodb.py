@@ -1,91 +1,81 @@
-from typing import Optional
+"""MongoDB database connection and management."""
+
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from tenacity import retry, stop_after_attempt, wait_exponential
-from loguru import logger
-from app.core.config import settings
+from contextlib import asynccontextmanager
+import logging
+from app.core.config import get_settings
+from app.core.exceptions import AppException
+
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
 class MongoDB:
-    """MongoDB client manager class."""
+    """MongoDB client manager."""
     _instance = None
-    _client: Optional[AsyncIOMotorClient] = None
-    _is_connected: bool = False
+    _client: AsyncIOMotorClient = None  # Initialize as None
+    _db: AsyncIOMotorDatabase = None    # Initialize as None
     
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(MongoDB, cls).__new__(cls)
+            # Initialize instance attributes
+            cls._instance._client = None
+            cls._instance._db = None
         return cls._instance
     
     @property
     def client(self) -> AsyncIOMotorClient:
         """Get MongoDB client instance."""
-        if not self._client:
-            raise ConnectionError("MongoDB client not initialized")
+        if self._client is None:
+            self._init_client()
         return self._client
     
     @property
-    def is_connected(self) -> bool:
-        """Get connection status."""
-        return self._is_connected
-    
-    @property
     def db(self) -> AsyncIOMotorDatabase:
-        """Get database instance with lazy loading."""
-        if not self._client:
-            raise ConnectionError("MongoDB client not initialized")
-        return self._client[settings.MONGODB_NAME]
+        """Get database instance."""
+        if self._db is None:
+            self._init_client()
+        return self._db
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
+    def _init_client(self) -> None:
+        """Initialize MongoDB client."""
+        try:
+            self._client = AsyncIOMotorClient(
+                settings.MONGODB_URL,
+                maxPoolSize=settings.MAX_CONNECTIONS_COUNT,
+                minPoolSize=settings.MIN_CONNECTIONS_COUNT,
+                serverSelectionTimeoutMS=5000
+            )
+            self._db = self._client[settings.DATABASE_NAME]
+            logger.info("MongoDB connection initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize MongoDB: {str(e)}")
+            raise AppException("Database connection failed")
 
     async def verify_connection(self) -> bool:
-        """Verify MongoDB connection with ping."""
-        if not self._client:
-            return False
+        """Verify database connection is alive."""
         try:
-            await self._client.admin.command('ping', timeout=5)
+            await self.db.command('ping')
             return True
-        except (ConnectionFailure, ServerSelectionTimeoutError, TimeoutError) as e:
-            logger.error(f"Connection verification failed: {str(e)}")
+        except Exception as e:
+            logger.error(f"MongoDB connection verification failed: {str(e)}")
             return False
 
-@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=20))
-async def connect_to_mongo() -> None:
-    """Connect to MongoDB with retry logic."""
+# Convenience functions
+async def get_db() -> AsyncIOMotorDatabase:
+    """Get database instance."""
+    return MongoDB().db
+
+@asynccontextmanager
+async def get_db_session():
+    """Get database session context manager."""
     try:
-        if not settings.MONGODB_URL:
-            raise ValueError("MONGODB_URL is not set")
-            
-        mongo = MongoDB()
-        mongo._client = AsyncIOMotorClient(
-            settings.MONGODB_URL,
-            maxPoolSize=settings.MONGODB_MAX_POOL_SIZE,
-            minPoolSize=settings.MONGODB_MIN_POOL_SIZE,
-            serverSelectionTimeoutMS=10000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=20000,
-            waitQueueTimeoutMS=10000
-        )
-        await mongo._client.admin.command('ping')
-        mongo._is_connected = True
-        logger.info(f"Successfully connected to MongoDB at {settings.MONGODB_URL}")
-    except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-        mongo._is_connected = False
-        logger.error(f"Failed to connect to MongoDB at {settings.MONGODB_URL}: {str(e)}")
-        raise
+        yield await get_db()
     except Exception as e:
-        mongo._is_connected = False
-        logger.error(f"Unexpected error connecting to MongoDB: {str(e)}")
-        raise
-
-async def close_mongo_connection() -> None:
-    """Close MongoDB connection safely."""
-    mongo = MongoDB()
-    if mongo._client:
-        mongo._client.close()
-        mongo._is_connected = False
-        logger.info("MongoDB connection closed")
-
-def get_database() -> AsyncIOMotorDatabase:
-    """Get MongoDB database instance."""
-    mongo = MongoDB()
-    if not mongo._client:
-        raise ConnectionError("MongoDB client not initialized")
-    return mongo._client[settings.MONGODB_NAME] 
+        logger.error(f"Database session error: {str(e)}")
+        raise 

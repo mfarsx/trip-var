@@ -32,10 +32,9 @@ services:
         condition: service_healthy
     environment:
       - MONGODB_URL=mongodb://mongodb:27017
-      - MONGODB_NAME=tripvar_db
-      - PYTHONUNBUFFERED=1
-      - PYTHONIOENCODING=UTF-8
-      - LOG_LEVEL=INFO
+      - DATABASE_NAME=ai_service
+      - DEBUG=true
+      - LOG_LEVEL=debug
     logging:
       driver: "local"
       options:

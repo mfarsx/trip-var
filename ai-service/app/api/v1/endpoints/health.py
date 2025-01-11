@@ -1,17 +1,46 @@
-from fastapi import APIRouter, HTTPException, status
-from app.domain.services.auth import auth_service
-from typing import Dict
+"""Health check endpoints."""
 
+from fastapi import APIRouter, Depends, Response, status
+from app.core.mongodb import MongoDB
+from app.core.config import get_settings
+import logging
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
+settings = get_settings()
 
-@router.get("/db", response_model=Dict[str, str])
-async def check_db_health():
-    """Check database connection health."""
+@router.get("")
+async def health_check():
+    """Basic health check endpoint"""
+    return {
+        "status": "healthy",
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT
+    }
+
+@router.get("/db")
+async def db_health_check():
+    """Database connection health check"""
     try:
-        await auth_service.init_db()
-        return {"status": "healthy"}
+        mongodb = MongoDB()
+        is_connected = await mongodb.verify_connection()
+        
+        if not is_connected:
+            logger.error("Database health check failed - could not connect")
+            return Response(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content="Database connection failed"
+            )
+            
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "database_name": settings.DATABASE_NAME
+        }
+        
     except Exception as e:
-        raise HTTPException(
+        logger.error(f"Database health check failed: {str(e)}", exc_info=True)
+        return Response(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Database health check failed: {str(e)}"
+            content=f"Database error: {str(e)}"
         ) 

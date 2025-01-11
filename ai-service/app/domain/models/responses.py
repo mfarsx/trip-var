@@ -1,44 +1,25 @@
-"""Common response models."""
+"""Standard API response models."""
 
-from typing import TypeVar, Generic, Optional, List, Dict, Any
+from typing import Generic, TypeVar, Optional, List, Dict, Any
 from pydantic import BaseModel
 
 T = TypeVar('T')
 
-class TokenData(BaseModel):
-    """Token data model."""
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int = 3600  # 1 hour in seconds
-
-class DataResponse(BaseModel, Generic[T]):
-    """Generic data response model."""
-    success: bool = True
+class ResponseBase(BaseModel):
+    """Base response model."""
+    success: bool
     message: str
-    data: T
-    errors: Optional[List[Dict[str, Any]]] = None
-    code: Optional[str] = None
-    status_code: Optional[int] = None
-
-class PaginatedResponse(BaseModel, Generic[T]):
-    """Generic paginated response model."""
-    success: bool = True
-    message: str
+    
+class DataResponse(ResponseBase, Generic[T]):
+    """Response model with data."""
+    data: Optional[T] = None
+    
+class ListResponse(ResponseBase, Generic[T]):
+    """Response model for list data with pagination."""
     data: List[T]
-    total: int
-    page: int
-    size: int
-    pages: int
-    errors: Optional[List[Dict[str, Any]]] = None
-    code: Optional[str] = None
-    status_code: Optional[int] = None
-
-class AuthResponse(BaseModel, Generic[T]):
-    """Generic authentication response model."""
-    success: bool = True
-    message: str
-    data: T
-    token: Optional[TokenData] = None
-    errors: Optional[List[Dict[str, Any]]] = None
-    code: Optional[str] = None
-    status_code: Optional[int] = None 
+    meta: Dict[str, Any] = {
+        "page": 1,
+        "per_page": 10,
+        "total": 0,
+        "pages": 1
+    } 

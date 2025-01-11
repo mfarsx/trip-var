@@ -1,30 +1,19 @@
 import { useState, useCallback } from "react";
-import {
-  ValidationError,
-  NetworkError,
-  AuthenticationError,
-  handleError,
-} from "../utils/error";
+import { ValidationError } from "../utils/error";
 
 export const useErrorHandler = (context = null) => {
   const [error, setError] = useState(null);
 
   const handleErrorWithContext = useCallback(
     (error) => {
-      handleError(error, context);
-
-      let userMessage = "An unexpected error occurred";
-
+      // Form validasyon hataları için özel mesaj
       if (error instanceof ValidationError) {
-        userMessage = error.message;
-      } else if (error instanceof NetworkError) {
-        userMessage =
-          "Unable to connect to server. Please check your internet connection.";
-      } else if (error instanceof AuthenticationError) {
-        userMessage = "Authentication failed. Please try again.";
+        setError(error.message);
+        return;
       }
 
-      setError(userMessage);
+      // Backend'den gelen hata mesajını kullan
+      setError(error.message);
     },
     [context]
   );

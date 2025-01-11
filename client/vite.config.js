@@ -11,6 +11,15 @@ export default defineConfig({
       usePolling: true,
     },
     historyApiFallback: true,
+    proxy: {
+      [process.env.VITE_API_PATH]: {
+        target: process.env.VITE_API_URL,
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) =>
+          path.replace(new RegExp(`^${process.env.VITE_API_PATH}`), ""),
+      },
+    },
   },
   resolve: {
     alias: {

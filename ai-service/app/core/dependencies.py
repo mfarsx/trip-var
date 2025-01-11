@@ -1,61 +1,70 @@
-from typing import Annotated, Optional
-from fastapi import Depends, Request, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from app.core.exceptions import AuthenticationError, NotFoundError
-from app.domain.services.auth import auth_service
-from app.core.security import verify_token
-from app.domain.models.user import UserInDB
-import logging
-from app.core.config import settings
+"""Core dependencies."""
 
-logger = logging.getLogger(__name__)
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from app.core.config import get_settings
+from app.core.mongodb import MongoDB
+from app.core.security import verify_token
+from app.domain.models.user import User
+from app.domain.services.text_generation import TextGenerationService
+from bson import ObjectId
+
+settings = get_settings()
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/api/v1/auth/login",
+    tokenUrl=f"{settings.API_PREFIX}/auth/login",
     scheme_name="JWT"
 )
 
-async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)]
-) -> UserInDB:
-    """Dependency to get the current authenticated user."""
+async def get_db():
+    """Get database instance."""
+    return MongoDB().db
+
+async def get_text_generator() -> TextGenerationService:
+    """Get text generation service instance."""
+    return TextGenerationService()
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    """Get current authenticated user."""
     try:
         user_id = await verify_token(token)
         if not user_id:
-            raise AuthenticationError("Invalid token")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token"
+            )
             
-        user = await auth_service.get_user_by_id(user_id)
-        if not user:
-            raise NotFoundError("User not found")
+        # Get user from database
+        db = MongoDB().db
+        user_data = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
             
-        return user
+        return User(**{**user_data, "id": str(user_data["_id"])})
+        
     except Exception as e:
-        logger.error(f"Error getting current user: {str(e)}", exc_info=True)
-        raise AuthenticationError("Failed to authenticate user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials"
+        )
 
-async def get_optional_user(
-    token: Annotated[Optional[str], Depends(oauth2_scheme)]
-) -> Optional[UserInDB]:
-    """Dependency to get the current user if authenticated, None otherwise."""
-    try:
-        if not token:
-            return None
-        return await get_current_user(token)
-    except:
-        return None
-
-async def get_active_user(
-    current_user: Annotated[UserInDB, Depends(get_current_user)]
-) -> UserInDB:
-    """Dependency to get the current user and verify they are active."""
-    if not current_user.is_active:
-        raise AuthenticationError("Inactive user")
+async def get_verified_user(current_user: User = Depends(get_current_user)) -> User:
+    """Get verified user."""
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not verified"
+        )
     return current_user
 
-async def get_verified_user(
-    current_user: Annotated[UserInDB, Depends(get_active_user)]
-) -> UserInDB:
-    """Dependency to get the current user and verify they are verified."""
-    if not current_user.is_verified:
-        raise AuthenticationError("User not verified")
+async def get_active_user(current_user: User = Depends(get_current_user)) -> User:
+    """Get active user."""
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not active"
+        )
     return current_user 

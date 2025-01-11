@@ -1,28 +1,23 @@
 import jwt_decode from "jwt-decode";
 import config from "../config";
+import axios from "./axiosConfig";
+import { asyncHandler } from "./apiUtils";
 
-export const validateToken = async (token) => {
-  try {
-    const response = await fetch(
-      `${config.apiUrl}${config.apiPath}/auth/validate-token`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Invalid token");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Token validation error:", error);
-    throw new Error("Invalid token");
-  }
+export const validateToken = (token) => {
+  return asyncHandler(
+    "validate-token",
+    () =>
+      axios
+        .post(
+          `${config.apiUrl}${config.apiPath}/auth/validate-token`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        )
+        .then((response) => response.data),
+    "auth"
+  );
 };
 
 export const getTokenExpiration = (token) => {

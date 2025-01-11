@@ -1,28 +1,11 @@
 import { Navigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { authService } from "../services/authService";
 import PropTypes from "prop-types";
+import { useAuth } from "../context/AuthContext";
 
 export function ProtectedRoute({ children }) {
-  const [isValid, setIsValid] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    const validateAuth = async () => {
-      try {
-        const user = await authService.checkAuth();
-        setIsValid(!!user);
-      } catch (error) {
-        setIsValid(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    validateAuth();
-  }, []);
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 dark:border-indigo-400"></div>
@@ -30,7 +13,7 @@ export function ProtectedRoute({ children }) {
     );
   }
 
-  if (!isValid) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 

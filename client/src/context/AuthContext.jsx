@@ -1,107 +1,125 @@
-import React, { createContext, useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  createContext,
+  useState,
+  useContext,
+  useCallback,
+  useEffect,
+} from "react";
 import { authService } from "../services/authService";
-import { logError } from "../utils/logger";
-import { AuthenticationError, NetworkError, handleError } from "../utils/error";
 
 export const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => authService.getUser());
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Check auth status on mount
+  // Initial auth check
   useEffect(() => {
-    const initializeAuth = async () => {
+    let isMounted = true;
+
+    const checkAuth = async () => {
       try {
-        if (authService.getToken()) {
-          const userData = await authService.checkAuth();
-          setUser(userData);
+        const response = await authService.checkAuth();
+        if (isMounted) {
+          setUser(response.user);
+          setIsAuthenticated(true);
+          setError(null);
         }
       } catch (error) {
-        handleError(error, "auth.initialize");
-        authService.clearAuth();
-        setUser(null);
+        if (isMounted) {
+          setUser(null);
+          setIsAuthenticated(false);
+          setError(error.message);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    initializeAuth();
+    // Sadece login sayfasında değilsek auth check yapalım
+    if (!window.location.pathname.includes("/login")) {
+      checkAuth();
+    } else {
+      setLoading(false);
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const signup = useCallback(
-    async (userData) => {
-      setLoading(true);
-      try {
-        const response = await authService.signup(userData);
-        setUser(response.user);
-        navigate("/", { replace: true });
-        return response;
-      } catch (error) {
-        handleError(error, "auth.signup");
-        throw error;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [navigate]
-  );
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
-  const login = useCallback(async (email, password) => {
-    setLoading(true);
+  const signup = useCallback(async (userData) => {
     try {
-      const response = await authService.login(email, password);
+      const response = await authService.signup(userData);
       setUser(response.user);
+      setIsAuthenticated(true);
+      setError(null);
       return response;
     } catch (error) {
-      handleError(error, "auth.login");
-      throw error; // Re-throw to let components handle specific cases
-    } finally {
-      setLoading(false);
+      setError(error.message);
+      throw error;
+    }
+  }, []);
+
+  const login = useCallback(async (credentials) => {
+    try {
+      const response = await authService.login(credentials);
+      setUser(response.user);
+      setIsAuthenticated(true);
+      setError(null);
+      return response;
+    } catch (error) {
+      setError(error.message);
+      throw error;
     }
   }, []);
 
   const logout = useCallback(async () => {
-    setLoading(true);
     try {
       await authService.logout();
       setUser(null);
-      navigate("/login", { replace: true });
+      setIsAuthenticated(false);
+      setError(null);
     } catch (error) {
-      handleError(error, "auth.logout");
-      // Still clear local state even if server logout fails
-      setUser(null);
-      navigate("/login", { replace: true });
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  const checkAuth = useCallback(async () => {
-    try {
-      const userData = await authService.checkAuth();
-      if (userData) {
-        setUser(userData);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      handleError(error, "auth.checkAuth");
-      return false;
+      setError(error.message);
+      throw error;
     }
   }, []);
 
   const value = {
     user,
     loading,
+    isAuthenticated,
+    error,
+    clearError,
+    signup,
     login,
     logout,
-    signup,
-    checkAuth,
-    isAuthenticated: !!user,
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 dark:border-indigo-400"></div>
+      </div>
+    );
+  }
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};

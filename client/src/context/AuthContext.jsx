@@ -12,26 +12,52 @@ export const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    authService.isAuthenticated()
+  );
   const [error, setError] = useState(null);
+
+  const checkAuthStatus = useCallback(async () => {
+    if (!authService.isAuthenticated()) {
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+      return false;
+    }
+
+    try {
+      const response = await authService.checkAuth();
+      setUser(response.user);
+      setIsAuthenticated(true);
+      setError(null);
+      return true;
+    } catch (error) {
+      setUser(null);
+      setIsAuthenticated(false);
+      if (error.response?.status === 401) {
+        authService._clearAuthData();
+      }
+      if (error.response?.status !== 401) {
+        setError(error.message);
+      }
+      return false;
+    }
+  }, []);
 
   // Initial auth check
   useEffect(() => {
     let isMounted = true;
+    const publicRoutes = ["/login", "/signup", "/forgot-password"];
 
     const checkAuth = async () => {
       try {
-        const response = await authService.checkAuth();
-        if (isMounted) {
-          setUser(response.user);
-          setIsAuthenticated(true);
-          setError(null);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setUser(null);
-          setIsAuthenticated(false);
-          setError(error.message);
+        if (
+          authService.isAuthenticated() &&
+          !publicRoutes.some((route) =>
+            window.location.pathname.includes(route)
+          )
+        ) {
+          await checkAuthStatus();
         }
       } finally {
         if (isMounted) {
@@ -40,23 +66,23 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    // Sadece login sayfasında değilsek auth check yapalım
-    if (!window.location.pathname.includes("/login")) {
-      checkAuth();
-    } else {
-      setLoading(false);
-    }
+    checkAuth();
+
+    // Set up periodic auth check every 5 minutes
+    const authCheckInterval = setInterval(checkAuthStatus, 5 * 60 * 1000);
 
     return () => {
       isMounted = false;
+      clearInterval(authCheckInterval);
     };
-  }, []);
+  }, [checkAuthStatus]);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
   const signup = useCallback(async (userData) => {
+    setLoading(true);
     try {
       const response = await authService.signup(userData);
       setUser(response.user);
@@ -66,10 +92,13 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       setError(error.message);
       throw error;
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   const login = useCallback(async (credentials) => {
+    setLoading(true);
     try {
       const response = await authService.login(credentials);
       setUser(response.user);
@@ -79,10 +108,13 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       setError(error.message);
       throw error;
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   const logout = useCallback(async () => {
+    setLoading(true);
     try {
       await authService.logout();
       setUser(null);
@@ -91,6 +123,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       setError(error.message);
       throw error;
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -103,6 +137,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     login,
     logout,
+    checkAuthStatus,
   };
 
   if (loading) {

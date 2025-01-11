@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import config from "../config";
 
 const isDevelopment = process.env.NODE_ENV === "development";
@@ -16,16 +17,22 @@ const errorReporter = isDevelopment
   ? mockErrorReporting
   : {
       init: () => {
-        // Sentry will be initialized in production only
-        console.log("Production error reporting initialized");
+        if (!config.sentryDsn) {
+          console.error("Sentry DSN not configured");
+          return;
+        }
+        Sentry.init({
+          dsn: config.sentryDsn,
+          environment: config.environment || "production",
+          release: config.version,
+          tracesSampleRate: 1.0,
+        });
       },
-      captureException: () => {
-        // Will be replaced with real implementation in production
-        console.error("Error reporting not available in development");
+      captureException: (error, options) => {
+        Sentry.captureException(error, options);
       },
-      captureMessage: () => {
-        // Will be replaced with real implementation in production
-        console.log("Error reporting not available in development");
+      captureMessage: (message, options) => {
+        Sentry.captureMessage(message, options);
       },
     };
 

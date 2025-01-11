@@ -11,6 +11,7 @@ import {
   WrappedTestUserPage,
   WrappedHomePage,
 } from "../pages";
+import LoadingSpinner from "../components/ui/LoadingSpinner";
 
 // PublicRoute component for login/signup pages
 const PublicRoute = ({ children }) => {
@@ -19,7 +20,7 @@ const PublicRoute = ({ children }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100"></div>
+        <LoadingSpinner size="12" />
       </div>
     );
   }
@@ -47,7 +48,7 @@ export default function AppRoutes() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100"></div>
+        <LoadingSpinner />
       </div>
     );
   }

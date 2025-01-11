@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth.jsx";
 import {
   ValidationError,
   NetworkError,
@@ -15,22 +15,57 @@ export function LoginPage() {
     email: "",
     password: "",
   });
+  const [touched, setTouched] = useState({
+    email: false,
+    password: false,
+  });
   const [loading, setLoading] = useState(false);
   const { error, setError, clearError } = useErrorHandler("login");
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, isAuthenticated } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const redirectTo = location.state?.from?.pathname || "/";
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
+
+  const getValidationError = useCallback(
+    (field) => {
+      if (!touched[field]) return "";
+
+      switch (field) {
+        case "email":
+          if (!formData.email?.trim()) return "Email is required";
+          if (!formData.email.includes("@")) return "Invalid email format";
+          return "";
+        case "password":
+          if (!formData.password?.trim()) return "Password is required";
+          if (formData.password.length < 6)
+            return "Password must be at least 6 characters";
+          return "";
+        default:
+          return "";
+      }
+    },
+    [formData, touched]
+  );
+
+  const handleBlur = useCallback((e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  }, []);
 
   const validateForm = useCallback(() => {
-    if (!formData.email?.trim()) {
-      throw new ValidationError("Email is required");
-    }
-    if (!formData.password?.trim()) {
-      throw new ValidationError("Password is required");
-    }
-    if (!formData.email.includes("@")) {
-      throw new ValidationError("Invalid email format");
-    }
-  }, [formData]);
+    const emailError = getValidationError("email");
+    const passwordError = getValidationError("password");
+
+    if (emailError) throw new ValidationError(emailError);
+    if (passwordError) throw new ValidationError(passwordError);
+  }, [getValidationError]);
 
   const handleSubmit = wrapWithErrorHandler(async (e) => {
     e.preventDefault();
@@ -40,12 +75,16 @@ export function LoginPage() {
     try {
       validateForm();
       await login(formData);
-      navigate("/");
+      // Navigation is handled by the useEffect above
     } catch (error) {
       if (error instanceof ValidationError) {
         setError(error.message);
+      } else if (error instanceof NetworkError) {
+        setError("Network error. Please check your connection.");
+      } else if (error instanceof AuthenticationError) {
+        setError("Invalid email or password.");
       } else {
-        setError(error.message);
+        setError("An unexpected error occurred. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -56,51 +95,13 @@ export function LoginPage() {
     (e) => {
       const { name, value } = e.target;
       setFormData((prev) => ({ ...prev, [name]: value }));
-      if (error) setError(null);
+      if (error) clearError();
     },
-    [error]
+    [error, clearError]
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="hidden sm:block sm:absolute sm:inset-y-0 sm:h-full sm:w-full">
-        <div className="relative h-full max-w-7xl mx-auto">
-          <svg
-            className="absolute right-full transform translate-y-1/4 translate-x-1/4 lg:translate-x-1/2"
-            width="404"
-            height="784"
-            fill="none"
-            viewBox="0 0 404 784"
-          >
-            <defs>
-              <pattern
-                id="f210dbf6-a58d-4871-961e-36d5016a0f49"
-                x="0"
-                y="0"
-                width="20"
-                height="20"
-                patternUnits="userSpaceOnUse"
-              >
-                <rect
-                  x="0"
-                  y="0"
-                  width="4"
-                  height="4"
-                  className="text-gray-200 dark:text-gray-700"
-                  fill="currentColor"
-                />
-              </pattern>
-            </defs>
-            <rect
-              width="404"
-              height="784"
-              fill="url(#f210dbf6-a58d-4871-961e-36d5016a0f49)"
-            />
-          </svg>
-        </div>
-      </div>
-
       <div className="relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 transform transition-all hover:scale-[1.01]">
           <div>
@@ -120,7 +121,7 @@ export function LoginPage() {
             </div>
           )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
             <div className="rounded-md -space-y-px">
               <div className="mb-4">
                 <label
@@ -135,12 +136,22 @@ export function LoginPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200"
+                  className={`appearance-none relative block w-full px-3 py-2 border ${
+                    touched.email && getValidationError("email")
+                      ? "border-red-300 dark:border-red-600"
+                      : "border-gray-300 dark:border-gray-600"
+                  } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200`}
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   disabled={loading}
                 />
+                {touched.email && getValidationError("email") && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {getValidationError("email")}
+                  </p>
+                )}
               </div>
               <div>
                 <label
@@ -155,12 +166,22 @@ export function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200"
+                  className={`appearance-none relative block w-full px-3 py-2 border ${
+                    touched.password && getValidationError("password")
+                      ? "border-red-300 dark:border-red-600"
+                      : "border-gray-300 dark:border-gray-600"
+                  } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200`}
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   disabled={loading}
                 />
+                {touched.password && getValidationError("password") && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {getValidationError("password")}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -171,8 +192,27 @@ export function LoginPage() {
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transform transition-all duration-200 hover:scale-[1.02]"
               >
                 {loading ? (
-                  <div className="flex items-center">
-                    <div className="loading-spinner mr-2" />
+                  <div className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
                     Signing in...
                   </div>
                 ) : (
@@ -181,13 +221,23 @@ export function LoginPage() {
               </button>
             </div>
 
-            <div className="text-center">
-              <Link
-                to="/signup"
-                className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200"
-              >
-                Don't have an account? Sign up
-              </Link>
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <Link
+                  to="/forgot-password"
+                  className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
+              <div className="text-sm">
+                <Link
+                  to="/signup"
+                  className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                  Create an account
+                </Link>
+              </div>
             </div>
           </form>
         </div>

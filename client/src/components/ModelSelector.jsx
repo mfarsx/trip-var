@@ -1,6 +1,12 @@
+"use client";
+
+import { memo } from "react";
 import { AI_MODELS } from "../services/aiService";
 
-export function ModelSelector({ selectedModel, onModelChange }) {
+export const ModelSelector = memo(function ModelSelector({
+  selectedModel,
+  onModelChange,
+}) {
   return (
     <div>
       <label
@@ -30,4 +36,4 @@ export function ModelSelector({ selectedModel, onModelChange }) {
       )}
     </div>
   );
-}
+});

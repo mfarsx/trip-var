@@ -1,16 +1,13 @@
 import { Navigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { useAuth } from "../context/AuthContext";
+import LoadingSpinner from "./ui/LoadingSpinner";
 
 export function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500 dark:border-indigo-400"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!user) {

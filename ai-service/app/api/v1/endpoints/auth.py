@@ -74,12 +74,19 @@ async def get_current_user_info(current_user = Depends(get_current_user)):
 
 @router.get("/verify", response_model=TokenVerifyResponse)
 @router.post("/verify", response_model=TokenVerifyResponse)
-async def verify_access_token(token: str = Depends(get_current_user)):
+async def verify_access_token(current_user = Depends(get_current_user)):
     """Verify an access token and return the user information."""
-    return TokenVerifyResponse(
-        is_valid=True,
-        user=UserResponse.from_user(token)
-    )
+    try:
+        return TokenVerifyResponse(
+            is_valid=True,
+            user=UserResponse.from_user(current_user)
+        )
+    except Exception as e:
+        logger.error(f"Token verification failed: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
 
 @router.post("/logout", response_model=LogoutResponse)
 async def logout(current_user = Depends(get_current_user)):

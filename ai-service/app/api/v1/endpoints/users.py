@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId, errors as bson_errors
 
 from app.core.mongodb import get_db
@@ -31,8 +31,8 @@ async def create_user(user: UserCreate, db: AsyncIOMotorDatabase = Depends(get_d
         "hashed_password": get_password_hash(user.password),
         "is_active": True,
         "is_verified": False,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
     }
     
     result = await db.users.insert_one(user_doc)
@@ -116,7 +116,7 @@ async def update_user(user_id: str, user_update: UserUpdate, db: AsyncIOMotorDat
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
     
-    update_data["updated_at"] = datetime.utcnow()
+    update_data["updated_at"] = datetime.now(timezone.utc)
     
     await db.users.update_one(
         {"_id": ObjectId(user_id)},

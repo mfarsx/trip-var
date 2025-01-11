@@ -74,7 +74,9 @@ class AuthService:
                 logger.warning(f"Failed login attempt for email: {email}")
                 return None
                 
-            return User.model_validate(user)
+            # Convert UserInDB to User by excluding hashed_password
+            user_dict = user.model_dump(exclude={'hashed_password'})
+            return User(**user_dict)
             
         except Exception as e:
             logger.error(f"Authentication error: {str(e)}", exc_info=True)

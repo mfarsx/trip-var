@@ -13,10 +13,7 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error
     console.error("Error caught by boundary:", error, errorInfo);
-
-    // Call onError prop if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }

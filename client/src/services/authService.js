@@ -31,9 +31,18 @@ class AuthService {
     return asyncHandler(
       "login",
       async () => {
-        const response = await axios.post("/api/v1/auth/login", credentials);
-        this._handleAuthResponse(response.data);
-        return response.data;
+        try {
+          const response = await axios.post("/api/v1/auth/login", credentials);
+          if (response.data?.access_token) {
+            this._handleAuthResponse(response.data);
+            return response.data;
+          } else {
+            throw new Error("Invalid response from server");
+          }
+        } catch (error) {
+          this._clearAuthData(); // Clear any existing auth data on login failure
+          throw error;
+        }
       },
       "auth"
     );
@@ -67,9 +76,9 @@ class AuthService {
   }
 
   _handleAuthResponse(data) {
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      this.setAuthHeader(data.token);
+    if (data.access_token) {
+      localStorage.setItem("token", data.access_token);
+      this.setAuthHeader(data.access_token);
     }
   }
 
@@ -83,11 +92,16 @@ class AuthService {
   }
 
   setAuthHeader(token) {
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    } else {
+      delete axios.defaults.headers.common["Authorization"];
+    }
   }
 
   isAuthenticated() {
-    return !!this.getStoredToken();
+    const token = this.getStoredToken();
+    return !!token;
   }
 }
 

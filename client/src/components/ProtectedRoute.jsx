@@ -1,16 +1,16 @@
 import { Navigate } from "react-router-dom";
 import PropTypes from "prop-types";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import LoadingSpinner from "./ui/LoadingSpinner";
 
 export function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 

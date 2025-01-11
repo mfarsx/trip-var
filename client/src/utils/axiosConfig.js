@@ -12,7 +12,7 @@ const instance = axios.create({
 instance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
-    if (token) {
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -32,11 +32,19 @@ instance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // Clear token and redirect to login if needed
-      if (window.location.pathname !== "/login") {
+      // Only clear token and redirect if not already on login page
+      if (!window.location.pathname.includes("/login")) {
         localStorage.removeItem("token");
         delete instance.defaults.headers.common["Authorization"];
-        window.location.href = "/login";
+
+        // Use history.pushState to avoid reload
+        window.history.pushState({}, "", "/login");
+        // Dispatch a custom event to notify the app of the auth change
+        window.dispatchEvent(
+          new CustomEvent("authStateChange", {
+            detail: { authenticated: false },
+          })
+        );
       }
     }
 

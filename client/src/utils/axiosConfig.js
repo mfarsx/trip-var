@@ -28,24 +28,22 @@ instance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If the error is 401 and we haven't retried yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Only handle 401s for non-auth endpoints and when token is actually expired
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes("/auth/") &&
+      error.response?.data?.detail?.includes("expired")
+    ) {
       originalRequest._retry = true;
+      localStorage.removeItem("token");
+      delete instance.defaults.headers.common["Authorization"];
 
-      // Only clear token and redirect if not already on login page
-      if (!window.location.pathname.includes("/login")) {
-        localStorage.removeItem("token");
-        delete instance.defaults.headers.common["Authorization"];
-
-        // Use history.pushState to avoid reload
-        window.history.pushState({}, "", "/login");
-        // Dispatch a custom event to notify the app of the auth change
-        window.dispatchEvent(
-          new CustomEvent("authStateChange", {
-            detail: { authenticated: false },
-          })
-        );
-      }
+      window.dispatchEvent(
+        new CustomEvent("authStateChange", {
+          detail: { authenticated: false },
+        })
+      );
     }
 
     return Promise.reject(error);

@@ -3,7 +3,10 @@ import { asyncHandler } from "../utils/apiUtils";
 
 class AuthService {
   constructor() {
-    // Initialize axios headers with stored token if exists
+    this.initializeAuth();
+  }
+
+  initializeAuth() {
     const token = this.getStoredToken();
     if (token) {
       this.setAuthHeader(token);
@@ -15,13 +18,26 @@ class AuthService {
     return asyncHandler(
       "register",
       async () => {
-        const response = await axios.post("/api/v1/auth/register", {
-          email,
-          password,
-          full_name,
-        });
-        this._handleAuthResponse(response.data);
-        return response.data;
+        try {
+          const response = await axios.post("/api/v1/auth/register", {
+            email,
+            password,
+            full_name,
+          });
+
+          const data = this._normalizeAuthResponse(response.data);
+          if (data) {
+            this._handleAuthResponse(data);
+            return data;
+          }
+          throw new Error("Invalid response from server");
+        } catch (error) {
+          this._clearAuthData();
+          if (error.response?.data?.detail) {
+            throw new Error(error.response.data.detail);
+          }
+          throw error;
+        }
       },
       "auth"
     );
@@ -33,14 +49,17 @@ class AuthService {
       async () => {
         try {
           const response = await axios.post("/api/v1/auth/login", credentials);
-          if (response.data?.access_token) {
-            this._handleAuthResponse(response.data);
-            return response.data;
-          } else {
-            throw new Error("Invalid response from server");
+          const data = this._normalizeAuthResponse(response.data);
+          if (data) {
+            this._handleAuthResponse(data);
+            return data;
           }
+          throw new Error("Invalid response from server");
         } catch (error) {
-          this._clearAuthData(); // Clear any existing auth data on login failure
+          this._clearAuthData();
+          if (error.response?.data?.detail) {
+            throw new Error(error.response.data.detail);
+          }
           throw error;
         }
       },
@@ -52,8 +71,11 @@ class AuthService {
     return asyncHandler(
       "logout",
       async () => {
-        await axios.post("/api/v1/auth/logout");
-        this._clearAuthData();
+        try {
+          await axios.post("/api/v1/auth/logout");
+        } finally {
+          this._clearAuthData();
+        }
       },
       "auth"
     );
@@ -62,17 +84,39 @@ class AuthService {
   async checkAuth() {
     const token = this.getStoredToken();
     if (!token) {
-      throw new Error("No token found");
+      return { user: null };
     }
 
     return asyncHandler(
       "check",
       async () => {
-        const response = await axios.get("/api/v1/auth/me");
-        return response.data;
+        try {
+          const response = await axios.get("/api/v1/auth/me");
+          return response.data;
+        } catch (error) {
+          if (
+            error.response?.status === 401 &&
+            error.response?.data?.detail?.includes("expired")
+          ) {
+            this._clearAuthData();
+          }
+          throw error;
+        }
       },
       "auth"
     );
+  }
+
+  _normalizeAuthResponse(data) {
+    if (data?.access_token) {
+      return data;
+    } else if (data?.token) {
+      return {
+        ...data,
+        access_token: data.token,
+      };
+    }
+    return null;
   }
 
   _handleAuthResponse(data) {

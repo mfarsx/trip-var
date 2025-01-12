@@ -23,26 +23,35 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuthStatus = useCallback(async () => {
-    if (!authService.isAuthenticated()) {
-      updateState({ user: null, loading: false });
-      return false;
-    }
-
     try {
+      if (!authService.isAuthenticated()) {
+        updateState({ user: null, loading: false });
+        return false;
+      }
+
       const response = await authService.checkAuth();
       if (response?.user) {
-        updateState({ user: response.user, error: null });
+        updateState({ user: response.user, error: null, loading: false });
         return true;
       }
+
+      // Keep the token if we just don't have user data
+      updateState({ user: null, loading: false });
       return false;
     } catch (error) {
-      updateState({ user: null });
-      if (error.response?.status === 401) {
+      console.error("Auth check failed:", error);
+      // Only clear auth data if token is expired
+      if (
+        error.response?.status === 401 &&
+        error.response?.data?.detail?.includes("expired")
+      ) {
         authService._clearAuthData();
+        updateState({ user: null, loading: false, error: error.message });
+      } else {
+        // For other errors, keep the token but update the state
+        updateState({ user: null, loading: false, error: error.message });
       }
       return false;
-    } finally {
-      updateState({ loading: false });
     }
   }, [updateState]);
 
@@ -50,17 +59,8 @@ export const AuthProvider = ({ children }) => {
     let isMounted = true;
 
     const checkAuth = async () => {
-      if (!authService.isAuthenticated()) {
-        updateState({ loading: false });
-        return;
-      }
-
-      try {
+      if (isMounted) {
         await checkAuthStatus();
-      } finally {
-        if (isMounted) {
-          updateState({ loading: false });
-        }
       }
     };
 
@@ -69,25 +69,52 @@ export const AuthProvider = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [checkAuthStatus, updateState]);
+  }, [checkAuthStatus]);
 
   useEffect(() => {
-    const handleAuthStateChange = (event) => {
-      const { authenticated } = event.detail;
-      if (!authenticated) {
-        updateState({ user: null });
+    const handleStorageChange = (event) => {
+      if (event.key === "token") {
+        checkAuthStatus();
       }
     };
 
+    const handleAuthStateChange = (event) => {
+      if (!event.detail.authenticated) {
+        updateState({ user: null, loading: false });
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
     window.addEventListener("authStateChange", handleAuthStateChange);
+
     return () => {
+      window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("authStateChange", handleAuthStateChange);
     };
-  }, [updateState]);
+  }, [checkAuthStatus, updateState]);
+
+  const signup = useCallback(
+    async (userData) => {
+      updateState({ loading: true, error: null });
+      try {
+        const response = await authService.signup(userData);
+        if (response?.user) {
+          updateState({ user: response.user, error: null });
+        }
+        return response;
+      } catch (error) {
+        updateState({ error: error.message });
+        throw error;
+      } finally {
+        updateState({ loading: false });
+      }
+    },
+    [updateState]
+  );
 
   const login = useCallback(
     async (credentials) => {
-      updateState({ loading: true });
+      updateState({ loading: true, error: null });
       try {
         const response = await authService.login(credentials);
         if (response?.user) {
@@ -119,9 +146,10 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     ...state,
-    isAuthenticated: !!state.user,
+    isAuthenticated: authService.isAuthenticated() || !!state.user,
     login,
     logout,
+    signup,
     checkAuthStatus,
   };
 

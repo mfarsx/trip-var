@@ -17,6 +17,12 @@ export function SignupPage() {
     confirmPassword: "",
     full_name: "",
   });
+  const [touched, setTouched] = useState({
+    email: false,
+    password: false,
+    confirmPassword: false,
+    full_name: false,
+  });
   const [loading, setLoading] = useState(false);
   const { error, setError, clearError } = useErrorHandler("signup");
   const navigate = useNavigate();
@@ -63,10 +69,53 @@ export function SignupPage() {
     }
   };
 
+  const handleBlur = useCallback((e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  }, []);
+
+  const getFieldError = useCallback(
+    (field) => {
+      if (!touched[field]) return "";
+
+      switch (field) {
+        case "email":
+          if (!formData.email?.trim()) return "Email is required";
+          if (!formData.email.includes("@")) return "Invalid email format";
+          return "";
+        case "password":
+          if (!formData.password?.trim()) return "Password is required";
+          if (formData.password.length < 8)
+            return "Password must be at least 8 characters";
+          return "";
+        case "confirmPassword":
+          if (!formData.confirmPassword?.trim())
+            return "Please confirm your password";
+          if (formData.password !== formData.confirmPassword)
+            return "Passwords do not match";
+          return "";
+        case "full_name":
+          if (!formData.full_name?.trim()) return "Full name is required";
+          return "";
+        default:
+          return "";
+      }
+    },
+    [formData, touched]
+  );
+
   const handleSubmit = wrapWithErrorHandler(async (e) => {
     e.preventDefault();
     setLoading(true);
     clearError();
+
+    // Set all fields as touched to show validation errors
+    setTouched({
+      email: true,
+      password: true,
+      confirmPassword: true,
+      full_name: true,
+    });
 
     try {
       validateForm();
@@ -75,8 +124,14 @@ export function SignupPage() {
     } catch (error) {
       if (error instanceof ValidationError) {
         setError(error.message);
-      } else {
+      } else if (error instanceof NetworkError) {
+        setError("Unable to connect to server. Please check your connection.");
+      } else if (error instanceof AuthenticationError) {
         setError(error.message);
+      } else {
+        setError(
+          error.message || "Failed to create account. Please try again."
+        );
       }
     } finally {
       setLoading(false);
@@ -97,44 +152,6 @@ export function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="hidden sm:block sm:absolute sm:inset-y-0 sm:h-full sm:w-full">
-        <div className="relative h-full max-w-7xl mx-auto">
-          <svg
-            className="absolute left-full transform -translate-y-1/4 -translate-x-1/4 lg:-translate-x-1/2"
-            width="404"
-            height="784"
-            fill="none"
-            viewBox="0 0 404 784"
-          >
-            <defs>
-              <pattern
-                id="f210dbf6-a58d-4871-961e-36d5016a0f49"
-                x="0"
-                y="0"
-                width="20"
-                height="20"
-                patternUnits="userSpaceOnUse"
-              >
-                <rect
-                  x="0"
-                  y="0"
-                  width="4"
-                  height="4"
-                  className="text-gray-200 dark:text-gray-700"
-                  fill="currentColor"
-                />
-              </pattern>
-            </defs>
-            <rect
-              width="404"
-              height="784"
-              fill="url(#f210dbf6-a58d-4871-961e-36d5016a0f49)"
-            />
-          </svg>
-        </div>
-      </div>
-
       <div className="relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 transform transition-all hover:scale-[1.01]">
           <div>
@@ -154,7 +171,7 @@ export function SignupPage() {
             </div>
           )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
             <div className="rounded-md -space-y-px">
               <div className="mb-4">
                 <label
@@ -169,12 +186,22 @@ export function SignupPage() {
                   type="text"
                   autoComplete="name"
                   required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200"
+                  className={`appearance-none relative block w-full px-3 py-2 border ${
+                    touched.full_name && getFieldError("full_name")
+                      ? "border-red-300 dark:border-red-600"
+                      : "border-gray-300 dark:border-gray-600"
+                  } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200`}
                   placeholder="Enter your full name"
                   value={formData.full_name}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   disabled={loading}
                 />
+                {touched.full_name && getFieldError("full_name") && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {getFieldError("full_name")}
+                  </p>
+                )}
               </div>
               <div className="mb-4">
                 <label
@@ -189,12 +216,22 @@ export function SignupPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200"
+                  className={`appearance-none relative block w-full px-3 py-2 border ${
+                    touched.email && getFieldError("email")
+                      ? "border-red-300 dark:border-red-600"
+                      : "border-gray-300 dark:border-gray-600"
+                  } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200`}
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   disabled={loading}
                 />
+                {touched.email && getFieldError("email") && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {getFieldError("email")}
+                  </p>
+                )}
               </div>
               <div className="mb-4">
                 <label
@@ -209,12 +246,22 @@ export function SignupPage() {
                   type="password"
                   autoComplete="new-password"
                   required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200"
+                  className={`appearance-none relative block w-full px-3 py-2 border ${
+                    touched.password && getFieldError("password")
+                      ? "border-red-300 dark:border-red-600"
+                      : "border-gray-300 dark:border-gray-600"
+                  } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200`}
                   placeholder="Create a password"
                   value={formData.password}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   disabled={loading}
                 />
+                {touched.password && getFieldError("password") && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {getFieldError("password")}
+                  </p>
+                )}
               </div>
               <div>
                 <label
@@ -229,12 +276,23 @@ export function SignupPage() {
                   type="password"
                   autoComplete="new-password"
                   required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200"
+                  className={`appearance-none relative block w-full px-3 py-2 border ${
+                    touched.confirmPassword && getFieldError("confirmPassword")
+                      ? "border-red-300 dark:border-red-600"
+                      : "border-gray-300 dark:border-gray-600"
+                  } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200`}
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   disabled={loading}
                 />
+                {touched.confirmPassword &&
+                  getFieldError("confirmPassword") && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {getFieldError("confirmPassword")}
+                    </p>
+                  )}
               </div>
             </div>
 
@@ -245,8 +303,27 @@ export function SignupPage() {
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transform transition-all duration-200 hover:scale-[1.02]"
               >
                 {loading ? (
-                  <div className="flex items-center">
-                    <div className="loading-spinner mr-2" />
+                  <div className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
                     Creating account...
                   </div>
                 ) : (

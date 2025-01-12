@@ -1,53 +1,23 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Navbar } from "./Navbar";
 import { ErrorBoundaryWithFallback } from "../utils/error/errorHandler";
-import { logError } from "../utils/logger";
 
 export function Layout({ children }) {
-  const { isAuthenticated, checkAuth, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    let mounted = true;
-
-    const validateAuth = async () => {
-      try {
-        if (mounted) {
-          const isValid = await checkAuth();
-          if (!isValid) {
-            logError("User not authenticated", "layout.auth");
-            navigate("/login", { replace: true });
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        if (mounted) {
-          logError("Auth validation failed", "layout.auth", {
-            error: error?.message,
-          });
-          navigate("/login", { replace: true });
-          setLoading(false);
-        }
-      }
-    };
-
-    if (!isAuthenticated && !authLoading) {
-      validateAuth();
-    } else {
-      setLoading(false);
+    // Only redirect if we're not loading and not authenticated
+    if (!authLoading && !isAuthenticated) {
+      navigate("/login", { replace: true });
     }
+  }, [isAuthenticated, navigate, authLoading]);
 
-    return () => {
-      mounted = false;
-    };
-  }, [isAuthenticated, checkAuth, navigate, authLoading]);
-
-  if (loading || authLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
         <div className="relative">
@@ -60,14 +30,19 @@ export function Layout({ children }) {
     );
   }
 
+  // Only render the layout if we're authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <ErrorBoundaryWithFallback>
+    <ErrorBoundaryWithFallback>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           {children}
-        </div>
-      </ErrorBoundaryWithFallback>
-    </div>
+        </main>
+      </div>
+    </ErrorBoundaryWithFallback>
   );
 }

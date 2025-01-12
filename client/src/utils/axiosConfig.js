@@ -1,7 +1,10 @@
 import axios from "axios";
+import config from "../config";
+import { AUTH_STORAGE_KEYS, AUTH_EVENTS } from "../constants/auth";
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000",
+  baseURL: config.api.url,
+  timeout: config.api.timeout,
   headers: {
     "Content-Type": "application/json",
   },
@@ -11,7 +14,7 @@ const instance = axios.create({
 // Request interceptor
 instance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(AUTH_STORAGE_KEYS.TOKEN);
     if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -28,6 +31,18 @@ instance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle network errors
+    if (!error.response) {
+      return Promise.reject(
+        new Error("Network error occurred. Please check your connection.")
+      );
+    }
+
+    // Handle timeout errors
+    if (error.code === "ECONNABORTED") {
+      return Promise.reject(new Error("Request timeout. Please try again."));
+    }
+
     // Only handle 401s for non-auth endpoints and when token is actually expired
     if (
       error.response?.status === 401 &&
@@ -36,11 +51,15 @@ instance.interceptors.response.use(
       error.response?.data?.detail?.includes("expired")
     ) {
       originalRequest._retry = true;
-      localStorage.removeItem("token");
+
+      // Clear auth data
+      localStorage.removeItem(AUTH_STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(AUTH_STORAGE_KEYS.USER);
       delete instance.defaults.headers.common["Authorization"];
 
+      // Notify about auth state change
       window.dispatchEvent(
-        new CustomEvent("authStateChange", {
+        new CustomEvent(AUTH_EVENTS.AUTH_STATE_CHANGE, {
           detail: { authenticated: false },
         })
       );

@@ -10,14 +10,11 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
-    historyApiFallback: true,
     proxy: {
-      [process.env.VITE_API_PATH]: {
-        target: process.env.VITE_API_URL,
+      "/api/v1": {
+        target: "http://ai-service:8000",
         changeOrigin: true,
         secure: false,
-        rewrite: (path) =>
-          path.replace(new RegExp(`^${process.env.VITE_API_PATH}`), ""),
       },
     },
   },

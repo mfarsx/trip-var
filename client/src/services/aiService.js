@@ -6,7 +6,7 @@ import { useState } from "react";
 
 class AIService {
   constructor() {
-    this.baseUrl = `${config.api.url}${config.api.path}/text`;
+    this.baseUrl = `${config.api.url}${config.api.path}/text-generation`;
     logInfo("AIService initialized", "ai.init", { baseUrl: this.baseUrl });
   }
 
@@ -17,9 +17,11 @@ class AIService {
         axios
           .post(`${this.baseUrl}/generate`, {
             prompt,
-            system_prompt: systemPrompt,
+            max_tokens: 100,
+            temperature: 0.7,
+            model: "phi-4",
           })
-          .then((response) => response.data.text),
+          .then((response) => response.data.data),
       "ai"
     );
   }

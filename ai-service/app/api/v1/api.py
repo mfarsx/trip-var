@@ -1,7 +1,7 @@
 """API router configuration."""
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, users, health
+from app.api.v1.endpoints import auth, users, health, text_generation, travel
 
 # Initialize main API router
 api_router = APIRouter()
@@ -23,4 +23,16 @@ api_router.include_router(
     health.router,
     prefix="/health",
     tags=["Health"]
+)
+
+api_router.include_router(
+    text_generation.router,
+    prefix="/text-generation",
+    tags=["Text Generation"]
+)
+
+api_router.include_router(
+    travel.router,
+    prefix="/travel",
+    tags=["Travel Planning"]
 ) 

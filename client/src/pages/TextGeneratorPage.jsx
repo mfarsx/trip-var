@@ -7,15 +7,16 @@ import { ApiError } from "../utils/error";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 
 export function TextGeneratorPage() {
-  const [text, setText] = useState("");
+  const [systemMessage, setSystemMessage] = useState("");
+  const [userMessage, setUserMessage] = useState("");
   const [generatedText, setGeneratedText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { error, setError, clearError } = useErrorHandler("text-generator");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!text.trim()) {
-      setError("Please enter some text to generate from");
+    if (!userMessage.trim()) {
+      setError("Please enter a message");
       return;
     }
 
@@ -23,6 +24,18 @@ export function TextGeneratorPage() {
     clearError();
 
     try {
+      const messages = [];
+      if (systemMessage.trim()) {
+        messages.push({
+          role: "system",
+          content: systemMessage.trim(),
+        });
+      }
+      messages.push({
+        role: "user",
+        content: userMessage.trim(),
+      });
+
       const response = await fetch(
         `${import.meta.env.VITE_API_PATH}/text-generation/generate`,
         {
@@ -34,11 +47,10 @@ export function TextGeneratorPage() {
             )}`,
           },
           body: JSON.stringify({
-            prompt: text.trim(),
-            max_length: 100,
+            messages,
+            max_tokens: 100,
             temperature: 0.7,
-            top_p: 0.9,
-            model: import.meta.env.VITE_DEFAULT_MODEL || "gpt2",
+            model: "phi-4",
           }),
         }
       );
@@ -54,7 +66,15 @@ export function TextGeneratorPage() {
       }
 
       const data = await response.json();
-      setGeneratedText(data.generated_text);
+      if (!data.success) {
+        throw new ApiError(
+          data.message || "Failed to generate text",
+          response.status,
+          "TEXT_GENERATION_ERROR",
+          { response: data }
+        );
+      }
+      setGeneratedText(data.data.text);
     } catch (error) {
       const apiError =
         error instanceof ApiError
@@ -67,7 +87,8 @@ export function TextGeneratorPage() {
             );
 
       logError(apiError, "text-generator.submit", {
-        text_length: text.length,
+        system_message_length: systemMessage.length,
+        user_message_length: userMessage.length,
       });
 
       setError(apiError.message);
@@ -76,11 +97,14 @@ export function TextGeneratorPage() {
     }
   };
 
-  const handleTextChange = (e) => {
-    setText(e.target.value);
-    if (error) {
-      clearError();
-    }
+  const handleSystemMessageChange = (e) => {
+    setSystemMessage(e.target.value);
+    if (error) clearError();
+  };
+
+  const handleUserMessageChange = (e) => {
+    setUserMessage(e.target.value);
+    if (error) clearError();
   };
 
   return (
@@ -118,38 +142,6 @@ export function TextGeneratorPage() {
               width="404"
               height="784"
               fill="url(#f210dbf6-a58d-4871-961e-36d5016a0f49)"
-            />
-          </svg>
-          <svg
-            className="absolute left-full transform -translate-y-3/4 -translate-x-1/4 md:-translate-y-1/2 lg:-translate-x-1/2"
-            width="404"
-            height="784"
-            fill="none"
-            viewBox="0 0 404 784"
-          >
-            <defs>
-              <pattern
-                id="5d0dd344-b041-4d26-bec4-8d33ea57ec9b"
-                x="0"
-                y="0"
-                width="20"
-                height="20"
-                patternUnits="userSpaceOnUse"
-              >
-                <rect
-                  x="0"
-                  y="0"
-                  width="4"
-                  height="4"
-                  className="text-gray-200 dark:text-gray-700"
-                  fill="currentColor"
-                />
-              </pattern>
-            </defs>
-            <rect
-              width="404"
-              height="784"
-              fill="url(#5d0dd344-b041-4d26-bec4-8d33ea57ec9b)"
             />
           </svg>
         </div>
@@ -195,20 +187,38 @@ export function TextGeneratorPage() {
             <form onSubmit={handleSubmit} className="p-8">
               <div className="mb-6">
                 <label
-                  htmlFor="text-input"
+                  htmlFor="system-message"
                   className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
-                  Input Text
+                  System Instructions (Optional)
                 </label>
                 <textarea
-                  id="text-input"
-                  value={text}
-                  onChange={handleTextChange}
-                  className="w-full h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 text-base"
-                  placeholder="Enter your text here..."
+                  id="system-message"
+                  value={systemMessage}
+                  onChange={handleSystemMessageChange}
+                  className="w-full h-24 p-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 text-base"
+                  placeholder="Enter system instructions (e.g., 'Always answer in rhymes')"
                   disabled={isLoading}
                 />
               </div>
+
+              <div className="mb-6">
+                <label
+                  htmlFor="user-message"
+                  className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Your Message
+                </label>
+                <textarea
+                  id="user-message"
+                  value={userMessage}
+                  onChange={handleUserMessageChange}
+                  className="w-full h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 text-base"
+                  placeholder="Enter your message here..."
+                  disabled={isLoading}
+                />
+              </div>
+
               <div className="flex justify-end">
                 <button
                   type="submit"

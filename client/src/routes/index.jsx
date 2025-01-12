@@ -1,117 +1,62 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import LoginPage from "../pages/LoginPage";
+import HomePage from "../pages/HomePage";
+import TextGeneratorPage from "../pages/TextGeneratorPage";
+import TravelPlannerPage from "../pages/TravelPlannerPage";
 import { Layout } from "../components/Layout";
-import { ProtectedRoute } from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
-import {
-  WrappedLoginPage,
-  WrappedSignupPage,
-  WrappedTextGeneratorPage,
-  WrappedProfilePage,
-  WrappedTestUserPage,
-  WrappedHomePage,
-} from "../pages";
-import LoadingSpinner from "../components/ui/LoadingSpinner";
 
-// PublicRoute component for login/signup pages
-const PublicRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="12" />
-      </div>
-    );
-  }
-
-  // If user is authenticated, redirect to home
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
-
-// ProtectedLayout component that combines Layout and ProtectedRoute
-const ProtectedLayout = ({ children }) => {
-  return (
-    <ProtectedRoute>
-      <Layout>{children}</Layout>
-    </ProtectedRoute>
+const PrivateRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? (
+    <Layout>{children}</Layout>
+  ) : (
+    <Navigate to="/login" />
   );
 };
 
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return !isAuthenticated ? children : <Navigate to="/" />;
+};
+
 export default function AppRoutes() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   return (
     <Routes>
-      {/* Public routes - redirect to home if already logged in */}
       <Route
         path="/login"
         element={
           <PublicRoute>
-            <WrappedLoginPage />
+            <LoginPage />
           </PublicRoute>
         }
       />
-      <Route
-        path="/signup"
-        element={
-          <PublicRoute>
-            <WrappedSignupPage />
-          </PublicRoute>
-        }
-      />
-
-      {/* Protected routes - require authentication */}
       <Route
         path="/"
         element={
-          <ProtectedLayout>
-            <WrappedHomePage />
-          </ProtectedLayout>
+          <PrivateRoute>
+            <HomePage />
+          </PrivateRoute>
         }
       />
       <Route
         path="/text-generator"
         element={
-          <ProtectedLayout>
-            <WrappedTextGeneratorPage />
-          </ProtectedLayout>
+          <PrivateRoute>
+            <TextGeneratorPage />
+          </PrivateRoute>
         }
       />
       <Route
-        path="/profile"
+        path="/travel"
         element={
-          <ProtectedLayout>
-            <WrappedProfilePage />
-          </ProtectedLayout>
+          <PrivateRoute>
+            <TravelPlannerPage />
+          </PrivateRoute>
         }
       />
-      <Route
-        path="/test"
-        element={
-          <ProtectedLayout>
-            <WrappedTestUserPage />
-          </ProtectedLayout>
-        }
-      />
-
-      {/* Catch all route */}
-      <Route
-        path="*"
-        element={<Navigate to={user ? "/" : "/login"} replace />}
-      />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }

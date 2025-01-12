@@ -35,6 +35,7 @@ services:
       - DATABASE_NAME=ai_service
       - DEBUG=true
       - LOG_LEVEL=debug
+      - LLM_STUDIO_URL=http://192.168.88.160:1234
     logging:
       driver: "local"
       options:
@@ -61,7 +62,8 @@ services:
       - ai-service
     environment:
       - NODE_ENV=development
-      - DEBUG=app:*
+      - VITE_API_URL=http://localhost:8000
+      - VITE_API_PATH=/api/v1
     logging:
       driver: "local"
       options:

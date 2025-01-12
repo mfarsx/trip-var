@@ -20,10 +20,7 @@ async def generate_text(
     """Generate text based on prompt"""
     try:
         result = await text_generator.generate(
-            prompt=request.prompt,
-            max_tokens=request.max_tokens,
-            temperature=request.temperature,
-            model=request.model,
+            request=request,
             user_id=current_user.id
         )
         
@@ -42,7 +39,7 @@ async def generate_text(
 @router.get("/history")
 async def get_generation_history(
     current_user: User = Depends(get_current_user),
-    text_service: TextGenerationService = Depends()
+    text_service: TextGenerationService = Depends(get_text_generator)
 ):
     """Get text generation history for the current user."""
     try:

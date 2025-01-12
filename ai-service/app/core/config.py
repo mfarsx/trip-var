@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     
     # Logging
     LOG_LEVEL: str = "INFO"
+
+    # LLM settings
+    LLM_STUDIO_URL: str = "http://192.168.88.160:1234"
     
     class Config:
         env_file = ".env"

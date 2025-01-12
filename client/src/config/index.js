@@ -14,20 +14,27 @@ const getEnvVar = (key, defaultValue = "") => {
 const config = {
   // API Configuration
   api: {
-    url: import.meta.env.VITE_API_URL || "http://localhost:8000",
-    timeout: 10000,
+    url: getEnvVar("VITE_API_URL", "http://localhost:8000"),
+    path: getEnvVar("VITE_API_PATH", "/api/v1"),
+    timeout: parseInt(getEnvVar("VITE_API_TIMEOUT", "10000")),
+    retryAttempts: parseInt(getEnvVar("VITE_API_RETRY_ATTEMPTS", "3")),
+    retryDelay: parseInt(getEnvVar("VITE_API_RETRY_DELAY", "1000")),
   },
 
   // App Settings
   app: {
     name: getEnvVar("VITE_APP_NAME", "TripVar"),
     version: getEnvVar("VITE_APP_VERSION", "1.0.0"),
+    environment: getEnvVar("VITE_APP_ENV", "development"),
   },
 
   // Authentication
   auth: {
     tokenKey: getEnvVar("VITE_AUTH_TOKEN_KEY", "tripvar_token"),
     storageKey: getEnvVar("VITE_AUTH_STORAGE_KEY", "tripvar_auth"),
+    tokenExpiry: parseInt(getEnvVar("VITE_AUTH_TOKEN_EXPIRY", "3600")), // 1 hour
+    refreshTokenEnabled:
+      getEnvVar("VITE_AUTH_REFRESH_ENABLED", "false") === "true",
   },
 
   // Feature Flags
@@ -40,11 +47,29 @@ const config = {
   sentry: {
     dsn: getEnvVar("VITE_SENTRY_DSN"),
     enabled: getEnvVar("VITE_ENABLE_ERROR_REPORTING") === "true",
+    environment: getEnvVar("VITE_APP_ENV", "development"),
   },
 
   // Environment
-  isDevelopment: getEnvVar("VITE_DEV_MODE") === "true",
-  isProduction: import.meta.env.MODE === "production",
+  isDevelopment: getEnvVar("VITE_APP_ENV", "development") === "development",
+  isProduction: getEnvVar("VITE_APP_ENV", "development") === "production",
 };
+
+// Validate required settings
+const requiredSettings = [
+  "api.url",
+  "api.path",
+  "app.name",
+  "app.version",
+  "auth.tokenKey",
+  "auth.storageKey",
+];
+
+requiredSettings.forEach((path) => {
+  const value = path.split(".").reduce((obj, key) => obj?.[key], config);
+  if (value === undefined || value === "") {
+    throw new Error(`Missing required configuration: ${path}`);
+  }
+});
 
 export default config;

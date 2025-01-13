@@ -20,6 +20,18 @@ class ValidationError(AppException):
             detail=self.message
         )
 
+class LLMServiceError(AppException):
+    """Exception for LLM service related errors."""
+    def __init__(self, message: str = "LLM service error"):
+        super().__init__(message)
+
+    def to_http(self) -> HTTPException:
+        """Convert to HTTPException."""
+        return HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=self.message
+        )
+
 class NotFoundError(AppException):
     """Not found error exception."""
     def __init__(self, message: str = "Resource not found"):

@@ -1,10 +1,11 @@
-"""Travel planning service."""
+"""Travel planning service for generating personalized travel itineraries."""
 
-import logging
 import json
 from datetime import datetime, date
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import httpx
+from fastapi import HTTPException, status
+
 from app.domain.models.travel import (
     TravelPlanningRequest,
     TravelPlanningResponse,
@@ -12,180 +13,246 @@ from app.domain.models.travel import (
     DayPlan
 )
 from app.core.config import get_settings
+from app.core.exceptions import LLMServiceError, ValidationError
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 settings = get_settings()
 
 class TravelPlanningService:
+    """Service for generating personalized travel plans using LLM."""
+
     def __init__(self):
+        """Initialize the service with configuration."""
         self.base_url = settings.LLM_STUDIO_URL
-        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=120.0)  # Increased timeout for longer responses
+        logger.debug(f"Initializing TravelPlanningService with LLM URL: {self.base_url}")
+        
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=120.0,  # 2 minutes timeout for LLM processing
+            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
+        )
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Ensure client is closed on exit."""
+        await self.client.aclose()
+        logger.debug("Closed HTTP client connection")
 
     def _create_planning_prompt(self, request: TravelPlanningRequest) -> str:
-        """Create a detailed prompt for the LLM based on travel preferences."""
+        """
+        Create a detailed prompt for the LLM based on travel preferences.
+        
+        Args:
+            request: The travel planning request containing preferences
+            
+        Returns:
+            str: Formatted prompt for the LLM
+        """
         preferences = request.preferences
         days = (preferences.end_date - preferences.start_date).days + 1
-
-        prompt = f"""Act as a travel planner. Create a {days}-day travel plan in JSON format.
-
-PREFERENCES:
-- Destination: {preferences.destination}
-- Dates: {preferences.start_date} to {preferences.end_date}
-- Travelers: {preferences.num_travelers}"""
-
-        if preferences.budget:
-            prompt += f"\n- Budget: {preferences.budget}"
-        if preferences.interests:
-            prompt += f"\n- Interests: {', '.join(preferences.interests)}"
-        if preferences.accommodation_type:
-            prompt += f"\n- Accommodation: {preferences.accommodation_type}"
-        if preferences.travel_style:
-            prompt += f"\n- Style: {preferences.travel_style}"
-        if request.special_requests:
-            prompt += f"\n- Special Requests: {request.special_requests}"
-
-        prompt += """
-
-INSTRUCTIONS:
-1. Return ONLY a valid JSON object
-2. Follow this exact format:
-{
-    "overview": "Brief overview of the trip",
-    "highlights": ["Key highlight 1", "Key highlight 2"],
-    "daily_plans": [
-        {
-            "day": 1,
-            "date": "YYYY-MM-DD",
-            "morning": "Morning activities",
-            "afternoon": "Afternoon activities",
-            "evening": "Evening activities",
-            "accommodation": "Accommodation details",
-            "transportation": "Transportation details",
-            "estimated_cost": "Cost estimate",
-            "notes": "Additional notes"
+        
+        logger.debug(
+            "Creating planning prompt",
+            extra={
+                "destination": preferences.destination,
+                "days": days,
+                "start_date": preferences.start_date.isoformat(),
+                "end_date": preferences.end_date.isoformat(),
+                "travelers": preferences.num_travelers
+            }
+        )
+        
+        # Build base prompt with required information
+        prompt_parts = [
+            f"Act as a travel planner. Create a {days}-day travel plan in JSON format.",
+            "\nPREFERENCES:",
+            f"- Destination: {preferences.destination}",
+            f"- Dates: {preferences.start_date} to {preferences.end_date}",
+            f"- Travelers: {preferences.num_travelers}"
+        ]
+        
+        # Add optional preferences if provided
+        optional_fields = {
+            "Budget": preferences.budget.value if preferences.budget else None,
+            "Interests": ", ".join(preferences.interests) if preferences.interests else None,
+            "Accommodation": preferences.accommodation_type.value if preferences.accommodation_type else None,
+            "Style": preferences.travel_style.value if preferences.travel_style else None,
+            "Special Requests": request.special_requests
         }
-    ],
-    "total_estimated_cost": "Total trip cost",
-    "packing_suggestions": ["Item 1", "Item 2"],
-    "travel_tips": ["Tip 1", "Tip 2"]
-}
-
-Remember to:
-- Include realistic activities and times
-- Provide specific recommendations
-- Keep JSON format valid
-- Use actual dates starting from the provided start date"""
-
+        
+        prompt_parts.extend(
+            f"- {key}: {value}"
+            for key, value in optional_fields.items()
+            if value is not None
+        )
+        
+        # Add instructions for response format
+        prompt_parts.extend([
+            "\nINSTRUCTIONS:",
+            "1. Return ONLY a valid JSON object with the following structure:",
+            "{\n  \"overview\": \"string\",",
+            "  \"highlights\": [\"string\"],",
+            "  \"daily_plans\": [{",
+            "    \"day\": number,",
+            "    \"date\": \"YYYY-MM-DD\",",
+            "    \"morning\": \"string\",",
+            "    \"afternoon\": \"string\",",
+            "    \"evening\": \"string\",",
+            "    \"accommodation\": \"string\",",
+            "    \"transportation\": \"string\",",
+            "    \"estimated_cost\": \"string\",",
+            "    \"notes\": \"string\"",
+            "  }],",
+            "  \"total_estimated_cost\": \"string\",",
+            "  \"packing_suggestions\": [\"string\"],",
+            "  \"travel_tips\": [\"string\"]",
+            "}"
+        ])
+        
+        prompt = "\n".join(prompt_parts)
+        logger.trace("Generated prompt", extra={"prompt": prompt})
         return prompt
 
-    def _parse_llm_response(self, text: str) -> TravelPlan:
-        """Parse the LLM's JSON response into a TravelPlan object."""
+    async def _call_llm_service(self, prompt: str) -> Dict[str, Any]:
+        """
+        Call the LLM service with the generated prompt.
+        
+        Args:
+            prompt: The formatted prompt for the LLM
+            
+        Returns:
+            Dict[str, Any]: The parsed JSON response from the LLM
+            
+        Raises:
+            LLMServiceError: If there's an error calling the LLM service
+            ValidationError: If the response cannot be parsed as JSON
+        """
         try:
-            # Remove any markdown code block markers and find the first complete JSON
-            text = text.replace("```json", "```").strip()
-            json_blocks = text.split("```")
+            logger.debug("Calling LLM service")
+            response = await self.client.post(
+                "/generate",
+                json={"prompt": prompt, "max_tokens": 2000}
+            )
+            response.raise_for_status()
             
-            # Find the first valid JSON block
-            valid_json = None
-            parse_error = None
+            result = response.json()
+            if not isinstance(result, dict):
+                logger.error("Invalid response format from LLM", extra={"response": result})
+                raise ValidationError("LLM response is not a valid JSON object")
             
-            for block in json_blocks:
-                try:
-                    # Skip empty blocks or non-JSON content
-                    if not block.strip() or "Solution" in block:
-                        continue
-                        
-                    # Find JSON content
-                    start = block.find('{')
-                    end = block.rfind('}') + 1
-                    if start == -1 or end == 0:
-                        continue
-                        
-                    json_content = block[start:end]
-                    data = json.loads(json_content)
-                    
-                    # If we found valid JSON with required fields, use it
-                    if all(field in data for field in ["overview", "highlights", "daily_plans"]):
-                        valid_json = data
-                        break
-                except Exception as e:
-                    parse_error = e
-                    continue
+            logger.debug("Successfully received LLM response")
+            return result
             
-            if not valid_json:
-                if parse_error:
-                    raise ValueError(f"Failed to parse any JSON block: {str(parse_error)}")
-                raise ValueError("No valid JSON content found in response")
+        except httpx.HTTPError as e:
+            logger.error(
+                "HTTP error while calling LLM service",
+                extra={
+                    "error": str(e),
+                    "status_code": getattr(e.response, 'status_code', None),
+                    "url": str(e.request.url) if e.request else None
+                },
+                exc_info=True
+            )
+            raise LLMServiceError(f"Failed to communicate with LLM service: {str(e)}")
             
-            # Convert date strings to date objects in daily plans
-            for day_plan in valid_json.get("daily_plans", []):
-                if "date" in day_plan:
-                    try:
-                        day_plan["date"] = datetime.strptime(day_plan["date"], "%Y-%m-%d").date()
-                    except ValueError as e:
-                        logger.error(f"Date parsing error: {str(e)}")
-                        raise ValueError(f"Invalid date format in day plan: {str(e)}")
+        except json.JSONDecodeError as e:
+            logger.error(
+                "Failed to parse LLM response as JSON",
+                extra={"error": str(e), "response_text": response.text},
+                exc_info=True
+            )
+            raise ValidationError(f"Invalid JSON response from LLM: {str(e)}")
             
-            return TravelPlan(**valid_json)
         except Exception as e:
-            logger.error(f"Failed to parse LLM response: {str(e)}\nResponse text: {text}", exc_info=True)
-            raise ValueError(f"Failed to create travel plan: {str(e)}")
+            logger.error(
+                "Unexpected error in LLM service call",
+                extra={"error": str(e)},
+                exc_info=True
+            )
+            raise LLMServiceError(f"Unexpected error: {str(e)}")
 
     async def create_travel_plan(
         self,
         request: TravelPlanningRequest,
-        user_id: Optional[str] = None
+        user_id: str
     ) -> TravelPlanningResponse:
-        """Generate a travel plan based on the given preferences."""
-        try:
-            prompt = self._create_planning_prompt(request)
+        """
+        Create a personalized travel plan based on user preferences.
+        
+        Args:
+            request: The travel planning request
+            user_id: ID of the requesting user
             
-            # Call the LLM Studio completions endpoint
-            response = await self.client.post(
-                "/v1/completions",
-                json={
-                    "model": "phi-4",
-                    "prompt": prompt,
-                    "max_tokens": 2000,
-                    "temperature": 0.3,  # Lower temperature for more focused output
-                    "top_p": 1,
-                    "frequency_penalty": 0,
-                    "presence_penalty": 0,
-                    "stop": None  # Remove stop tokens to get complete response
+        Returns:
+            TravelPlanningResponse: The generated travel plan
+            
+        Raises:
+            HTTPException: If plan generation fails
+        """
+        try:
+            logger.info(
+                "Generating travel plan",
+                extra={
+                    "user_id": user_id,
+                    "destination": request.preferences.destination,
+                    "start_date": request.preferences.start_date.isoformat(),
+                    "end_date": request.preferences.end_date.isoformat()
                 }
             )
-            response.raise_for_status()
-            result = response.json()
             
-            # Log the raw response for debugging
-            logger.debug(f"LLM Response: {result}")
+            # Generate and validate the prompt
+            prompt = self._create_planning_prompt(request)
             
-            # Extract and validate the generated text
-            if not result.get("choices"):
-                logger.error("No choices in LLM response")
-                raise ValueError("Invalid response from language model")
-                
-            generated_text = result["choices"][0].get("text", "").strip()
-            if not generated_text:
-                logger.error("Empty text in LLM response")
-                raise ValueError("No content generated by language model")
-                
-            # Log the generated text for debugging
-            logger.debug(f"Generated text: {generated_text}")
-
-            # Parse the response into a TravelPlan
-            travel_plan = self._parse_llm_response(generated_text)
+            # Call LLM service and parse response
+            llm_response = await self._call_llm_service(prompt)
             
-            return TravelPlanningResponse(
+            # Create response model
+            travel_plan = TravelPlan(**llm_response)
+            response = TravelPlanningResponse(
                 plan=travel_plan,
-                message="Travel plan created successfully"
+                message="Travel plan generated successfully"
             )
+            
+            logger.info(
+                "Successfully generated travel plan",
+                extra={
+                    "user_id": user_id,
+                    "destination": request.preferences.destination,
+                    "num_days": len(travel_plan.daily_plans)
+                }
+            )
+            return response
+            
+        except (LLMServiceError, ValidationError) as e:
+            logger.error(
+                "Failed to generate travel plan",
+                extra={
+                    "user_id": user_id,
+                    "error": str(e),
+                    "error_type": e.__class__.__name__
+                },
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
+            
         except Exception as e:
-            logger.error(f"Travel planning failed: {str(e)}", exc_info=True)
-            if isinstance(e, httpx.HTTPError):
-                raise ValueError(f"Failed to communicate with language model: {str(e)}")
-            raise ValueError(f"Failed to create travel plan: {str(e)}")
-
-    async def close(self):
-        """Close the HTTP client."""
-        await self.client.aclose() 
+            logger.error(
+                "Unexpected error in travel plan generation",
+                extra={
+                    "user_id": user_id,
+                    "error": str(e),
+                    "error_type": e.__class__.__name__
+                },
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="An unexpected error occurred while generating the travel plan"
+            )

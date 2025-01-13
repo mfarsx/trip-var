@@ -1,40 +1,198 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+"""Travel planning domain models for itinerary generation and management."""
+
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
+from typing import List, Optional, Literal
 from datetime import date as DateType
+from enum import Enum
+
+class BudgetLevel(str, Enum):
+    """Standardized budget levels for travel planning."""
+    BUDGET = "budget"
+    MID_RANGE = "mid-range"
+    LUXURY = "luxury"
+
+class AccommodationType(str, Enum):
+    """Standardized accommodation types."""
+    HOTEL = "hotel"
+    HOSTEL = "hostel"
+    APARTMENT = "apartment"
+    RESORT = "resort"
+    GUESTHOUSE = "guesthouse"
+
+class TravelStyle(str, Enum):
+    """Standardized travel styles."""
+    RELAXED = "relaxed"
+    ADVENTUROUS = "adventurous"
+    CULTURAL = "cultural"
+    LUXURY = "luxury"
+    BUDGET = "budget"
 
 class TravelPreferences(BaseModel):
-    destination: str = Field(..., description="Destination city or country")
+    """Travel preferences model with validation."""
+    destination: str = Field(
+        ..., 
+        min_length=2,
+        max_length=100,
+        description="Destination city or country"
+    )
     start_date: DateType = Field(..., description="Start date of the trip")
     end_date: DateType = Field(..., description="End date of the trip")
-    budget: Optional[str] = Field(None, description="Budget range (e.g., 'budget', 'mid-range', 'luxury')")
-    interests: List[str] = Field(default=[], description="List of interests (e.g., 'history', 'food', 'nature')")
-    accommodation_type: Optional[str] = Field(None, description="Preferred accommodation type (e.g., 'hotel', 'hostel', 'apartment')")
-    travel_style: Optional[str] = Field(None, description="Travel style (e.g., 'relaxed', 'adventurous', 'cultural')")
-    num_travelers: int = Field(default=1, ge=1, description="Number of travelers")
+    budget: Optional[BudgetLevel] = Field(None, description="Budget level for the trip")
+    interests: List[str] = Field(
+        default=[],
+        max_items=10,
+        description="List of interests (e.g., 'history', 'food', 'nature')"
+    )
+    accommodation_type: Optional[AccommodationType] = Field(
+        None,
+        description="Preferred accommodation type"
+    )
+    travel_style: Optional[TravelStyle] = Field(
+        None,
+        description="Preferred travel style"
+    )
+    num_travelers: int = Field(
+        default=1,
+        ge=1,
+        le=20,
+        description="Number of travelers (max 20)"
+    )
+
+    @field_validator('end_date')
+    def validate_dates(cls, v: DateType, info: ValidationInfo) -> DateType:
+        """Ensure end_date is after start_date."""
+        if info.data.get('start_date') and v < info.data['start_date']:
+            raise ValueError("End date must be after start date")
+        return v
+
+    @field_validator('interests')
+    def validate_interests(cls, v: List[str]) -> List[str]:
+        """Validate and clean interest tags."""
+        return [interest.lower().strip() for interest in v if interest.strip()]
 
 class DayPlan(BaseModel):
-    day: int = Field(..., description="Day number of the trip")
+    """Detailed plan for a single day of the trip."""
+    day: int = Field(..., ge=1, description="Day number of the trip")
     date: DateType = Field(..., description="Date of this day's activities")
-    morning: str = Field(..., description="Morning activities and recommendations")
-    afternoon: str = Field(..., description="Afternoon activities and recommendations")
-    evening: str = Field(..., description="Evening activities and recommendations")
-    accommodation: str = Field(..., description="Accommodation recommendation for the night")
-    transportation: str = Field(..., description="Transportation recommendations for the day")
-    estimated_cost: Optional[str] = Field(None, description="Estimated cost for the day's activities")
-    notes: Optional[str] = Field(None, description="Additional notes or tips for the day")
+    morning: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Morning activities and recommendations"
+    )
+    afternoon: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Afternoon activities and recommendations"
+    )
+    evening: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="Evening activities and recommendations"
+    )
+    accommodation: str = Field(
+        ...,
+        min_length=10,
+        max_length=200,
+        description="Accommodation recommendation for the night"
+    )
+    transportation: str = Field(
+        ...,
+        min_length=10,
+        max_length=200,
+        description="Transportation recommendations for the day"
+    )
+    estimated_cost: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Estimated cost for the day's activities"
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Additional notes or tips for the day"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "day": 1,
+                "date": "2024-06-01",
+                "morning": "Start with a guided walking tour of the historic district...",
+                "afternoon": "Visit the National Museum and nearby gardens...",
+                "evening": "Dinner at a local restaurant followed by a river cruise...",
+                "accommodation": "Stay at Hotel Central - 4-star hotel in city center",
+                "transportation": "Use public transport or walking for most activities",
+                "estimated_cost": "$150-200 per person",
+                "notes": "Book museum tickets in advance to avoid queues"
+            }
+        }
 
 class TravelPlan(BaseModel):
-    overview: str = Field(..., description="Overview of the entire trip")
-    highlights: List[str] = Field(..., description="Key highlights of the trip")
-    daily_plans: List[DayPlan] = Field(..., description="Detailed day-by-day plans")
-    total_estimated_cost: Optional[str] = Field(None, description="Total estimated cost for the trip")
-    packing_suggestions: List[str] = Field(default=[], description="Suggested items to pack")
-    travel_tips: List[str] = Field(default=[], description="General travel tips for the destination")
+    """Complete travel itinerary with daily plans and recommendations."""
+    overview: str = Field(
+        ...,
+        min_length=50,
+        max_length=1000,
+        description="Overview of the entire trip"
+    )
+    highlights: List[str] = Field(
+        ...,
+        min_items=1,
+        max_items=10,
+        description="Key highlights of the trip"
+    )
+    daily_plans: List[DayPlan] = Field(
+        ...,
+        min_items=1,
+        max_items=30,
+        description="Detailed day-by-day plans"
+    )
+    total_estimated_cost: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Total estimated cost for the trip"
+    )
+    packing_suggestions: List[str] = Field(
+        default=[],
+        max_items=20,
+        description="Suggested items to pack"
+    )
+    travel_tips: List[str] = Field(
+        default=[],
+        max_items=10,
+        description="General travel tips for the destination"
+    )
+
+    @field_validator('daily_plans')
+    def validate_daily_plans(cls, v: List[DayPlan]) -> List[DayPlan]:
+        """Ensure daily plans are in sequence and dates match."""
+        if not v:
+            return v
+        for i, plan in enumerate(v, 1):
+            if plan.day != i:
+                raise ValueError(f"Day plans must be in sequence. Expected day {i}, got {plan.day}")
+        return v
 
 class TravelPlanningRequest(BaseModel):
-    preferences: TravelPreferences = Field(..., description="Travel preferences and requirements")
-    special_requests: Optional[str] = Field(None, description="Any special requests or considerations")
+    """Request model for travel planning."""
+    preferences: TravelPreferences = Field(
+        ...,
+        description="Travel preferences and requirements"
+    )
+    special_requests: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Any special requests or considerations"
+    )
 
 class TravelPlanningResponse(BaseModel):
+    """Response model for travel planning."""
     plan: TravelPlan = Field(..., description="Generated travel plan")
-    message: Optional[str] = Field(None, description="Additional message or notes about the plan") 
+    message: Optional[str] = Field(
+        None,
+        max_length=200,
+        description="Additional message or notes about the plan"
+    ) 

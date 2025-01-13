@@ -1,25 +1,42 @@
-"""Standard API response models."""
+"""Standard API response models for consistent response formatting."""
 
 from typing import Generic, TypeVar, Optional, List, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-T = TypeVar('T')
+DataT = TypeVar('DataT')  # More descriptive type variable name
 
 class ResponseBase(BaseModel):
-    """Base response model."""
-    success: bool
-    message: str
+    """Base response model for all API responses."""
+    success: bool = Field(
+        ...,
+        description="Indicates if the request was successful"
+    )
+    message: str = Field(
+        ...,
+        description="Human-readable message about the response"
+    )
     
-class DataResponse(ResponseBase, Generic[T]):
-    """Response model with data."""
-    data: Optional[T] = None
+class DataResponse(ResponseBase, Generic[DataT]):
+    """Response model for single-item data responses."""
+    data: Optional[DataT] = Field(
+        default=None,
+        description="The response payload data"
+    )
     
-class ListResponse(ResponseBase, Generic[T]):
-    """Response model for list data with pagination."""
-    data: List[T]
-    meta: Dict[str, Any] = {
-        "page": 1,
-        "per_page": 10,
-        "total": 0,
-        "pages": 1
-    } 
+class PaginationMeta(BaseModel):
+    """Metadata for paginated responses."""
+    page: int = Field(default=1, description="Current page number")
+    per_page: int = Field(default=10, description="Items per page")
+    total: int = Field(default=0, description="Total number of items")
+    pages: int = Field(default=1, description="Total number of pages")
+    
+class ListResponse(ResponseBase, Generic[DataT]):
+    """Response model for paginated list data."""
+    data: List[DataT] = Field(
+        ...,
+        description="List of response items"
+    )
+    meta: PaginationMeta = Field(
+        default_factory=PaginationMeta,
+        description="Pagination metadata"
+    ) 

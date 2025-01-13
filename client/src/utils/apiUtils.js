@@ -57,12 +57,29 @@ export const handleApiError = (error) => {
  */
 export const asyncHandler = async (operation, fn, category = "api") => {
   try {
-    logInfo(`[${category}.${operation}] Starting ${operation}`);
+    // Skip logging for auth operations as they are handled by AuthContext
+    const shouldLog = !category.includes("auth");
+
+    if (shouldLog) {
+      logInfo(`Starting ${operation}`, category, {
+        operation,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const result = await fn();
-    logInfo(`[${category}.${operation}] ${operation} completed successfully`);
+
+    if (shouldLog) {
+      logInfo(`${operation} completed successfully`, category, {
+        operation,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     return result;
   } catch (error) {
-    logError(`[${category}.${operation}] ${operation} failed`, error);
+    // Always log errors, but with appropriate context
+    logError(error, category);
     throw handleApiError(error);
   }
 };

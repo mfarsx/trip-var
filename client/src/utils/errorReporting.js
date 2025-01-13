@@ -1,72 +1,132 @@
-import * as Sentry from "@sentry/react";
 import config from "../config";
+import { logError, logWarning, logInfo } from "./logger";
 
-const isDevelopment = process.env.NODE_ENV === "development";
+/**
+ * Redact sensitive data from objects
+ */
+const redactSensitiveData = (data) => {
+  if (!data) return data;
 
-// Simple mock implementation for development
-const mockErrorReporting = {
-  init: () => console.log("Mock error reporting initialized"),
-  captureException: (error, options) =>
-    console.error("Error:", error, "Context:", options),
-  captureMessage: (message, options) =>
-    console.log("Message:", message, "Context:", options),
+  const redactKeys = config.logging?.redactKeys || [
+    "password",
+    "token",
+    "secret",
+    "key",
+  ];
+  const redacted = { ...data };
+
+  const redactObject = (obj) => {
+    for (const key in obj) {
+      if (typeof obj[key] === "object" && obj[key] !== null) {
+        obj[key] = redactObject({ ...obj[key] });
+        continue;
+      }
+
+      if (
+        redactKeys.some((redactKey) =>
+          key.toLowerCase().includes(redactKey.toLowerCase())
+        )
+      ) {
+        obj[key] = "[REDACTED]";
+      }
+    }
+    return obj;
+  };
+
+  return redactObject(redacted);
 };
 
-// Use mock in development, real Sentry in production
-const errorReporter = isDevelopment
-  ? mockErrorReporting
-  : {
-      init: () => {
-        if (!config.sentryDsn) {
-          console.error("Sentry DSN not configured");
-          return;
-        }
-        Sentry.init({
-          dsn: config.sentryDsn,
-          environment: config.environment || "production",
-          release: config.version,
-          tracesSampleRate: 1.0,
-        });
-      },
-      captureException: (error, options) => {
-        Sentry.captureException(error, options);
-      },
-      captureMessage: (message, options) => {
-        Sentry.captureMessage(message, options);
-      },
+/**
+ * Sanitize error object for logging
+ */
+const sanitizeError = (error) => {
+  const sanitized = {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+    code: error.code,
+    statusCode: error.statusCode,
+  };
+
+  if (error.response) {
+    sanitized.response = {
+      status: error.response.status,
+      statusText: error.response.statusText,
+      data: redactSensitiveData(error.response.data),
     };
-
-export const initializeErrorReporting = () => {
-  if (!config.features?.enableErrorReporting) {
-    return;
   }
 
-  errorReporter.init();
+  if (error.config) {
+    sanitized.request = {
+      url: error.config.url,
+      method: error.config.method,
+      headers: redactSensitiveData(error.config.headers),
+    };
+  }
+
+  return sanitized;
 };
 
+/**
+ * Capture and report error with context
+ */
 export const captureError = (error, context = {}) => {
-  console.error(error);
+  const sanitizedError = sanitizeError(error);
+  const sanitizedContext = redactSensitiveData(context);
+
+  // Log locally
+  logError(sanitizedError, context.source || "app");
+
+  // Send to error reporting service if enabled
   if (config.features?.enableErrorReporting) {
-    errorReporter.captureException(error, {
-      extra: context,
-      tags: {
-        environment: config.environment || "development",
-        version: config.version,
-      },
-    });
+    const errorReporter = window.Sentry;
+    if (errorReporter) {
+      errorReporter.withScope((scope) => {
+        scope.setExtra("context", sanitizedContext);
+        scope.setLevel(context.level || "error");
+        scope.setTags({
+          environment: config.environment || "development",
+          version: config.version,
+          source: context.source || "app",
+        });
+        errorReporter.captureException(sanitizedError);
+      });
+    }
   }
 };
 
+/**
+ * Capture and report message with context
+ */
 export const captureMessage = (message, level = "info", context = {}) => {
-  console.log(`[${level}] ${message}`);
+  const sanitizedContext = redactSensitiveData(context);
+
+  // Log locally
+  switch (level) {
+    case "error":
+      logError(new Error(message), context.source || "app");
+      break;
+    case "warning":
+      logWarning(message, context.source || "app", sanitizedContext);
+      break;
+    default:
+      logInfo(message, context.source || "app", sanitizedContext);
+  }
+
+  // Send to error reporting service if enabled
   if (config.features?.enableErrorReporting) {
-    errorReporter.captureMessage(message, {
-      level,
-      extra: context,
-      tags: {
-        environment: config.environment || "development",
-        version: config.version,
-      },
-    });
+    const errorReporter = window.Sentry;
+    if (errorReporter) {
+      errorReporter.withScope((scope) => {
+        scope.setExtra("context", sanitizedContext);
+        scope.setLevel(level);
+        scope.setTags({
+          environment: config.environment || "development",
+          version: config.version,
+          source: context.source || "app",
+        });
+        errorReporter.captureMessage(message);
+      });
+    }
   }
 };

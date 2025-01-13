@@ -3,6 +3,9 @@
  * Using unified .env file at the project root
  */
 
+/**
+ * Get environment variable with fallback
+ */
 const getEnvVar = (key, defaultValue = "") => {
   const value = import.meta.env[key];
   if (value === undefined && defaultValue === undefined) {
@@ -11,6 +14,9 @@ const getEnvVar = (key, defaultValue = "") => {
   return value ?? defaultValue;
 };
 
+/**
+ * Application configuration object
+ */
 const config = {
   // API Configuration
   api: {
@@ -43,6 +49,15 @@ const config = {
     errorReporting: getEnvVar("VITE_ENABLE_ERROR_REPORTING") === "true",
   },
 
+  // Logging Configuration
+  logging: {
+    level: getEnvVar("VITE_LOG_LEVEL", "info"),
+    format: getEnvVar("VITE_LOG_FORMAT", "auto"), // auto, json, or pretty
+    includeTimestamp: getEnvVar("VITE_LOG_TIMESTAMP", "true") === "true",
+    service: getEnvVar("VITE_SERVICE_NAME", "client"),
+    redactKeys: ["password", "token", "secret", "key"],
+  },
+
   // Error Reporting
   sentry: {
     dsn: getEnvVar("VITE_SENTRY_DSN"),
@@ -50,7 +65,7 @@ const config = {
     environment: getEnvVar("VITE_APP_ENV", "development"),
   },
 
-  // Environment
+  // Environment Helpers
   isDevelopment: getEnvVar("VITE_APP_ENV", "development") === "development",
   isProduction: getEnvVar("VITE_APP_ENV", "development") === "production",
 };

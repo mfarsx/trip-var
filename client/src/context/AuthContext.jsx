@@ -5,10 +5,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import PropTypes from "prop-types";
 import { authService } from "../services/authService";
 import { AUTH_ERRORS, AUTH_EVENTS, AUTH_STORAGE_KEYS } from "../constants/auth";
+import { logInfo, logError } from "../utils/logger";
 
 // Type definitions
 /**
@@ -48,6 +50,7 @@ const initialState = {
   user: null,
   loading: true,
   error: null,
+  lastCheck: 0,
 };
 
 // Create context with type definition
@@ -133,6 +136,9 @@ const getErrorDetails = (error) => {
  */
 export const AuthProvider = ({ children }) => {
   const [state, setState] = useState(initialState);
+  const checkAuthTimeoutRef = useRef(null);
+  const isCheckingRef = useRef(false);
+  const initialCheckDoneRef = useRef(false);
 
   const updateState = useCallback((updates) => {
     try {
@@ -171,76 +177,101 @@ export const AuthProvider = ({ children }) => {
     [updateState]
   );
 
-  const checkAuthStatus = useCallback(async () => {
-    try {
-      // First check if we have a valid token
-      if (!authService.isAuthenticated()) {
-        updateState({ user: null, loading: false, error: null });
+  const checkAuthStatus = useCallback(
+    async (force = false) => {
+      // Skip if already checking
+      if (isCheckingRef.current) {
         return false;
       }
 
-      // Try to get user data
-      const response = await authService.checkAuth();
-
-      // If we have a valid response with user data
-      if (response?.user) {
-        updateState({
-          user: response.user,
-          error: null,
-          loading: false,
-        });
-        return true;
+      // Skip if checked recently and not forced
+      const now = Date.now();
+      if (!force && now - state.lastCheck < 2000) {
+        return false;
       }
 
-      // If we have a response but no user data, clear auth
-      console.debug("Invalid auth response:", response);
-      authService._clearAuthData();
-      updateState({
-        user: null,
-        loading: false,
-        error: {
-          type: AUTH_ERRORS.INVALID_TOKEN,
-          message: "Invalid authentication state",
-        },
-      });
-      return false;
-    } catch (error) {
-      console.error("Auth check failed:", error);
+      try {
+        isCheckingRef.current = true;
+        updateState({ loading: true, lastCheck: now });
 
-      // Handle network errors differently
-      if (!error.response) {
+        // First check if we have a valid token
+        if (!authService.isAuthenticated()) {
+          updateState({ user: null, loading: false, error: null });
+          return false;
+        }
+
+        // Try to get user data
+        const response = await authService.checkAuth();
+
+        // If we have a valid response with user data
+        if (response?.user) {
+          updateState({
+            user: response.user,
+            error: null,
+            loading: false,
+          });
+          logInfo("Auth check completed successfully", "auth", {
+            userId: response.user.id,
+            timestamp: new Date().toISOString(),
+          });
+          return true;
+        }
+
+        // If we have a response but no user data, clear auth
+        authService._clearAuthData();
         updateState({
+          user: null,
           loading: false,
           error: {
-            type: AUTH_ERRORS.NETWORK_ERROR,
-            message:
-              "Unable to connect to server. Please check your connection.",
+            type: AUTH_ERRORS.INVALID_TOKEN,
+            message: "Invalid authentication state",
           },
         });
         return false;
+      } catch (error) {
+        // Handle network errors differently
+        if (!error.response) {
+          updateState({
+            loading: false,
+            error: {
+              type: AUTH_ERRORS.NETWORK_ERROR,
+              message:
+                "Unable to connect to server. Please check your connection.",
+            },
+          });
+          return false;
+        }
+
+        // Handle other errors
+        const errorType = handleAuthError(error);
+
+        // Clear auth data for authentication errors
+        if (
+          [AUTH_ERRORS.EXPIRED_TOKEN, AUTH_ERRORS.INVALID_TOKEN].includes(
+            errorType
+          )
+        ) {
+          authService._clearAuthData();
+        }
+
+        return false;
+      } finally {
+        isCheckingRef.current = false;
       }
-
-      // Handle other errors
-      const errorType = handleAuthError(error);
-
-      // Clear auth data for authentication errors
-      if (
-        [AUTH_ERRORS.EXPIRED_TOKEN, AUTH_ERRORS.INVALID_TOKEN].includes(
-          errorType
-        )
-      ) {
-        authService._clearAuthData();
-      }
-
-      return false;
-    }
-  }, [updateState, handleAuthError]);
+    },
+    [updateState, handleAuthError, state.lastCheck]
+  );
 
   // Event handlers
   const handleStorageChange = useCallback(
     (event) => {
       if (event.key === AUTH_STORAGE_KEYS.TOKEN) {
-        checkAuthStatus();
+        if (checkAuthTimeoutRef.current) {
+          clearTimeout(checkAuthTimeoutRef.current);
+        }
+        checkAuthTimeoutRef.current = setTimeout(() => {
+          checkAuthStatus(true);
+        }, 250);
       }
     },
     [checkAuthStatus]
@@ -257,18 +288,15 @@ export const AuthProvider = ({ children }) => {
 
   // Initial auth check
   useEffect(() => {
-    let isMounted = true;
-
-    const checkAuth = async () => {
-      if (isMounted) {
-        await checkAuthStatus();
-      }
-    };
-
-    checkAuth();
+    if (!initialCheckDoneRef.current) {
+      initialCheckDoneRef.current = true;
+      checkAuthStatus(true);
+    }
 
     return () => {
-      isMounted = false;
+      if (checkAuthTimeoutRef.current) {
+        clearTimeout(checkAuthTimeoutRef.current);
+      }
     };
   }, [checkAuthStatus]);
 
@@ -312,13 +340,26 @@ export const AuthProvider = ({ children }) => {
     async (credentials) => {
       updateState({ loading: true, error: null });
       try {
+        logInfo("Starting login", "auth", {
+          email: credentials.email ? "***" : undefined,
+          timestamp: new Date().toISOString(),
+          hasPassword: !!credentials.password,
+        });
+
         const response = await authService.login(credentials);
+
         if (response?.user) {
           updateState({ user: response.user, error: null });
+          logInfo("Login completed successfully", "auth", {
+            userId: response.user.id,
+            email: "***" + response.user.email.split("@")[1],
+            timestamp: new Date().toISOString(),
+          });
         }
         return response;
       } catch (error) {
         handleAuthError(error, AUTH_ERRORS.LOGIN_FAILED);
+        logError(error, "auth");
         throw error;
       } finally {
         updateState({ loading: false });
@@ -328,17 +369,31 @@ export const AuthProvider = ({ children }) => {
   );
 
   const logout = useCallback(async () => {
+    if (!state.user) return; // Prevent logout if no user is logged in
+
     updateState({ loading: true });
     try {
+      logInfo("Starting logout", "auth", {
+        userId: state.user?.id,
+        timestamp: new Date().toISOString(),
+      });
+
       await authService.logout();
-      resetState();
+
+      logInfo("Logout completed successfully", "auth", {
+        userId: state.user?.id, // Include userId in completion log
+        timestamp: new Date().toISOString(),
+      });
+
+      resetState(); // Move resetState after logging
     } catch (error) {
       handleAuthError(error, AUTH_ERRORS.LOGOUT_FAILED);
+      logError(error, "auth");
       throw error;
     } finally {
       updateState({ loading: false });
     }
-  }, [updateState, handleAuthError, resetState]);
+  }, [updateState, handleAuthError, resetState, state.user]);
 
   const value = useMemo(
     () => ({

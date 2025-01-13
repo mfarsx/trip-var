@@ -1,37 +1,31 @@
 """Travel planning endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from app.core.dependencies import get_current_user
+from fastapi import APIRouter, Depends, HTTPException
+from app.domain.models import (
+    TravelPlanningRequest,
+    TravelPlanningResponse,
+    DataResponse,
+    User
+)
 from app.domain.services.travel_planning import TravelPlanningService
-from app.domain.models.travel import TravelPlanningRequest, TravelPlanningResponse
-from app.domain.models.responses import DataResponse
-from app.domain.models.user import User
-import logging
+from app.core.dependencies import get_current_user
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/plan", response_model=DataResponse[TravelPlanningResponse])
 async def create_travel_plan(
     request: TravelPlanningRequest,
-    current_user: User = Depends(get_current_user),
-    travel_planner: TravelPlanningService = Depends()
+    current_user: User = Depends(get_current_user)
 ):
-    """Create a personalized travel plan based on preferences."""
+    """Create a travel plan based on user preferences."""
     try:
-        result = await travel_planner.create_travel_plan(
-            request=request,
-            user_id=current_user.id
-        )
-        
+        plan = await TravelPlanningService.create_plan(request, current_user)
         return DataResponse(
-            data=result,
+            success=True,
             message="Travel plan created successfully",
-            success=True
+            data=plan
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error creating travel plan: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create travel plan: {str(e)}"
-        ) 
+        raise HTTPException(status_code=500, detail=str(e)) 

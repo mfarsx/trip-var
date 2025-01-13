@@ -1,9 +1,14 @@
-"""Travel planning domain models for itinerary generation and management."""
+"""Core domain models for business logic."""
 
 from pydantic import BaseModel, Field, field_validator, ValidationInfo
-from typing import List, Optional, Literal
+from typing import List, Optional
 from datetime import date as DateType
 from enum import Enum
+
+class Message(BaseModel):
+    """Chat message model."""
+    role: str
+    content: str
 
 class BudgetLevel(str, Enum):
     """Standardized budget levels for travel planning."""
@@ -115,21 +120,6 @@ class DayPlan(BaseModel):
         description="Additional notes or tips for the day"
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "day": 1,
-                "date": "2024-06-01",
-                "morning": "Start with a guided walking tour of the historic district...",
-                "afternoon": "Visit the National Museum and nearby gardens...",
-                "evening": "Dinner at a local restaurant followed by a river cruise...",
-                "accommodation": "Stay at Hotel Central - 4-star hotel in city center",
-                "transportation": "Use public transport or walking for most activities",
-                "estimated_cost": "$150-200 per person",
-                "notes": "Book museum tickets in advance to avoid queues"
-            }
-        }
-
 class TravelPlan(BaseModel):
     """Complete travel itinerary with daily plans and recommendations."""
     overview: str = Field(
@@ -174,25 +164,4 @@ class TravelPlan(BaseModel):
         for i, plan in enumerate(v, 1):
             if plan.day != i:
                 raise ValueError(f"Day plans must be in sequence. Expected day {i}, got {plan.day}")
-        return v
-
-class TravelPlanningRequest(BaseModel):
-    """Request model for travel planning."""
-    preferences: TravelPreferences = Field(
-        ...,
-        description="Travel preferences and requirements"
-    )
-    special_requests: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="Any special requests or considerations"
-    )
-
-class TravelPlanningResponse(BaseModel):
-    """Response model for travel planning."""
-    plan: TravelPlan = Field(..., description="Generated travel plan")
-    message: Optional[str] = Field(
-        None,
-        max_length=200,
-        description="Additional message or notes about the plan"
-    ) 
+        return v 

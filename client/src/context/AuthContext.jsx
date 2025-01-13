@@ -323,9 +323,16 @@ export const AuthProvider = ({ children }) => {
       try {
         const response = await authService.signup(userData);
         if (response?.user) {
-          updateState({ user: response.user, error: null });
+          updateState({
+            user: response.user,
+            error: null,
+            loading: false,
+          });
+          // Trigger auth state check to ensure everything is properly set
+          await checkAuthStatus(true);
+          return response;
         }
-        return response;
+        throw new Error("Invalid response format");
       } catch (error) {
         handleAuthError(error, AUTH_ERRORS.SIGNUP_FAILED);
         throw error;
@@ -333,7 +340,7 @@ export const AuthProvider = ({ children }) => {
         updateState({ loading: false });
       }
     },
-    [updateState, handleAuthError]
+    [updateState, handleAuthError, checkAuthStatus]
   );
 
   const login = useCallback(

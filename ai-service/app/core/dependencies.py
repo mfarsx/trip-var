@@ -1,70 +1,50 @@
-"""Core dependencies."""
+"""Dependencies for FastAPI endpoints."""
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from app.domain.models import User, TokenData
 from app.core.config import get_settings
-from app.core.mongodb import MongoDB
-from app.core.security import verify_token
-from app.domain.models.user import User
-from app.domain.services.text_generation import TextGenerationService
-from bson import ObjectId
+from app.core.mongodb import get_db
 
 settings = get_settings()
-
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_PREFIX}/auth/login",
-    scheme_name="JWT"
+    tokenUrl=f"{settings.API_V1_PREFIX}/auth/login",
+    auto_error=True
 )
-
-async def get_db():
-    """Get database instance."""
-    return MongoDB().db
-
-async def get_text_generator() -> TextGenerationService:
-    """Get text generation service instance."""
-    return TextGenerationService()
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """Get current authenticated user."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
     try:
-        user_id = await verify_token(token)
-        if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
-            )
-            
-        # Get user from database
-        db = MongoDB().db
-        user_data = await db.users.find_one({"_id": ObjectId(user_id)})
-        if not user_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-            
-        return User(**{**user_data, "id": str(user_data["_id"])})
+        # Decode JWT
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+        token_data = TokenData(email=email)
+    except JWTError:
+        raise credentials_exception
         
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
-        )
-
-async def get_verified_user(current_user: User = Depends(get_current_user)) -> User:
-    """Get verified user."""
-    if not current_user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not verified"
-        )
-    return current_user
-
-async def get_active_user(current_user: User = Depends(get_current_user)) -> User:
-    """Get active user."""
-    if not current_user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not active"
-        )
-    return current_user 
+    # Get user from database
+    db = await get_db()
+    user_dict = await db.users.find_one({"email": token_data.email})
+    if user_dict is None:
+        raise credentials_exception
+        
+    return User(
+        id=str(user_dict["_id"]),
+        email=user_dict["email"],
+        full_name=user_dict["full_name"],
+        is_active=user_dict["is_active"],
+        is_superuser=user_dict.get("is_superuser", False)
+    ) 

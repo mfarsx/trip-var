@@ -2,26 +2,64 @@ import config from "../config";
 import { logInfo } from "../utils/logger";
 import axios from "../utils/axiosConfig";
 import { asyncHandler } from "../utils/apiUtils";
-import { useState } from "react";
 
 class AIService {
   constructor() {
-    this.baseUrl = `${config.api.url}${config.api.path}/text-generation`;
+    this.baseUrl = "/api/v1/text-generation";
     logInfo("AIService initialized", "ai.init", { baseUrl: this.baseUrl });
   }
 
   generateText(prompt, systemPrompt = null) {
+    const payload = {
+      temperature: 0.7,
+      max_tokens: 2000,
+      model: "phi-4",
+    };
+
+    if (systemPrompt) {
+      payload.messages = [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ];
+    } else {
+      payload.messages = [
+        {
+          role: "system",
+          content:
+            "You are a helpful AI assistant. Provide detailed, well-structured responses.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ];
+    }
+
     return asyncHandler(
       "generate",
-      () =>
-        axios
-          .post(`${this.baseUrl}/generate`, {
-            prompt,
-            max_tokens: 100,
-            temperature: 0.7,
-            model: "phi-4",
-          })
-          .then((response) => response.data.data),
+      async () => {
+        const response = await axios.post(`${this.baseUrl}/generate`, payload);
+
+        if (!response.data.success) {
+          throw new Error(response.data.message || "Failed to generate text");
+        }
+
+        const result = response.data.data;
+        if (result.finish_reason === "length") {
+          logInfo(
+            "Response was truncated due to length",
+            "ai.generate.truncated"
+          );
+        }
+
+        return result;
+      },
       "ai"
     );
   }

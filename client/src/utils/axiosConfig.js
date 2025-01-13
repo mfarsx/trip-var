@@ -31,11 +31,30 @@ instance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle network errors
-    if (!error.response) {
-      return Promise.reject(
-        new Error("Network error occurred. Please check your connection.")
-      );
+    // If we have a response, it's not a network error
+    if (error.response) {
+      // Handle 401s for non-auth endpoints and when token is expired
+      if (
+        error.response.status === 401 &&
+        !originalRequest._retry &&
+        !originalRequest.url.includes("/auth/") &&
+        error.response?.data?.detail?.includes("expired")
+      ) {
+        originalRequest._retry = true;
+
+        // Clear auth data
+        localStorage.removeItem(AUTH_STORAGE_KEYS.TOKEN);
+        localStorage.removeItem(AUTH_STORAGE_KEYS.USER);
+        delete instance.defaults.headers.common["Authorization"];
+
+        // Notify about auth state change
+        window.dispatchEvent(
+          new CustomEvent(AUTH_EVENTS.AUTH_STATE_CHANGE, {
+            detail: { authenticated: false },
+          })
+        );
+      }
+      return Promise.reject(error);
     }
 
     // Handle timeout errors
@@ -43,29 +62,10 @@ instance.interceptors.response.use(
       return Promise.reject(new Error("Request timeout. Please try again."));
     }
 
-    // Only handle 401s for non-auth endpoints and when token is actually expired
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url.includes("/auth/") &&
-      error.response?.data?.detail?.includes("expired")
-    ) {
-      originalRequest._retry = true;
-
-      // Clear auth data
-      localStorage.removeItem(AUTH_STORAGE_KEYS.TOKEN);
-      localStorage.removeItem(AUTH_STORAGE_KEYS.USER);
-      delete instance.defaults.headers.common["Authorization"];
-
-      // Notify about auth state change
-      window.dispatchEvent(
-        new CustomEvent(AUTH_EVENTS.AUTH_STATE_CHANGE, {
-          detail: { authenticated: false },
-        })
-      );
-    }
-
-    return Promise.reject(error);
+    // Handle network errors
+    return Promise.reject(
+      new Error("Network error occurred. Please check your connection.")
+    );
   }
 );
 

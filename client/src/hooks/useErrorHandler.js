@@ -6,14 +6,35 @@ export const useErrorHandler = (context = null) => {
 
   const handleErrorWithContext = useCallback(
     (error) => {
-      // Form validasyon hataları için özel mesaj
+      // Form validation errors
       if (error instanceof ValidationError) {
-        setError(error.message);
+        setError({
+          type: "validation",
+          message: error.message,
+          field: error.field,
+        });
         return;
       }
 
-      // Backend'den gelen hata mesajını kullan
-      setError(error.message);
+      // Network or API errors
+      if (error.response) {
+        const message =
+          error.response.data?.detail ||
+          error.response.data?.message ||
+          error.message;
+        setError({
+          type: "api",
+          message: message,
+          status: error.response.status,
+        });
+        return;
+      }
+
+      // Generic errors
+      setError({
+        type: "generic",
+        message: error.message || "An unexpected error occurred",
+      });
     },
     [context]
   );
@@ -22,10 +43,20 @@ export const useErrorHandler = (context = null) => {
     setError(null);
   }, []);
 
+  const clearFieldError = useCallback(
+    (field) => {
+      if (error?.type === "validation" && error.field === field) {
+        clearError();
+      }
+    },
+    [error, clearError]
+  );
+
   return {
     error,
     setError: handleErrorWithContext,
     clearError,
+    clearFieldError,
   };
 };
 

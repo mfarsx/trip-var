@@ -1,116 +1,113 @@
-"""Authentication service."""
+"""Authentication service for handling user authentication."""
 
-from datetime import datetime, timezone
-from typing import Optional, Tuple
-from bson import ObjectId
-import logging
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from app.domain.models import UserCreate, UserResponse, Token, LoginResponse, UserInDB
+from app.core.mongodb import get_db
+from app.core.config import get_settings
 
-from app.core.security import create_access_token, get_password_hash, verify_password
-from app.core.mongodb import MongoDB
-from app.domain.models.user import User, UserCreate, UserInDB
-from app.domain.models.auth import Token
-from app.core.exceptions import ValidationError, DatabaseError, AuthenticationError
-
-logger = logging.getLogger(__name__)
+settings = get_settings()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class AuthService:
-    def __init__(self):
-        self.db = MongoDB().db
-        self.users_collection = self.db.users
+    """Service for authentication operations."""
 
-    async def get_user_by_email(self, email: str) -> Optional[UserInDB]:
-        """Get user by email."""
-        try:
-            user_data = await self.users_collection.find_one({"email": email})
-            if user_data:
-                return UserInDB(**{**user_data, "id": str(user_data["_id"])})
-            return None
-        except Exception as e:
-            logger.error(f"Database error while getting user by email: {str(e)}")
-            raise DatabaseError(f"Failed to get user: {str(e)}")
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        """Verify a password against its hash."""
+        return pwd_context.verify(plain_password, hashed_password)
 
-    async def create_user(self, user_data: UserCreate) -> Tuple[User, Token]:
-        """Create new user and return user object with token"""
-        try:
-            # Check existing user
-            existing_user = await self.get_user_by_email(user_data.email)
-            if existing_user:
-                logger.warning(f"Registration attempted with existing email: {user_data.email}")
-                raise ValidationError("Email already registered")
-                
-            # Create user document
-            user_dict = user_data.model_dump()
-            user_dict["hashed_password"] = get_password_hash(user_dict.pop("password"))
-            user_dict["created_at"] = datetime.now(timezone.utc)
-            user_dict["updated_at"] = user_dict["created_at"]
-            user_dict["is_active"] = True
-            user_dict["is_verified"] = False
-            
-            # Insert into database
-            result = await self.users_collection.insert_one(user_dict)
-            user_dict["id"] = str(result.inserted_id)
-            
-            # Create user object and token
-            user = User(**user_dict)
-            token = Token(
-                access_token=create_access_token({"sub": user.id}),
-                token_type="bearer"
-            )
-            
-            logger.info(f"Successfully created new user with email: {user.email}")
-            return user, token
-            
-        except ValidationError:
-            raise
-        except Exception as e:
-            logger.error(f"User creation error: {str(e)}", exc_info=True)
-            raise DatabaseError(f"Failed to create user: {str(e)}")
+    @staticmethod
+    def get_password_hash(password: str) -> str:
+        """Get password hash."""
+        return pwd_context.hash(password)
 
-    async def authenticate_user(self, email: str, password: str) -> Optional[User]:
-        """Authenticate user and return user object"""
-        try:
-            user = await self.get_user_by_email(email)
-            if not user or not verify_password(password, user.hashed_password):
-                logger.warning(f"Failed login attempt for email: {email}")
-                return None
-                
-            # Convert UserInDB to User by excluding hashed_password
-            user_dict = user.model_dump(exclude={'hashed_password'})
-            return User(**user_dict)
+    @staticmethod
+    def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+        """Create JWT access token."""
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.now(timezone.utc) + expires_delta
+        else:
+            expire = datetime.now(timezone.utc) + timedelta(minutes=15)
             
-        except Exception as e:
-            logger.error(f"Authentication error: {str(e)}", exc_info=True)
-            raise DatabaseError(f"Authentication failed: {str(e)}")
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(
+            to_encode,
+            settings.SECRET_KEY,
+            algorithm=settings.ALGORITHM
+        )
+        return encoded_jwt
 
-    async def login_user(self, email: str, password: str) -> Tuple[User, Token]:
-        """Login user and return user object with token."""
-        try:
-            user = await self.authenticate_user(email, password)
-            if not user:
-                raise AuthenticationError("Invalid email or password")
+    @classmethod
+    async def register_user(cls, user_data: UserCreate) -> UserResponse:
+        """Register a new user."""
+        db = await get_db()
+        
+        # Check if user exists
+        if await db.users.find_one({"email": user_data.email}):
+            raise ValueError("Email already registered")
+        
+        # Create user
+        user_dict = user_data.model_dump()
+        user_dict["hashed_password"] = cls.get_password_hash(user_dict.pop("password"))
+        user_dict["created_at"] = datetime.now(timezone.utc)
+        user_dict["updated_at"] = user_dict["created_at"]
+        user_dict["is_active"] = True
+        user_dict["is_superuser"] = False
+        
+        result = await db.users.insert_one(user_dict)
+        user_dict["id"] = str(result.inserted_id)
+        
+        return UserResponse(**user_dict)
 
-            token = Token(
-                access_token=create_access_token({"sub": user.id}),
-                token_type="bearer"
-            )
+    @classmethod
+    async def authenticate_user(cls, email: str, password: str) -> LoginResponse:
+        """Authenticate user and return token with user data."""
+        db = await get_db()
+        user_dict = await db.users.find_one({"email": email})
+        
+        if not user_dict:
+            raise ValueError("Incorrect email or password")
             
-            logger.info(f"User logged in successfully: {email}")
-            return user, token
+        user = UserInDB(
+            id=str(user_dict["_id"]),
+            email=user_dict["email"],
+            full_name=user_dict["full_name"],
+            hashed_password=user_dict["hashed_password"],
+            is_active=user_dict["is_active"],
+            is_superuser=user_dict.get("is_superuser", False),
+            preferences=user_dict.get("preferences", {})
+        )
+        
+        if not cls.verify_password(password, user.hashed_password):
+            raise ValueError("Incorrect email or password")
             
-        except AuthenticationError:
-            raise
-        except Exception as e:
-            logger.error(f"Login failed: {str(e)}", exc_info=True)
-            raise DatabaseError(f"Login failed: {str(e)}")
+        if not user.is_active:
+            raise ValueError("User is inactive")
+            
+        access_token = cls.create_access_token(
+            data={"sub": user.email},
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+        
+        # Create user response without hashed password
+        user_response = UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            is_active=user.is_active,
+            is_superuser=user.is_superuser,
+            preferences=user.preferences
+        )
+        
+        return LoginResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user=user_response
+        )
 
-    async def logout_user(self, user_id: str) -> bool:
-        """Logout user."""
-        try:
-            # Implement token blacklisting or user session management here
-            return True
-        except Exception as e:
-            logger.error(f"Logout failed: {str(e)}")
-            raise DatabaseError("Failed to logout user")
-
-# Create singleton instance
+# Create and export service instance
 auth_service = AuthService() 

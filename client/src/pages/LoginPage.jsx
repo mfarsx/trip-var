@@ -1,14 +1,15 @@
-import { useState, useCallback, useEffect } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth.jsx";
+import React, { useState, useCallback, useEffect } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { useErrorHandler } from "../hooks/useErrorHandler";
 import {
   ValidationError,
   NetworkError,
   AuthenticationError,
-  wrapWithErrorHandler,
-  useErrorHandler,
-  withErrorHandling,
 } from "../utils/error";
+import { FormInput } from "../components/ui/FormInput";
+import { FormError } from "../components/ui/FormError";
+import { withErrorHandling } from "../utils/error";
 
 export function LoginPage() {
   const [formData, setFormData] = useState({
@@ -20,7 +21,8 @@ export function LoginPage() {
     password: false,
   });
   const [loading, setLoading] = useState(false);
-  const { error, setError, clearError } = useErrorHandler("login");
+  const { error, setError, clearError, clearFieldError } =
+    useErrorHandler("login");
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated } = useAuth();
@@ -33,71 +35,117 @@ export function LoginPage() {
     }
   }, [isAuthenticated, navigate, location]);
 
-  const getValidationError = useCallback(
-    (field) => {
-      if (!touched[field]) return "";
-
-      switch (field) {
-        case "email":
-          if (!formData.email?.trim()) return "Email is required";
-          if (!formData.email.includes("@")) return "Invalid email format";
-          return "";
-        case "password":
-          if (!formData.password?.trim()) return "Password is required";
-          if (formData.password.length < 6)
-            return "Password must be at least 6 characters";
-          return "";
-        default:
-          return "";
-      }
-    },
-    [formData, touched]
-  );
-
-  const handleBlur = useCallback((e) => {
-    const { name } = e.target;
-    setTouched((prev) => ({ ...prev, [name]: true }));
+  const validateField = useCallback((name, value) => {
+    switch (name) {
+      case "email":
+        if (!value?.trim()) {
+          throw new ValidationError("Email is required", "email");
+        }
+        if (!value.includes("@")) {
+          throw new ValidationError("Invalid email format", "email");
+        }
+        break;
+      case "password":
+        if (!value?.trim()) {
+          throw new ValidationError("Password is required", "password");
+        }
+        if (value.length < 6) {
+          throw new ValidationError(
+            "Password must be at least 6 characters",
+            "password"
+          );
+        }
+        break;
+    }
   }, []);
 
+  const handleBlur = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+      setTouched((prev) => ({ ...prev, [name]: true }));
+      try {
+        validateField(name, value);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          setError({ ...error, field: name });
+        }
+      }
+    },
+    [validateField, setError]
+  );
+
   const validateForm = useCallback(() => {
-    const emailError = getValidationError("email");
-    const passwordError = getValidationError("password");
+    Object.entries(formData).forEach(([name, value]) => {
+      validateField(name, value);
+    });
+  }, [formData, validateField]);
 
-    if (emailError) throw new ValidationError(emailError);
-    if (passwordError) throw new ValidationError(passwordError);
-  }, [getValidationError]);
-
-  const handleSubmit = wrapWithErrorHandler(async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     clearError();
+
+    // Set all fields as touched
+    setTouched({
+      email: true,
+      password: true,
+    });
 
     try {
       validateForm();
       await login(formData);
       // Navigation is handled by the useEffect above
     } catch (error) {
+      console.error("Login error:", error);
+
       if (error instanceof ValidationError) {
-        setError(error.message);
+        setError(error);
       } else if (error instanceof NetworkError) {
-        setError("Network error. Please check your connection.");
-      } else if (error instanceof AuthenticationError) {
-        setError("Invalid email or password.");
+        setError({
+          type: "api",
+          message: "Network error. Please check your connection.",
+        });
+      } else if (error.response?.status === 401) {
+        setError({
+          type: "api",
+          message:
+            error.response.data?.message || "Incorrect email or password",
+          status: 401,
+        });
+      } else if (
+        error instanceof AuthenticationError ||
+        error.response?.status === 403
+      ) {
+        setError({
+          type: "api",
+          message: error.message || "Authentication failed",
+          status: error.response?.status,
+        });
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        setError({
+          type: "generic",
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "An unexpected error occurred. Please try again.",
+        });
       }
     } finally {
       setLoading(false);
     }
-  }, "login.submit");
+  };
 
   const handleChange = useCallback(
     (e) => {
       const { name, value } = e.target;
-      setFormData((prev) => ({ ...prev, [name]: value }));
-      if (error) clearError();
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+      // Clear any existing errors when user starts typing
+      clearFieldError(name);
     },
-    [error, clearError]
+    [clearFieldError]
   );
 
   return (
@@ -106,137 +154,69 @@ export function LoginPage() {
         <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 transform transition-all hover:scale-[1.01]">
           <div>
             <h2 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-              Welcome Back
+              Sign in to your account
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-              Sign in to your account to continue
+              Welcome back to Tripvar AI
             </p>
           </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/50 p-4 animate-shake">
-              <div className="text-sm text-red-700 dark:text-red-200">
-                {error}
-              </div>
-            </div>
-          )}
+          {/* Show all types of errors at the form level */}
+          {error && <FormError error={error} className="mt-4" />}
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit} noValidate>
             <div className="rounded-md -space-y-px">
-              <div className="mb-4">
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className={`appearance-none relative block w-full px-3 py-2 border ${
-                    touched.email && getValidationError("email")
-                      ? "border-red-300 dark:border-red-600"
-                      : "border-gray-300 dark:border-gray-600"
-                  } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200`}
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  disabled={loading}
-                />
-                {touched.email && getValidationError("email") && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {getValidationError("email")}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className={`appearance-none relative block w-full px-3 py-2 border ${
-                    touched.password && getValidationError("password")
-                      ? "border-red-300 dark:border-red-600"
-                      : "border-gray-300 dark:border-gray-600"
-                  } placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 transition-all duration-200`}
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  disabled={loading}
-                />
-                {touched.password && getValidationError("password") && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {getValidationError("password")}
-                  </p>
-                )}
-              </div>
+              <FormInput
+                label="Email address"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                error={error}
+                clearError={clearFieldError}
+                required
+                disabled={loading}
+                placeholder="Enter your email"
+                autoComplete="email"
+              />
+
+              <FormInput
+                label="Password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                error={error}
+                clearError={clearFieldError}
+                required
+                disabled={loading}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+              />
             </div>
 
             <div>
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transform transition-all duration-200 hover:scale-[1.02]"
+                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                  loading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Signing in...
-                  </div>
-                ) : (
-                  "Sign in"
-                )}
+                {loading ? "Signing in..." : "Sign in"}
               </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <Link
-                  to="/forgot-password"
-                  className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-              <div className="text-sm">
-                <Link
-                  to="/signup"
-                  className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-                >
-                  Create an account
-                </Link>
+              <div className="text-center mt-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Don't have an account?{" "}
+                  <Link
+                    to="/signup"
+                    className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  >
+                    Sign up
+                  </Link>
+                </p>
               </div>
             </div>
           </form>

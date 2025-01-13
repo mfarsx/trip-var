@@ -1,63 +1,49 @@
-# Dependencies
-node_modules/
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-.env
-
-# Build outputs
-dist/
+*.so
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
-Thumbs.db
+
+# Environment variables
+.env
 
 # Logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Local development
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Docker
-.docker/
-
-# Python virtual environment
-venv/
-env/
-.env/
-.venv/
-
-# Model files and cache
-ai-service/models/
-.cache/
-.pytest_cache
-
-# Environment Variables
-.env
-**/.env
-
-# Keep examples
-!.env.example
-
-# ESLint
-.eslintcache
+logs/
 
 # Coverage
-coverage/
+.coverage
+coverage.xml
+htmlcov/
 
-# Vite
-.vite/ 
+# MongoDB
+data/
+*.mongodb 

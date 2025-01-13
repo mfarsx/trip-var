@@ -7,7 +7,8 @@ import { ApiError } from "../../utils/error";
 import { InputForm } from "./components/InputForm";
 import { GeneratedOutput } from "./components/GeneratedOutput";
 import { BackgroundDecoration } from "./components/BackgroundDecoration";
-import { useAuth } from "../../hooks/useAuth.jsx";
+import { FormError } from "../../components/ui/FormError";
+import { aiService } from "../../services/aiService";
 
 export function TextGeneratorPage() {
   const [text, setText] = useState("");
@@ -26,38 +27,8 @@ export function TextGeneratorPage() {
     clearError();
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_PATH}/text-generation/generate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem(
-              import.meta.env.VITE_AUTH_TOKEN_KEY
-            )}`,
-          },
-          body: JSON.stringify({
-            prompt: text.trim(),
-            max_length: 100,
-            temperature: 0.7,
-            top_p: 0.9,
-            model: import.meta.env.VITE_DEFAULT_MODEL || "gpt2",
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new ApiError(
-          errorData.detail || "Failed to generate text",
-          response.status,
-          "TEXT_GENERATION_ERROR",
-          { response: errorData }
-        );
-      }
-
-      const data = await response.json();
-      setGeneratedText(data.generated_text);
+      const response = await aiService.generateText(text);
+      setGeneratedText(response.text);
     } catch (error) {
       const apiError =
         error instanceof ApiError
@@ -117,13 +88,7 @@ export function TextGeneratorPage() {
         </div>
 
         <div className="max-w-3xl mx-auto">
-          {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/50 p-4 mb-6 animate-shake">
-              <div className="text-sm text-red-700 dark:text-red-200">
-                {error}
-              </div>
-            </div>
-          )}
+          {error && <FormError error={error} className="mb-6" />}
 
           <div className="bg-white dark:bg-gray-800 shadow-xl rounded-2xl overflow-hidden transform transition-all hover:scale-[1.01]">
             <InputForm

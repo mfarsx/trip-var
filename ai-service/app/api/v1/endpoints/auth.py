@@ -1,107 +1,190 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Request, Body
-from fastapi.security import OAuth2PasswordBearer
-from app.domain.models.user import UserCreate, UserResponse
-from app.domain.models.auth import (
-    LoginRequest,
-    LoginResponse, 
-    TokenVerifyResponse,
-    LogoutResponse
-)
+"""Authentication endpoints with rate limiting and enhanced security."""
+
+from fastapi import APIRouter, HTTPException, status, Form, Request
+from app.domain.models import UserCreate, UserResponse, Token, LoginResponse, DataResponse
 from app.domain.services.auth import auth_service
-from app.core.exceptions import ValidationError, DatabaseError, AuthenticationError
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import Depends
+from typing import Annotated
+from pydantic import BaseModel, EmailStr
 from app.core.dependencies import get_current_user
-import logging
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from app.core.rate_limit import rate_limiter
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
-limiter = Limiter(key_func=get_remote_address)
 
-@router.post("/register", response_model=LoginResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/minute")
-async def register(request: Request, user: UserCreate):
-    """Register a new user."""
+class LoginRequest(BaseModel):
+    """Login request model with email validation."""
+    email: EmailStr
+    password: str
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "password": "strongpassword123"
+            }
+        }
+
+@router.post(
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {"description": "User successfully created"},
+        400: {"description": "Invalid input or email already exists"},
+        429: {"description": "Too many requests"}
+    }
+)
+@rate_limiter(max_requests=5, window_seconds=300)  # 5 requests per 5 minutes
+async def register(
+    request: Request,
+    user_data: UserCreate
+) -> UserResponse:
+    """
+    Register a new user.
+    
+    Args:
+        user_data: User registration data including email and password
+        
+    Returns:
+        UserResponse: Created user information
+        
+    Raises:
+        HTTPException: If email already exists or invalid input
+    """
     try:
-        logger.info(f"Starting registration process for email: {user.email}")
-        new_user, token = await auth_service.create_user(user)
-        
-        user_response = UserResponse.from_user(new_user)
-        logger.info(f"Successfully registered user with email: {user.email}")
-        
-        return LoginResponse(
-            access_token=token.access_token,
-            token_type=token.token_type,
-            user=user_response
-        )
-    except (ValidationError, DatabaseError, AuthenticationError) as e:
-        raise e.to_http()
-    except Exception as e:
-        logger.error(f"Unexpected error during registration: {str(e)}", exc_info=True)
+        user = await auth_service.register_user(user_data)
+        return user
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during registration"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
 
-@router.post("/login", response_model=LoginResponse)
-@limiter.limit("5/minute")
-async def login(request: Request, login_data: LoginRequest = Body(...)):
-    """Login endpoint that accepts JSON data."""
+@router.post(
+    "/login/token",
+    response_model=LoginResponse,
+    responses={
+        200: {"description": "Successfully authenticated"},
+        401: {"description": "Invalid credentials"},
+        429: {"description": "Too many requests"}
+    }
+)
+@rate_limiter(max_requests=10, window_seconds=300)  # 10 requests per 5 minutes
+async def login_form(
+    request: Request,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+) -> LoginResponse:
+    """
+    Login using form data (for OAuth2 compatibility).
+    
+    Args:
+        form_data: OAuth2 form data with username (email) and password
+        
+    Returns:
+        LoginResponse: Authentication token and user information
+        
+    Raises:
+        HTTPException: If credentials are invalid
+    """
     try:
-        user, token = await auth_service.login_user(
+        result = await auth_service.authenticate_user(
+            email=form_data.username,  # OAuth2 form uses username field for email
+            password=form_data.password
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+@router.post(
+    "/login",
+    response_model=LoginResponse,
+    responses={
+        200: {"description": "Successfully authenticated"},
+        401: {"description": "Invalid credentials"},
+        429: {"description": "Too many requests"}
+    }
+)
+@rate_limiter(max_requests=10, window_seconds=300)  # 10 requests per 5 minutes
+async def login(
+    request: Request,
+    login_data: LoginRequest
+) -> LoginResponse:
+    """
+    Login using JSON request.
+    
+    Args:
+        login_data: Login credentials including email and password
+        
+    Returns:
+        LoginResponse: Authentication token and user information
+        
+    Raises:
+        HTTPException: If credentials are invalid
+    """
+    try:
+        result = await auth_service.authenticate_user(
             email=login_data.email,
             password=login_data.password
         )
-        
-        return LoginResponse(
-            access_token=token.access_token,
-            token_type=token.token_type,
-            user=UserResponse.from_user(user)
-        )
-    except (ValidationError, DatabaseError, AuthenticationError) as e:
-        raise e.to_http()
-    except Exception as e:
-        logger.error(f"Login failed: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during login"
-        )
-
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user = Depends(get_current_user)):
-    """Get current user information."""
-    return UserResponse.from_user(current_user)
-
-@router.get("/verify", response_model=TokenVerifyResponse)
-@router.post("/verify", response_model=TokenVerifyResponse)
-async def verify_access_token(current_user = Depends(get_current_user)):
-    """Verify an access token and return the user information."""
-    try:
-        return TokenVerifyResponse(
-            is_valid=True,
-            user=UserResponse.from_user(current_user)
-        )
-    except Exception as e:
-        logger.error(f"Token verification failed: {str(e)}", exc_info=True)
+        return result
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-@router.post("/logout", response_model=LogoutResponse)
-async def logout(current_user = Depends(get_current_user)):
-    """Logout current user."""
-    try:
-        await auth_service.logout_user(current_user.id)
-        return LogoutResponse(
-            message="Successfully logged out",
-            status="success"
-        )
-    except (ValidationError, DatabaseError) as e:
-        raise e.to_http()
-    except Exception as e:
-        logger.error(f"Logout failed: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during logout"
-        ) 
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    responses={
+        200: {"description": "Current user information"},
+        401: {"description": "Not authenticated"}
+    }
+)
+async def get_current_user_info(
+    current_user: Annotated[UserResponse, Depends(get_current_user)]
+) -> UserResponse:
+    """
+    Get current authenticated user information.
+    
+    Args:
+        current_user: Current authenticated user (injected by dependency)
+        
+    Returns:
+        UserResponse: Current user information
+    """
+    return current_user
+
+@router.post(
+    "/logout",
+    response_model=DataResponse[None],
+    responses={
+        200: {"description": "Successfully logged out"},
+        401: {"description": "Not authenticated"}
+    }
+)
+async def logout(
+    current_user: Annotated[UserResponse, Depends(get_current_user)]
+) -> DataResponse[None]:
+    """
+    Logout current user.
+    
+    Args:
+        current_user: Current authenticated user (injected by dependency)
+        
+    Returns:
+        DataResponse: Success message
+    """
+    # In a stateless JWT setup, we don't need to do anything server-side
+    # The client will remove the token
+    return DataResponse(
+        success=True,
+        message="Successfully logged out",
+        data=None
+    ) 

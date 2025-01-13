@@ -5,33 +5,13 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: parseInt(process.env.VITE_PORT || "3000"),
     host: true,
-    watch: {
-      usePolling: true,
-    },
     proxy: {
       "/api/v1": {
         target: "http://ai-service:8000",
         changeOrigin: true,
         secure: false,
-      },
-    },
-  },
-  resolve: {
-    alias: {
-      "@": "/src",
-    },
-  },
-  esbuild: {
-    loader: "jsx",
-    include: /src\/.*\.jsx?$/,
-    exclude: [],
-  },
-  optimizeDeps: {
-    esbuildOptions: {
-      loader: {
-        ".js": "jsx",
       },
     },
   },

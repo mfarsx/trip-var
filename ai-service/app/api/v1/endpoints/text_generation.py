@@ -1,67 +1,31 @@
 """Text generation endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from app.core.dependencies import get_current_user, get_text_generator
+from fastapi import APIRouter, Depends, HTTPException
+from app.domain.models import (
+    TextGenerationRequest,
+    TextGenerationResponse,
+    DataResponse,
+    User
+)
 from app.domain.services.text_generation import TextGenerationService
-from app.domain.models.text import TextGenerationRequest, TextGenerationResponse
-from app.domain.models.responses import DataResponse
-from app.domain.models.user import User
-import logging
+from app.core.dependencies import get_current_user
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/generate", response_model=DataResponse[TextGenerationResponse])
 async def generate_text(
     request: TextGenerationRequest,
-    current_user: User = Depends(get_current_user),
-    text_generator: TextGenerationService = Depends(get_text_generator)
+    current_user: User = Depends(get_current_user)
 ):
-    """Generate text based on prompt"""
+    """Generate text based on the provided prompt."""
     try:
-        result = await text_generator.generate(
-            request=request,
-            user_id=current_user.id
-        )
-        
+        response = await TextGenerationService.generate_text(request)
         return DataResponse(
-            data=result,
+            success=True,
             message="Text generated successfully",
-            success=True
+            data=response
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error generating text: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate text: {str(e)}"
-        )
-
-@router.get("/history")
-async def get_generation_history(
-    current_user: User = Depends(get_current_user),
-    text_service: TextGenerationService = Depends(get_text_generator)
-):
-    """Get text generation history for the current user."""
-    try:
-        history = await text_service.get_history(current_user.id)
-        return history
-    except Exception as e:
-        logger.error(f"Error fetching history: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching history: {str(e)}"
-        )
-
-@router.get("/models")
-async def list_models():
-    """List available models for text generation."""
-    return {
-        "models": {
-            "phi-4": {
-                "name": "Phi-4",
-                "provider": "local_llm",
-                "max_tokens": -1,
-                "description": "Microsoft's Phi-4 model running locally"
-            }
-        }
-    } 
+        raise HTTPException(status_code=500, detail=str(e)) 

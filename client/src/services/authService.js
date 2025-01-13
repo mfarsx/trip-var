@@ -1,6 +1,7 @@
 import axios from "../utils/axiosConfig";
 import { asyncHandler } from "../utils/apiUtils";
 import { AUTH_STORAGE_KEYS, AUTH_ERRORS } from "../constants/auth";
+import { AuthenticationError, NetworkError } from "../utils/error";
 
 class AuthService {
   constructor() {
@@ -216,7 +217,15 @@ class AuthService {
     const token = data.access_token || data.token;
     if (!token) return null;
 
-    // Validate token format
+    // Skip token validation for registration response
+    if (data.user) {
+      return {
+        user: data.user,
+        access_token: token,
+      };
+    }
+
+    // Validate token format for other responses
     if (!this._isTokenValid(token)) {
       return null;
     }
@@ -293,9 +302,32 @@ class AuthService {
    * @returns {Error} Normalized error
    */
   _normalizeError(error) {
-    if (error.response?.data?.detail) {
-      return new Error(error.response.data.detail);
+    // Handle API error responses
+    if (error.response?.data) {
+      const errorData = error.response.data;
+      const message =
+        errorData.detail ||
+        errorData.message ||
+        errorData.error ||
+        "An unexpected error occurred";
+      const status = error.response.status;
+
+      // Handle specific error types
+      if (status === 401) {
+        return new AuthenticationError(message, status);
+      }
+
+      return new Error(message);
     }
+
+    // Handle network errors
+    if (!error.response) {
+      return new NetworkError(
+        "Network error occurred. Please check your connection."
+      );
+    }
+
+    // Return original error if no specific handling
     return error;
   }
 }

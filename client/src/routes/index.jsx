@@ -4,6 +4,7 @@ import LoginPage from "../pages/LoginPage";
 import HomePage from "../pages/HomePage";
 import TextGeneratorPage from "../pages/TextGeneratorPage";
 import TravelPlannerPage from "../pages/TravelPlannerPage";
+import SignupPage from "../pages/SignupPage";
 import { Layout } from "../components/Layout";
 import { useAuth } from "../hooks/useAuth";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
@@ -50,6 +51,14 @@ export default function AppRoutes() {
         element={
           <PublicRoute>
             <LoginPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <PublicRoute>
+            <SignupPage />
           </PublicRoute>
         }
       />

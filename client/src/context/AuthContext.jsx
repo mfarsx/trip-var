@@ -160,8 +160,10 @@ export const AuthProvider = ({ children }) => {
     (error, defaultType = AUTH_ERRORS.UNKNOWN_ERROR) => {
       const { type, message } = getErrorDetails(error);
 
+      // Only clear auth data if it's a token-related error and not during signup
       if (
-        [AUTH_ERRORS.EXPIRED_TOKEN, AUTH_ERRORS.INVALID_TOKEN].includes(type)
+        [AUTH_ERRORS.EXPIRED_TOKEN, AUTH_ERRORS.INVALID_TOKEN].includes(type) &&
+        window.location.pathname !== '/signup'
       ) {
         authService._clearAuthData();
       }

@@ -61,7 +61,17 @@ class AuthService:
         result = await db.users.insert_one(user_dict)
         user_dict["id"] = str(result.inserted_id)
         
-        return UserResponse(**user_dict)
+        # Create access token
+        access_token = cls.create_access_token(
+            data={"sub": user_dict["email"]},
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+        
+        # Create response with token
+        user_response = UserResponse(**user_dict)
+        user_response.access_token = access_token
+        
+        return user_response
 
     @classmethod
     async def authenticate_user(cls, email: str, password: str) -> LoginResponse:

@@ -15,5 +15,5 @@ if __name__ == "__main__":
         port=settings.PORT,
         reload=settings.DEBUG,
         log_level="debug",
-        workers=1  # Başlangıçta tek worker ile test edelim
+        workers=1
     ) 

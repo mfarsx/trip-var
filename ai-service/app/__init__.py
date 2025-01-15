@@ -9,50 +9,41 @@ from app.api.v1.api import api_router
 import logging
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-# Passlib loglarını azalt
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Reduce Passlib logs
 logging.getLogger("passlib").setLevel(logging.WARNING)
-logger = logging.getLogger(__name__)
-settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan."""
+    mongodb = MongoDB()
     try:
-        # Startup
-        logger.info("Starting up application...")
-        mongodb = MongoDB()
         await mongodb.verify_connection()
-        logger.info("MongoDB connection verified")
         yield
-        # Shutdown
-        if mongodb.client:
-            mongodb.client.close()
-            logger.info("MongoDB connection closed")
     except Exception as e:
         logger.error(f"Application lifecycle error: {str(e)}", exc_info=True)
         raise
+    finally:
+        if mongodb.client:
+            mongodb.client.close()
 
 # Create FastAPI app instance
 app = FastAPI(
-    title=settings.APP_NAME,
-    description=settings.APP_DESCRIPTION,
-    version=settings.APP_VERSION,
-    docs_url="/docs" if settings.SHOW_DOCS else None,
-    redoc_url="/redoc" if settings.SHOW_DOCS else None,
+    title=get_settings().APP_NAME,
+    description=get_settings().APP_DESCRIPTION,
+    version=get_settings().APP_VERSION,
+    docs_url="/docs" if get_settings().SHOW_DOCS else None,
+    redoc_url="/redoc" if get_settings().SHOW_DOCS else None,
     lifespan=lifespan
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=settings.CORS_METHODS,
-    allow_headers=settings.CORS_HEADERS,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include API router

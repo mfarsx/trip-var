@@ -34,6 +34,7 @@ class User(UserBase):
 class UserResponse(User):
     """User response model."""
     preferences: Dict[str, Any] = Field(default_factory=dict)
+    access_token: Optional[str] = None
 
 class Token(BaseModel):
     """Token response model."""

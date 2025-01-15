@@ -112,8 +112,12 @@ export function SignupPage() {
 
     try {
       validateForm();
-      await signup(formData);
-      navigate("/");
+      const response = await signup(formData);
+      if (response?.user && response?.access_token) {
+        navigate("/");
+      } else {
+        throw new Error("Invalid signup response");
+      }
     } catch (error) {
       if (error instanceof ValidationError) {
         setError(error);

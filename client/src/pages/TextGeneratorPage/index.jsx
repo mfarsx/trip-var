@@ -25,6 +25,7 @@ export function TextGeneratorPage() {
 
     setIsLoading(true);
     clearError();
+    setGeneratedText("");
 
     try {
       const response = await aiService.generateText(text);

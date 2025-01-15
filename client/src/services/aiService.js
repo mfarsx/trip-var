@@ -50,15 +50,7 @@ class AIService {
           throw new Error(response.data.message || "Failed to generate text");
         }
 
-        const result = response.data.data;
-        if (result.finish_reason === "length") {
-          logInfo(
-            "Response was truncated due to length",
-            "ai.generate.truncated"
-          );
-        }
-
-        return result;
+        return response.data.data;
       },
       "ai"
     );

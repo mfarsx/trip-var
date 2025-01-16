@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
+import PropTypes from "prop-types";
 
-const LoadingSpinner = ({ size = "8", color = "blue-500" }) => {
+export const LoadingSpinner = ({ size = "8", color = "blue-500" }) => {
   return (
     <div className="flex justify-center items-center">
       <div
@@ -12,4 +13,7 @@ const LoadingSpinner = ({ size = "8", color = "blue-500" }) => {
   );
 };
 
-export default LoadingSpinner;
+LoadingSpinner.propTypes = {
+  size: PropTypes.string,
+  color: PropTypes.string,
+};

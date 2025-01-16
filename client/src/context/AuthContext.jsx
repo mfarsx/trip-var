@@ -7,10 +7,12 @@ import {
   useMemo,
   useRef,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { authService } from "../services/authService";
-import { AUTH_ERRORS, AUTH_EVENTS, AUTH_STORAGE_KEYS } from "../constants/auth";
+import { AUTH_ERRORS, AUTH_EVENTS, AUTH_CONFIG } from "../constants/auth";
 import { logInfo, logError } from "../utils/logger";
+import { getStoredToken, getStoredUser } from "../utils/tokenUtils";
 
 // Type definitions
 /**
@@ -45,12 +47,11 @@ import { logInfo, logError } from "../utils/logger";
  * @property {function(): Promise<boolean>} checkAuthStatus - Check auth status
  */
 
-// Initial state
+// Initial state with stored user data
 const initialState = {
-  user: null,
+  user: getStoredUser(),
   loading: true,
   error: null,
-  lastCheck: 0,
 };
 
 // Create context with type definition
@@ -60,11 +61,18 @@ export const AuthContext = createContext(null);
 // Validation schemas
 const stateSchema = {
   user: (value) =>
-    value === null || (typeof value === "object" && "id" in value),
+    value === null ||
+    (typeof value === "object" &&
+      value !== null &&
+      typeof value.id === "string" &&
+      typeof value.email === "string"),
   loading: (value) => typeof value === "boolean",
   error: (value) =>
     value === null ||
-    (typeof value === "object" && "type" in value && "message" in value),
+    (typeof value === "object" &&
+      value !== null &&
+      typeof value.type === "string" &&
+      typeof value.message === "string"),
 };
 
 /**
@@ -75,6 +83,7 @@ const stateSchema = {
 const validateStateUpdates = (updates) => {
   Object.entries(updates).forEach(([key, value]) => {
     if (key in stateSchema && !stateSchema[key](value)) {
+      console.error(`Invalid value for ${key}:`, value);
       throw new Error(`Invalid state update for ${key}`);
     }
   });
@@ -136,9 +145,8 @@ const getErrorDetails = (error) => {
  */
 export const AuthProvider = ({ children }) => {
   const [state, setState] = useState(initialState);
-  const checkAuthTimeoutRef = useRef(null);
-  const isCheckingRef = useRef(false);
-  const initialCheckDoneRef = useRef(false);
+  const mountedRef = useRef(true);
+  const navigate = useNavigate();
 
   const updateState = useCallback((updates) => {
     try {
@@ -146,15 +154,19 @@ export const AuthProvider = ({ children }) => {
       setState((prev) => ({ ...prev, ...updates }));
     } catch (error) {
       console.error("Invalid state update:", error);
-      if (process.env.NODE_ENV === "development") {
+      if (AUTH_CONFIG.DEV_MODE) {
         throw error;
       }
     }
   }, []);
 
   const resetState = useCallback(() => {
-    setState(initialState);
-  }, []);
+    updateState({
+      user: null,
+      loading: false,
+      error: null,
+    });
+  }, [updateState]);
 
   const handleAuthError = useCallback(
     (error, defaultType = AUTH_ERRORS.UNKNOWN_ERROR) => {
@@ -163,9 +175,9 @@ export const AuthProvider = ({ children }) => {
       // Only clear auth data if it's a token-related error and not during signup
       if (
         [AUTH_ERRORS.EXPIRED_TOKEN, AUTH_ERRORS.INVALID_TOKEN].includes(type) &&
-        window.location.pathname !== '/signup'
+        window.location.pathname !== "/signup"
       ) {
-        authService._clearAuthData();
+        authService._clearAuth();
       }
 
       updateState({
@@ -179,235 +191,241 @@ export const AuthProvider = ({ children }) => {
     [updateState]
   );
 
-  const checkAuthStatus = useCallback(
-    async (force = false) => {
-      // Skip if already checking
-      if (isCheckingRef.current) {
-        return false;
-      }
+  const checkAuthStatus = useCallback(async () => {
+    if (!mountedRef.current) return false;
 
-      // Skip if checked recently and not forced
-      const now = Date.now();
-      if (!force && now - state.lastCheck < 2000) {
-        return false;
-      }
+    try {
+      updateState({ loading: true });
 
-      try {
-        isCheckingRef.current = true;
-        updateState({ loading: true, lastCheck: now });
-
-        // First check if we have a valid token
-        if (!authService.isAuthenticated()) {
-          updateState({ user: null, loading: false, error: null });
-          return false;
-        }
-
-        // Try to get user data
-        const response = await authService.checkAuth();
-
-        // If we have a valid response with user data
-        if (response?.user) {
-          updateState({
-            user: response.user,
-            error: null,
-            loading: false,
-          });
-          logInfo("Auth check completed successfully", "auth", {
-            userId: response.user.id,
-            timestamp: new Date().toISOString(),
-          });
-          return true;
-        }
-
-        // If we have a response but no user data, clear auth
-        authService._clearAuthData();
-        updateState({
-          user: null,
-          loading: false,
-          error: {
-            type: AUTH_ERRORS.INVALID_TOKEN,
-            message: "Invalid authentication state",
-          },
-        });
-        return false;
-      } catch (error) {
-        // Handle network errors differently
-        if (!error.response) {
-          updateState({
-            loading: false,
-            error: {
-              type: AUTH_ERRORS.NETWORK_ERROR,
-              message:
-                "Unable to connect to server. Please check your connection.",
-            },
-          });
-          return false;
-        }
-
-        // Handle other errors
-        const errorType = handleAuthError(error);
-
-        // Clear auth data for authentication errors
-        if (
-          [AUTH_ERRORS.EXPIRED_TOKEN, AUTH_ERRORS.INVALID_TOKEN].includes(
-            errorType
-          )
-        ) {
-          authService._clearAuthData();
-        }
-
-        return false;
-      } finally {
-        isCheckingRef.current = false;
-      }
-    },
-    [updateState, handleAuthError, state.lastCheck]
-  );
-
-  // Event handlers
-  const handleStorageChange = useCallback(
-    (event) => {
-      if (event.key === AUTH_STORAGE_KEYS.TOKEN) {
-        if (checkAuthTimeoutRef.current) {
-          clearTimeout(checkAuthTimeoutRef.current);
-        }
-        checkAuthTimeoutRef.current = setTimeout(() => {
-          checkAuthStatus(true);
-        }, 250);
-      }
-    },
-    [checkAuthStatus]
-  );
-
-  const handleAuthStateChange = useCallback(
-    (event) => {
-      if (!event.detail.authenticated) {
+      const token = getStoredToken();
+      if (!token) {
         updateState({ user: null, loading: false });
+        return false;
       }
-    },
-    [updateState]
-  );
 
-  // Initial auth check
-  useEffect(() => {
-    if (!initialCheckDoneRef.current) {
-      initialCheckDoneRef.current = true;
-      checkAuthStatus(true);
+      const response = await authService.checkAuth();
+
+      if (!mountedRef.current) return false;
+
+      if (!response?.success || !response?.data) {
+        updateState({ user: null, loading: false });
+        return false;
+      }
+
+      const { user } = response.data;
+      
+      // Format user data to match our expected structure
+      const userData = {
+        id: user?._id || user?.id,
+        email: user?.email,
+        full_name: user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim()
+      };
+
+      if (!userData.id || !userData.email) {
+        logError(new Error("Invalid user data structure from checkAuth"), "auth", {
+          receivedData: JSON.stringify(response.data),
+          formattedUser: JSON.stringify(userData)
+        });
+        updateState({ user: null, loading: false });
+        return false;
+      }
+
+      updateState({
+        user: userData,
+        loading: false,
+        error: null,
+      });
+
+      logInfo("Auth check completed successfully", "auth", {
+        userId: userData.id,
+        timestamp: new Date().toISOString(),
+      });
+
+      return true;
+    } catch (error) {
+      if (!mountedRef.current) return false;
+
+      handleAuthError(error);
+      return false;
     }
-
-    return () => {
-      if (checkAuthTimeoutRef.current) {
-        clearTimeout(checkAuthTimeoutRef.current);
-      }
-    };
-  }, [checkAuthStatus]);
-
-  // Event listeners
-  useEffect(() => {
-    window.addEventListener(AUTH_EVENTS.STORAGE, handleStorageChange);
-    window.addEventListener(
-      AUTH_EVENTS.AUTH_STATE_CHANGE,
-      handleAuthStateChange
-    );
-
-    return () => {
-      window.removeEventListener(AUTH_EVENTS.STORAGE, handleStorageChange);
-      window.removeEventListener(
-        AUTH_EVENTS.AUTH_STATE_CHANGE,
-        handleAuthStateChange
-      );
-    };
-  }, [handleStorageChange, handleAuthStateChange]);
-
-  const signup = useCallback(
-    async (userData) => {
-      updateState({ loading: true, error: null });
-      try {
-        const response = await authService.signup(userData);
-        if (response?.user) {
-          updateState({
-            user: response.user,
-            error: null,
-            loading: false,
-          });
-          // Trigger auth state check to ensure everything is properly set
-          await checkAuthStatus(true);
-          return response;
-        }
-        throw new Error("Invalid response format");
-      } catch (error) {
-        handleAuthError(error, AUTH_ERRORS.SIGNUP_FAILED);
-        throw error;
-      } finally {
-        updateState({ loading: false });
-      }
-    },
-    [updateState, handleAuthError, checkAuthStatus]
-  );
+  }, [updateState, handleAuthError]);
 
   const login = useCallback(
     async (credentials) => {
+      if (!mountedRef.current) return;
+
       updateState({ loading: true, error: null });
       try {
         logInfo("Starting login", "auth", {
           email: credentials.email ? "***" : undefined,
           timestamp: new Date().toISOString(),
-          hasPassword: !!credentials.password,
         });
 
         const response = await authService.login(credentials);
+        
+        logInfo("Login response received", "auth", {
+          success: response?.success,
+          hasData: !!response?.data,
+          message: response?.message,
+          timestamp: new Date().toISOString(),
+        });
 
-        if (response?.user) {
-          updateState({ user: response.user, error: null });
-          logInfo("Login completed successfully", "auth", {
-            userId: response.user.id,
-            email: "***" + response.user.email.split("@")[1],
-            timestamp: new Date().toISOString(),
-          });
+        if (!mountedRef.current) return;
+
+        if (!response?.success || !response?.data) {
+          throw new Error(response?.message || "Login failed");
         }
-        return response;
+
+        const { user, access_token } = response.data;
+        
+        // Format user data to match our expected structure
+        const userData = {
+          id: user?._id || user?.id,
+          email: user?.email,
+          full_name: user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim()
+        };
+        
+        if (!userData.id || !userData.email) {
+          logError(new Error("Invalid user data structure"), "auth", {
+            receivedData: JSON.stringify(response.data),
+            formattedUser: JSON.stringify(userData)
+          });
+          throw new Error("Invalid user data received");
+        }
+
+        updateState({
+          user: userData,
+          loading: false,
+          error: null,
+        });
+
+        logInfo("Login completed successfully", "auth", {
+          userId: userData.id,
+          email: "***" + userData.email.split("@")[1],
+          timestamp: new Date().toISOString(),
+        });
+
+        return { user: userData, access_token };
       } catch (error) {
+        if (!mountedRef.current) return;
+
         handleAuthError(error, AUTH_ERRORS.LOGIN_FAILED);
         logError(error, "auth");
         throw error;
-      } finally {
-        updateState({ loading: false });
       }
     },
     [updateState, handleAuthError]
   );
 
   const logout = useCallback(async () => {
-    if (!state.user) return; // Prevent logout if no user is logged in
+    if (!mountedRef.current) return;
 
-    updateState({ loading: true });
     try {
-      logInfo("Starting logout", "auth", {
-        userId: state.user?.id,
-        timestamp: new Date().toISOString(),
-      });
+      if (state.user) {
+        logInfo("Starting logout", "auth", {
+          userId: state.user.id,
+          timestamp: new Date().toISOString(),
+        });
+      }
 
+      // First clear the state
+      resetState();
+      
+      // Then call the logout service
       await authService.logout();
 
+      if (!mountedRef.current) return;
+
       logInfo("Logout completed successfully", "auth", {
-        userId: state.user?.id, // Include userId in completion log
         timestamp: new Date().toISOString(),
       });
 
-      resetState(); // Move resetState after logging
+      // Finally navigate
+      navigate("/login", { replace: true });
     } catch (error) {
+      if (!mountedRef.current) return;
+
       handleAuthError(error, AUTH_ERRORS.LOGOUT_FAILED);
       logError(error, "auth");
-      throw error;
-    } finally {
-      updateState({ loading: false });
+      
+      // Even on error, we should clear the state and redirect
+      resetState();
+      navigate("/login", { replace: true });
     }
-  }, [updateState, handleAuthError, resetState, state.user]);
+  }, [updateState, handleAuthError, resetState, state.user, navigate]);
+
+  const signup = useCallback(
+    async (userData) => {
+      if (!mountedRef.current) return;
+
+      updateState({ loading: true, error: null });
+      try {
+        const response = await authService.register(userData);
+
+        if (!mountedRef.current) return;
+
+        if (response?.data?.user) {
+          updateState({
+            user: response.data.user,
+            loading: false,
+            error: null,
+          });
+          await checkAuthStatus();
+          return response.data;
+        }
+
+        throw new Error("Invalid response format");
+      } catch (error) {
+        if (!mountedRef.current) return;
+
+        handleAuthError(error, AUTH_ERRORS.SIGNUP_FAILED);
+        throw error;
+      }
+    },
+    [updateState, handleAuthError, checkAuthStatus]
+  );
+
+  // Initial auth check and cleanup
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    // Run initial auth check
+    const initAuth = async () => {
+      try {
+        await checkAuthStatus();
+      } catch (error) {
+        logError(error, "auth");
+      }
+    };
+    
+    initAuth();
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [checkAuthStatus]);
+
+  // Event listeners for auth state changes
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === AUTH_EVENTS.AUTH_STATE_CHANGE) {
+        checkAuthStatus();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(AUTH_EVENTS.AUTH_STATE_CHANGE, checkAuthStatus);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(AUTH_EVENTS.AUTH_STATE_CHANGE, checkAuthStatus);
+    };
+  }, [checkAuthStatus]);
 
   const value = useMemo(
     () => ({
       ...state,
-      isAuthenticated: !!state.user,
+      isAuthenticated: !!getStoredToken() && !!state.user,
       login,
       logout,
       signup,
@@ -423,6 +441,11 @@ AuthProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
+/**
+ * Custom hook for accessing authentication context
+ * @returns {AuthContextValue} Authentication context value
+ * @throws {Error} If used outside of AuthProvider
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

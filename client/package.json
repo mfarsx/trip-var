@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
     "@sentry/browser": "^7.91.0",
     "@sentry/react": "^7.120.2",
     "@sentry/tracing": "^7.114.0",

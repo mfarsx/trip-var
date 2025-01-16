@@ -1,17 +1,16 @@
 /* Navbar Container */
 .navbar {
   @apply sticky top-0 z-50;
-  background: rgba(15, 23, 42, 0.95);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dark .navbar {
-  background: rgba(15, 23, 42, 0.95);
+  background: rgba(17, 24, 39, 0.95);
 }
 
-/* Logo Animation */
+/* Logo */
 .navbar-logo {
   @apply relative flex items-center transition-all duration-200 text-white;
 }
@@ -52,9 +51,13 @@
   @apply transform scale-110 rotate-3;
 }
 
-/* User Menu Button */
+/* User Menu */
 .user-menu-button {
   @apply relative flex items-center transition-all duration-200;
+}
+
+.user-menu-button:hover {
+  @apply transform scale-105;
 }
 
 .user-menu-button::before {
@@ -68,7 +71,7 @@
 }
 
 .user-avatar {
-  @apply bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg transition-transform duration-200;
+  @apply bg-indigo-600 dark:bg-indigo-500 bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg transition-transform duration-200;
 }
 
 .user-menu-button:hover .user-avatar {
@@ -77,25 +80,22 @@
 
 /* Dropdown Menu */
 .dropdown-menu {
-  @apply absolute right-0 mt-2 w-48 rounded-lg shadow-lg divide-y divide-gray-700 ring-1 ring-black ring-opacity-5 transform origin-top-right;
-  background: rgba(15, 23, 42, 0.98);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  animation: dropdown 0.2s ease-out forwards;
+  @apply absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .dark .dropdown-menu {
   background: rgba(15, 23, 42, 0.98);
 }
 
-@keyframes dropdown {
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(-10px);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1);
   }
 }
 
@@ -104,17 +104,17 @@
   background: rgba(15, 23, 42, 0.98);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  animation: mobileMenu 0.2s ease-out forwards;
+  animation: slideDown 0.2s ease-out;
 }
 
 .dark .mobile-menu {
   background: rgba(15, 23, 42, 0.98);
 }
 
-@keyframes mobileMenu {
+@keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
@@ -124,7 +124,7 @@
 
 /* Menu Items */
 .menu-item {
-  @apply relative flex items-center w-full px-4 py-2 text-sm transition-colors duration-200;
+  @apply block w-full text-left px-4 py-2 text-sm transition-colors duration-200;
 }
 
 .menu-item::before {

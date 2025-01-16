@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { withErrorHandling } from "../utils/error";
+import React, { useState } from "react";
+import { useAuth } from "../hooks/useAuth.js";
+import { wrapWithErrorHandler } from "../utils/error/errorHandler";
+import { Alert } from "../components/profile/Alert";
+import { ProfileForm } from "../components/profile/ProfileForm";
 
 export function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -66,121 +68,18 @@ export function ProfilePage() {
           Profile Settings
         </h1>
 
-        {error && (
-          <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/50 p-4">
-            <div className="text-sm text-red-700 dark:text-red-200">
-              {error}
-            </div>
-          </div>
-        )}
+        <Alert type="error" message={error} />
+        <Alert type="success" message={success} />
 
-        {success && (
-          <div className="mb-4 rounded-md bg-green-50 dark:bg-green-900/50 p-4">
-            <div className="text-sm text-green-700 dark:text-green-200">
-              {success}
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="displayName"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Display Name
-            </label>
-            <input
-              type="text"
-              id="displayName"
-              name="displayName"
-              value={formData.displayName}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label
-              htmlFor="currentPassword"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Current Password
-            </label>
-            <input
-              type="password"
-              id="currentPassword"
-              name="currentPassword"
-              value={formData.currentPassword}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label
-              htmlFor="newPassword"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              New Password
-            </label>
-            <input
-              type="password"
-              id="newPassword"
-              name="newPassword"
-              value={formData.newPassword}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label
-              htmlFor="confirmNewPassword"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Confirm New Password
-            </label>
-            <input
-              type="password"
-              id="confirmNewPassword"
-              name="confirmNewPassword"
-              value={formData.confirmNewPassword}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-            />
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-900"
-            >
-              {loading ? "Updating..." : "Update Profile"}
-            </button>
-          </div>
-        </form>
+        <ProfileForm
+          formData={formData}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          loading={loading}
+        />
       </div>
     </div>
   );
 }
 
-export default withErrorHandling(ProfilePage, "profile");
+export default wrapWithErrorHandler(ProfilePage, "profile");

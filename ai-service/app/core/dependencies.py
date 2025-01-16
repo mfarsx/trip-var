@@ -3,7 +3,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from app.domain.models import User, TokenData
+from app.domain.models import UserResponse, TokenData
 from app.core.config import get_settings
 from app.core.mongodb import get_db
 
@@ -13,7 +13,7 @@ oauth2_scheme = OAuth2PasswordBearer(
     auto_error=True
 )
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserResponse:
     """Get current authenticated user."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -25,8 +25,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         # Decode JWT
         payload = jwt.decode(
             token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            settings.AUTH_SECRET_KEY,
+            algorithms=[settings.AUTH_ALGORITHM]
         )
         email: str = payload.get("sub")
         if email is None:
@@ -41,10 +41,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     if user_dict is None:
         raise credentials_exception
         
-    return User(
+    return UserResponse(
         id=str(user_dict["_id"]),
         email=user_dict["email"],
         full_name=user_dict["full_name"],
         is_active=user_dict["is_active"],
-        is_superuser=user_dict.get("is_superuser", False)
-    ) 
+        is_superuser=user_dict.get("is_superuser", False),
+        preferences=user_dict.get("preferences", {}),
+        access_token=token
+    )

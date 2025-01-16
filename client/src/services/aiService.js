@@ -1,7 +1,7 @@
-import config from "../config";
 import { logInfo } from "../utils/logger";
-import axios from "../utils/axiosConfig";
-import { asyncHandler } from "../utils/apiUtils";
+import { axiosInstance as axios } from "../config/axios";
+import { tryExecute } from "../utils/error/errorHandler.jsx";
+import { AI_MODELS } from "../constants/ai";
 
 class AIService {
   constructor() {
@@ -9,61 +9,51 @@ class AIService {
     logInfo("AIService initialized", "ai.init", { baseUrl: this.baseUrl });
   }
 
-  generateText(prompt, systemPrompt = null) {
-    const payload = {
-      temperature: 0.7,
-      max_tokens: 2000,
-      model: "phi-4",
-    };
+  generateText = async (prompt, systemPrompt, selectedModel = null) => {
+    try {
+      const model = selectedModel ? AI_MODELS[selectedModel] : AI_MODELS["phi-4"];
+      const payload = {
+        temperature: 0.7,
+        maxTokens: 2000,
+        model: model.name,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt },
+        ],
+      };
 
-    if (systemPrompt) {
-      payload.messages = [
-        {
-          role: "system",
-          content: systemPrompt,
+      logInfo("Generating text payload:", "ai.generate.request", {
+        payload,
+      });
+
+      return tryExecute(
+        "generate",
+        async () => {
+          const { data } = await axios.post(`${this.baseUrl}/generate`, payload);
+          if (!data.success)
+            throw new Error(data.message || "Failed to generate text");
+          logInfo("Text generated successfully", "ai.generate.response", {
+            responseLength: data.data.text.length,
+            status: data.status,
+          });
+          return data.data;
         },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ];
-    } else {
-      payload.messages = [
-        {
-          role: "system",
-          content:
-            "You are a helpful AI assistant. Provide detailed, well-structured responses.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ];
+        "ai.generate"
+      );
+    } catch (error) {
+      throw new Error(error.message || "Failed to generate text");
     }
+  };
 
-    return asyncHandler(
-      "generate",
-      async () => {
-        const response = await axios.post(`${this.baseUrl}/generate`, payload);
-
-        if (!response.data.success) {
-          throw new Error(response.data.message || "Failed to generate text");
-        }
-
-        return response.data.data;
-      },
-      "ai"
-    );
-  }
-
-  getHistory() {
-    return asyncHandler(
+  getHistory = async () =>
+    tryExecute(
       "history",
-      () =>
-        axios.get(`${this.baseUrl}/history`).then((response) => response.data),
-      "ai"
+      async () => {
+        const { data } = await axios.get(`${this.baseUrl}/history`);
+        return data;
+      },
+      { namespace: "ai", tags: ["history"] }
     );
-  }
 }
 
 export const aiService = new AIService();

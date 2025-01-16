@@ -1,24 +1,28 @@
 "use client";
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import PropTypes from "prop-types";
+import { useAuth } from "../hooks/useAuth.js";
+import { Logo } from "./ui/Logo";
+import { DesktopNav } from "./navigation/DesktopNav";
+import { MobileNav } from "./navigation/MobileNav";
+import { UserMenu } from "./navigation/UserMenu";
 
 const NAV_ITEMS = [
   {
     name: "Home",
     path: "/",
-    icon: "🏠",
+    icon: "HomeIcon",
   },
   {
     name: "Text Generator",
     path: "/text-generator",
-    icon: "🤖",
+    icon: "DocumentTextIcon",
   },
   {
     name: "Travel Planner",
-    path: "/travel",
-    icon: "✈️",
+    path: "/travel-planner",
+    icon: "GlobeAltIcon",
   },
 ];
 
@@ -29,10 +33,7 @@ const NAV_ITEMS = [
  * @returns {React.ReactElement} Layout component
  */
 export function Layout({ children }) {
-  const location = useLocation();
-  const { logout } = useAuth();
-
-  const isActive = (path) => location.pathname === path;
+  const { logout, user } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -41,74 +42,31 @@ export function Layout({ children }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
-              {/* Logo */}
-              <div className="flex-shrink-0 flex items-center">
-                <Link
-                  to="/"
-                  className="text-2xl font-bold text-indigo-600 dark:text-indigo-400"
-                >
-                  TripVar
-                </Link>
-              </div>
-
-              {/* Navigation Links */}
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                {NAV_ITEMS.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`inline-flex items-center px-1 pt-1 text-sm font-medium border-b-2 ${
-                      isActive(item.path)
-                        ? "border-indigo-500 text-gray-900 dark:text-white"
-                        : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600"
-                    }`}
-                  >
-                    <span className="mr-2">{item.icon}</span>
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
+              <Logo />
+              <DesktopNav items={NAV_ITEMS} />
             </div>
 
-            {/* Right side */}
+            {/* Right side - Profile Menu */}
             <div className="flex items-center">
-              <button
-                onClick={logout}
-                className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-              >
-                Logout
-              </button>
+              <UserMenu user={user} onLogout={logout} />
+              <MobileNav items={NAV_ITEMS} />
             </div>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        <div className="sm:hidden">
-          <div className="pt-2 pb-3 space-y-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                  isActive(item.path)
-                    ? "border-indigo-500 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50"
-                    : "border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                }`}
-              >
-                <span className="mr-2">{item.icon}</span>
-                {item.name}
-              </Link>
-            ))}
           </div>
         </div>
       </nav>
 
-      {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-16">
-        {children}
+      {/* Main Content */}
+      <main className="pt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </div>
       </main>
     </div>
   );
 }
+
+Layout.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 export default Layout;

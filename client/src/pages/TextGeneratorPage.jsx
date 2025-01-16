@@ -4,7 +4,7 @@ import { withErrorHandling } from "../utils/error";
 import { useErrorHandler } from "../hooks/useErrorHandler";
 import { logError } from "../utils/logger";
 import { ApiError } from "../utils/error";
-import LoadingSpinner from "../components/ui/LoadingSpinner";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 export function TextGeneratorPage() {
   const [systemMessage, setSystemMessage] = useState("");

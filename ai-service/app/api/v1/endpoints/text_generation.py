@@ -10,6 +10,8 @@ from app.domain.models import (
 from app.domain.services.text_generation import TextGenerationService
 from app.core.dependencies import get_current_user
 
+from app.core.exceptions import LLMServiceError
+
 router = APIRouter()
 
 @router.post("/generate", response_model=DataResponse[TextGenerationResponse])
@@ -27,5 +29,5 @@ async def generate_text(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+    except LLMServiceError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e))

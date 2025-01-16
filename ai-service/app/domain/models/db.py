@@ -1,7 +1,7 @@
 """Database schema models."""
 
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
-from typing import Optional, List, Any, Annotated
+from typing import Optional, List, Any, Annotated, Dict
 from datetime import datetime
 from bson import ObjectId
 
@@ -14,9 +14,13 @@ class PyObjectId(str):
 
     @classmethod
     def validate(cls, v):
+        if isinstance(v, ObjectId):
+            return str(v)
+        if not isinstance(v, str):
+            raise ValueError("Invalid ObjectId")
         if not ObjectId.is_valid(v):
             raise ValueError("Invalid ObjectId")
-        return str(ObjectId(v))
+        return str(v)
 
     @classmethod
     def __get_pydantic_json_schema__(cls, _schema_generator):
@@ -51,16 +55,23 @@ class UserInDB(DBModelBase):
     hashed_password: str
     full_name: str
     is_active: bool = True
+    is_verified: bool = False
     is_superuser: bool = False
-    preferences: dict = Field(default_factory=dict)
+    preferences: Dict[str, Any] = Field(default_factory=dict)
+    last_login: Optional[datetime] = None
+    verification_token: Optional[str] = None
+    verification_token_expires: Optional[datetime] = None
 
     model_config = ConfigDict(
+        populate_by_name=True,
         json_schema_extra={
             "example": {
                 "id": "507f1f77bcf86cd799439011",
                 "email": "user@example.com",
+                "hashed_password": "hashed_password_string",
                 "full_name": "John Doe",
                 "is_active": True,
+                "is_verified": False,
                 "is_superuser": False,
                 "preferences": {},
                 "created_at": "2023-01-01T00:00:00Z",

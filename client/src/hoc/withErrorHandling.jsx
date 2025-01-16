@@ -1,18 +1,31 @@
 import React, { useCallback } from "react";
 import PropTypes from "prop-types";
-import { ErrorBoundary } from "../utils/error";
 import { useErrorHandler } from "../hooks/useErrorHandler";
+import { ErrorBoundaryWithFallback } from "../utils/error/errorHandler";
+import { logError } from "../utils/logger";
 
-export function withErrorHandling(WrappedComponent, context) {
+/**
+ * HOC that adds error handling capabilities to a component
+ * @param {React.ComponentType} WrappedComponent - Component to wrap
+ * @param {string} context - Error context identifier
+ */
+export function withErrorHandling(WrappedComponent, context = "component") {
   function WithErrorHandlingComponent(props) {
-    const { error, setError, clearError } = useErrorHandler(context);
+    const { error, setError, clearError } = useErrorHandler({
+      context,
+      onError: (error) => {
+        logError(`Error in ${context}:`, error);
+      },
+    });
 
     const handleError = useCallback(
-      (error, errorInfo) => {
+      (error) => {
         setError(error);
-        console.error("Error caught in HOC:", error, errorInfo);
+        if (props.onError) {
+          props.onError(error);
+        }
       },
-      [setError]
+      [setError, props.onError]
     );
 
     const handleReset = useCallback(() => {
@@ -23,25 +36,29 @@ export function withErrorHandling(WrappedComponent, context) {
     }, [clearError, props.onReset]);
 
     return (
-      <ErrorBoundary onError={handleError} onReset={handleReset}>
+      <ErrorBoundaryWithFallback
+        onRetry={handleReset}
+        fallback={props.errorFallback}
+      >
         <WrappedComponent
           {...props}
           error={error}
-          onError={setError}
-          clearError={clearError}
+          onError={handleError}
+          onReset={handleReset}
         />
-      </ErrorBoundary>
+      </ErrorBoundaryWithFallback>
     );
   }
 
-  WithErrorHandlingComponent.displayName = `WithErrorHandling(${
+  WithErrorHandlingComponent.propTypes = {
+    onError: PropTypes.func,
+    onReset: PropTypes.func,
+    errorFallback: PropTypes.element,
+  };
+
+  WithErrorHandlingComponent.displayName = `withErrorHandling(${
     WrappedComponent.displayName || WrappedComponent.name || "Component"
   })`;
-
-  WithErrorHandlingComponent.propTypes = {
-    onReset: PropTypes.func,
-    ...WrappedComponent.propTypes,
-  };
 
   return WithErrorHandlingComponent;
 }

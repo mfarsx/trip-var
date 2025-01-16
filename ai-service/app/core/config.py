@@ -26,6 +26,12 @@ class Settings(BaseSettings):
         """Backward compatibility for API prefix."""
         return self.API_V1_PREFIX
     
+    @property
+    def API_URL(self) -> str:
+        """Get the full API URL."""
+        protocol = "https" if not self.DEBUG else "http"
+        return f"{protocol}://{self.API_HOST}:{self.API_PORT}"
+    
     # CORS Settings
     ALLOWED_ORIGINS: str
     ALLOWED_METHODS: str
@@ -46,6 +52,12 @@ class Settings(BaseSettings):
         """Get list of allowed headers."""
         return ["*"] if self.ALLOWED_HEADERS == "*" else [h.strip() for h in self.ALLOWED_HEADERS.split(",") if h.strip()]
     
+    # JWT Settings
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
     # Database Settings
     MONGODB_URL: str
     MONGODB_NAME: str
@@ -63,9 +75,10 @@ class Settings(BaseSettings):
         return self.MONGODB_NAME
     
     # Authentication Settings
-    SECRET_KEY: str
-    ALGORITHM: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    AUTH_SECRET_KEY: str
+    AUTH_ALGORITHM: str = "HS256"
+    AUTH_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    AUTH_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Password Settings
     PASSWORD_MIN_LENGTH: int

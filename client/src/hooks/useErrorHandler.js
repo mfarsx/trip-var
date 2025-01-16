@@ -1,63 +1,83 @@
-import { useState, useCallback } from "react";
-import { ValidationError } from "../utils/error";
+import { useState, useCallback } from 'react';
+import { logError, logWarn } from '../utils/logger';
+import { handleError, formatErrorMessage } from '../utils/error/errorHandler';
 
-export const useErrorHandler = (context = null) => {
+/**
+ * @typedef {Object} ErrorState
+ * @property {string} message - Error message
+ * @property {string} type - Error type (validation, api, auth, network, generic)
+ * @property {string} context - Context where error occurred
+ * @property {string} timestamp - Error timestamp
+ * @property {string} [field] - Field name for validation errors
+ * @property {number} [status] - HTTP status code for API errors
+ * @property {Object} [details] - Additional error details
+ */
+
+/**
+ * Custom hook for handling errors across the application
+ * @param {Object} options - Hook options
+ * @param {string} [options.context] - Context identifier for the error
+ * @param {function} [options.onError] - Callback function when error occurs
+ * @param {boolean} [options.captureStack=false] - Whether to capture error stack trace
+ * @returns {Object} Error handling utilities
+ */
+export function useErrorHandler(options = {}) {
+  const { context = 'app', onError, captureStack = false } = options;
   const [error, setError] = useState(null);
 
-  const handleErrorWithContext = useCallback(
-    (error) => {
-      // Form validation errors
-      if (error instanceof ValidationError) {
-        setError({
-          type: "validation",
-          message: error.message,
-          field: error.field,
-        });
-        return;
+  const handleErrorState = useCallback(
+    (err) => {
+      if (!err) {
+        setError(null);
+        return null;
       }
 
-      // Network or API errors
-      if (error.response) {
-        const message =
-          error.response.data?.detail ||
-          error.response.data?.message ||
-          error.message;
-        setError({
-          type: "api",
-          message: message,
-          status: error.response.status,
-        });
-        return;
-      }
+      try {
+        // Create error state using centralized handler
+        const errorState = handleError(err, context);
 
-      // Generic errors
-      setError({
-        type: "generic",
-        message: error.message || "An unexpected error occurred",
-      });
+        // Set error state
+        setError(errorState);
+
+        // Call onError callback if provided
+        if (onError) {
+          try {
+            onError(errorState);
+          } catch (callbackError) {
+            logWarn('Error in onError callback:', callbackError);
+          }
+        }
+
+        return errorState;
+      } catch (handlerError) {
+        logError('Error in error handler:', handlerError);
+        // Fallback error state
+        const fallbackError = {
+          message: 'An unexpected error occurred',
+          type: 'generic',
+          context,
+          timestamp: new Date().toISOString(),
+        };
+        setError(fallbackError);
+        return fallbackError;
+      }
     },
-    [context]
+    [context, onError]
   );
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const clearFieldError = useCallback(
-    (field) => {
-      if (error?.type === "validation" && error.field === field) {
-        clearError();
-      }
-    },
-    [error, clearError]
-  );
+  const getErrorMessage = useCallback(() => {
+    return error ? formatErrorMessage(error) : '';
+  }, [error]);
 
   return {
     error,
-    setError: handleErrorWithContext,
+    setError: handleErrorState,
     clearError,
-    clearFieldError,
+    getErrorMessage,
+    isError: Boolean(error),
   };
-};
-
-export default useErrorHandler;
+}

@@ -1,9 +1,10 @@
 """API request and response models."""
 
 from pydantic import BaseModel, Field, EmailStr, ConfigDict, model_validator
-from typing import Optional, List, Generic, TypeVar, Dict, Any
+from typing import Optional, List, Generic, TypeVar, Dict, Any, Annotated
 from datetime import datetime
 from .domain import Message, TravelPreferences, TravelPlan
+from .db import PyObjectId
 
 # Generic type variable for response data
 T = TypeVar('T')
@@ -25,11 +26,23 @@ class UserUpdate(BaseModel):
 
 class User(UserBase):
     """User model."""
-    id: str
+    id: Annotated[str, PyObjectId] = Field(alias="_id")
     is_active: bool
     is_superuser: bool = False
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "id": "507f1f77bcf86cd799439011",
+                "email": "user@example.com",
+                "full_name": "John Doe",
+                "is_active": True,
+                "is_superuser": False
+            }
+        }
+    )
 
 class UserResponse(User):
     """User response model."""
@@ -109,4 +122,4 @@ class ListResponse(BaseModel, Generic[T]):
     data: List[T]
     total: int
     page: int
-    per_page: int 
+    per_page: int

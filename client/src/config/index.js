@@ -1,90 +1,80 @@
 /**
  * Application configuration
- * Using unified .env file at the project root
+ * Central configuration module that combines all config sources
  */
 
-/**
- * Get environment variable with fallback
- */
-const getEnvVar = (key, defaultValue = "") => {
-  const value = import.meta.env[key];
-  if (value === undefined && defaultValue === undefined) {
-    console.warn(`Environment variable ${key} is not defined`);
-  }
-  return value ?? defaultValue;
+const getEnvVar = (key, defaultValue) => {
+  return import.meta.env[key] ?? defaultValue;
 };
 
 /**
- * Application configuration object
+ * Default configuration values
+ */
+const defaults = {
+  api: {
+    timeout: 10000,
+    retryAttempts: 3,
+    retryDelay: 1000,
+  },
+  auth: {
+    tokenKey: 'auth_token',
+    refreshTokenKey: 'refresh_token',
+    tokenExpiry: 3600, // 1 hour
+  },
+  app: {
+    defaultLanguage: 'en',
+    supportedLanguages: ['en', 'es', 'fr'],
+    itemsPerPage: 10,
+    maxUploadSize: 5 * 1024 * 1024, // 5MB
+  },
+  features: {
+    enableChat: true,
+    enableNotifications: true,
+    enableDarkMode: true,
+  },
+  ui: {
+    theme: {
+      primary: '#4F46E5',
+      secondary: '#6B7280',
+      success: '#10B981',
+      danger: '#EF4444',
+      warning: '#F59E0B',
+      info: '#3B82F6',
+    },
+    toast: {
+      duration: 5000,
+      position: 'top-right',
+    },
+  },
+};
+
+/**
+ * Merged configuration object
+ * Combines environment variables with default values
  */
 const config = {
-  // API Configuration
   api: {
     url: getEnvVar("VITE_API_URL", "http://localhost:8000"),
-    path: getEnvVar("VITE_API_PATH", "/api/v1"),
-    timeout: parseInt(getEnvVar("VITE_API_TIMEOUT", "10000")),
-    retryAttempts: parseInt(getEnvVar("VITE_API_RETRY_ATTEMPTS", "3")),
-    retryDelay: parseInt(getEnvVar("VITE_API_RETRY_DELAY", "1000")),
+    aiUrl: getEnvVar("VITE_API_AI_URL", ""),
+    ...defaults.api,
   },
-
-  // App Settings
-  app: {
-    name: getEnvVar("VITE_APP_NAME", "TripVar"),
-    version: getEnvVar("VITE_APP_VERSION", "1.0.0"),
-    environment: getEnvVar("VITE_APP_ENV", "development"),
-  },
-
-  // Authentication
   auth: {
-    tokenKey: getEnvVar("VITE_AUTH_TOKEN_KEY", "tripvar_token"),
-    storageKey: getEnvVar("VITE_AUTH_STORAGE_KEY", "tripvar_auth"),
-    tokenExpiry: parseInt(getEnvVar("VITE_AUTH_TOKEN_EXPIRY", "3600")), // 1 hour
-    refreshTokenEnabled:
-      getEnvVar("VITE_AUTH_REFRESH_ENABLED", "false") === "true",
+    ...defaults.auth,
   },
-
-  // Feature Flags
+  app: {
+    version: getEnvVar("VITE_APP_VERSION", "1.0.0"),
+    enableErrorReporting: getEnvVar("VITE_ENABLE_ERROR_REPORTING", "true") === "true",
+    ...defaults.app,
+  },
   features: {
-    analytics: getEnvVar("VITE_ENABLE_ANALYTICS") === "true",
-    errorReporting: getEnvVar("VITE_ENABLE_ERROR_REPORTING") === "true",
+    ...defaults.features,
   },
-
-  // Logging Configuration
-  logging: {
-    level: getEnvVar("VITE_LOG_LEVEL", "info"),
-    format: getEnvVar("VITE_LOG_FORMAT", "auto"), // auto, json, or pretty
-    includeTimestamp: getEnvVar("VITE_LOG_TIMESTAMP", "true") === "true",
-    service: getEnvVar("VITE_SERVICE_NAME", "client"),
-    redactKeys: ["password", "token", "secret", "key"],
+  ui: {
+    ...defaults.ui,
   },
-
-  // Error Reporting
-  sentry: {
-    dsn: getEnvVar("VITE_SENTRY_DSN"),
-    enabled: getEnvVar("VITE_ENABLE_ERROR_REPORTING") === "true",
-    environment: getEnvVar("VITE_APP_ENV", "development"),
-  },
-
-  // Environment Helpers
-  isDevelopment: getEnvVar("VITE_APP_ENV", "development") === "development",
-  isProduction: getEnvVar("VITE_APP_ENV", "development") === "production",
 };
 
-// Validate required settings
-const requiredSettings = [
-  "api.url",
-  "api.path",
-  "app.name",
-  "app.version",
-  "auth.tokenKey",
-  "auth.storageKey",
-];
-
-requiredSettings.forEach((path) => {
-  const value = path.split(".").reduce((obj, key) => obj?.[key], config);
-  if (value === undefined || value === "") {
-    throw new Error(`Missing required configuration: ${path}`);
-  }
-});
+// Freeze configuration to prevent runtime modifications
+Object.freeze(config);
 
 export default config;

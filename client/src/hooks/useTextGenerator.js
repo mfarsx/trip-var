@@ -1,63 +1,71 @@
 import { useState, useCallback } from "react";
-import { aiService, AI_MODELS } from "../services/aiService";
+import { useErrorHandler } from "./useErrorHandler";
+import { aiService } from "../services/aiService";
+import { AI_MODELS } from "../constants/ai";
 
 export function useTextGenerator() {
   const [prompt, setPrompt] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { error, setError: handleError, clearError } = useErrorHandler({ 
+    context: "text-generator",
+    onError: (error) => {
+      if (error?.type === "validation" && error.field === "apiKey") {
+        setShowApiKeyInput(true);
+      }
+    }
+  });
   const [selectedModel, setSelectedModel] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState("");
 
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
-      if (!prompt.trim()) return;
+      if (!prompt.trim()) {
+        handleError({ type: "validation", message: "Please enter a prompt" });
+        return;
+      }
 
       setLoading(true);
-      setError("");
+      clearError();
       setResult("");
 
       try {
-        if (selectedModel) {
-          const model = AI_MODELS[selectedModel];
-          if (model.requiresKey && !aiService.getApiKey(model.provider)) {
+        if (!selectedModel) {
+          throw new Error("Please select a model");
+        }
+
+        const model = AI_MODELS[selectedModel];
+        if (model.requiresKey && !aiService.getApiKey(model.provider)) {
+          if (!apiKey) {
+            setShowApiKeyInput(true);
             throw new Error(`API key required for ${model.name}`);
           }
-
-          if (apiKey) {
-            aiService.setApiKey(model.provider, apiKey);
-          }
+          aiService.setApiKey(model.provider, apiKey);
         }
 
         const response = await aiService.generateText(prompt, selectedModel);
-        setResult(response.generated_text);
-      } catch (error) {
-        setError(error.message);
+        setResult(response);
+      } catch (err) {
+        handleError(err);
       } finally {
         setLoading(false);
       }
     },
-    [prompt, selectedModel, apiKey]
+    [prompt, selectedModel, apiKey, handleError, clearError]
   );
 
-  const handleModelChange = (e) => {
-    const newModel = e.target.value;
-    setSelectedModel(newModel);
+  const handleModelSelect = useCallback((model) => {
+    setSelectedModel(model);
+    clearError();
+  }, [clearError]);
 
-    if (newModel) {
-      const model = AI_MODELS[newModel];
-      setSelectedProvider(model.provider);
-      setShowApiKeyInput(
-        model.requiresKey && !aiService.getApiKey(model.provider)
-      );
-    } else {
-      setSelectedProvider("");
-      setShowApiKeyInput(false);
-    }
-  };
+  const handleApiKeySubmit = useCallback((key) => {
+    setApiKey(key);
+    setShowApiKeyInput(false);
+    clearError();
+  }, [clearError]);
 
   return {
     prompt,
@@ -66,11 +74,9 @@ export function useTextGenerator() {
     loading,
     error,
     selectedModel,
-    apiKey,
-    setApiKey,
     showApiKeyInput,
-    selectedProvider,
     handleSubmit,
-    handleModelChange,
+    handleModelSelect,
+    handleApiKeySubmit,
   };
 }

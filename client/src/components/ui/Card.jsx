@@ -1,12 +1,13 @@
-import React from "react";
-import PropTypes from "prop-types";
-import classNames from "classnames";
-import { commonStyles } from "../../constants/styles";
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-export const Card = ({ children, className = "", hover = true, ...props }) => {
+import { commonStyles } from '../../constants/styles';
+
+export const Card = ({ children, className = '', hover = true, ...props }) => {
   const cardClass = `
     ${commonStyles.card.base}
-    ${hover ? commonStyles.card.hover : ""}
+    ${hover ? commonStyles.card.hover : ''}
     ${className}
   `;
 
@@ -61,3 +62,5 @@ CardFooter.propTypes = {
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
 };
+
+export default Card;

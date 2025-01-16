@@ -1,20 +1,23 @@
 """Authentication service for handling user authentication."""
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from app.domain.models import UserCreate, UserResponse, Token, LoginResponse, UserInDB
-from app.core.mongodb import get_db
-from app.core.config import get_settings
 import secrets
 import smtplib
-from email.mime.text import MIMEText
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Optional
+
 from bson import ObjectId
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+from app.core.config import get_settings
+from app.core.mongodb import get_db
+from app.domain.models import LoginResponse, Token, UserCreate, UserInDB, UserResponse
 
 settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 class AuthService:
     """Service for authentication operations."""
@@ -30,22 +33,21 @@ class AuthService:
         return pwd_context.hash(password)
 
     @staticmethod
-    def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    def create_access_token(
+        data: dict, expires_delta: Optional[timedelta] = None
+    ) -> str:
         """Create JWT access token."""
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.now(timezone.utc) + expires_delta
         else:
-            expire = datetime.now(timezone.utc) + timedelta(minutes=settings.AUTH_ACCESS_TOKEN_EXPIRE_MINUTES)
-            
-        to_encode.update({
-            "exp": expire,
-            "type": "access"
-        })
+            expire = datetime.now(timezone.utc) + timedelta(
+                minutes=settings.AUTH_ACCESS_TOKEN_EXPIRE_MINUTES
+            )
+
+        to_encode.update({"exp": expire, "type": "access"})
         encoded_jwt = jwt.encode(
-            to_encode,
-            settings.AUTH_SECRET_KEY,
-            algorithm=settings.AUTH_ALGORITHM
+            to_encode, settings.AUTH_SECRET_KEY, algorithm=settings.AUTH_ALGORITHM
         )
         return encoded_jwt
 
@@ -53,15 +55,12 @@ class AuthService:
     def create_refresh_token(data: dict) -> str:
         """Create JWT refresh token."""
         to_encode = data.copy()
-        expire = datetime.now(timezone.utc) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
-        to_encode.update({
-            "exp": expire,
-            "type": "refresh"
-        })
+        expire = datetime.now(timezone.utc) + timedelta(
+            days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
+        )
+        to_encode.update({"exp": expire, "type": "refresh"})
         encoded_jwt = jwt.encode(
-            to_encode,
-            settings.AUTH_SECRET_KEY,
-            algorithm=settings.AUTH_ALGORITHM
+            to_encode, settings.AUTH_SECRET_KEY, algorithm=settings.AUTH_ALGORITHM
         )
         return encoded_jwt
 
@@ -73,58 +72,58 @@ class AuthService:
     async def invalidate_token(self, token: str) -> None:
         """
         Invalidate a JWT token by adding it to a blacklist.
-        
+
         Args:
             token: The JWT token to invalidate
-            
+
         Raises:
             ValueError: If token is invalid or already invalidated
         """
         try:
             # Decode token to get expiration time
             payload = jwt.decode(
-                token,
-                settings.AUTH_SECRET_KEY,
-                algorithms=[settings.AUTH_ALGORITHM]
+                token, settings.AUTH_SECRET_KEY, algorithms=[settings.AUTH_ALGORITHM]
             )
-            
+
             # Get expiration time from token
             exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
-            
+
             db = await get_db()
-            
+
             # Check if token is already invalidated
             if await db.invalidated_tokens.find_one({"token": token}):
                 raise ValueError("Token already invalidated")
-            
+
             # Add token to invalidated tokens collection
-            await db.invalidated_tokens.insert_one({
-                "token": token,
-                "user_id": payload.get("sub"),
-                "invalidated_at": datetime.now(timezone.utc),
-                "expires_at": exp
-            })
-            
+            await db.invalidated_tokens.insert_one(
+                {
+                    "token": token,
+                    "user_id": payload.get("sub"),
+                    "invalidated_at": datetime.now(timezone.utc),
+                    "expires_at": exp,
+                }
+            )
+
             # Clean up expired tokens periodically
             await self._cleanup_expired_tokens()
-            
+
         except JWTError:
             raise ValueError("Invalid token")
 
     async def _cleanup_expired_tokens(self) -> None:
         """Remove expired tokens from the invalidated tokens collection."""
         db = await get_db()
-        await db.invalidated_tokens.delete_many({
-            "expires_at": {"$lt": datetime.now(timezone.utc)}
-        })
+        await db.invalidated_tokens.delete_many(
+            {"expires_at": {"$lt": datetime.now(timezone.utc)}}
+        )
 
     async def is_token_valid(self, token: str) -> bool:
         """
         Check if a token is valid (not invalidated).
-        
+
         Args:
             token: The JWT token to check
-            
+
         Returns:
             bool: True if token is valid, False otherwise
         """
@@ -156,22 +155,24 @@ class AuthService:
         """Send verification email to user."""
         db = await get_db()
         user = await db.users.find_one({"email": email})
-        
+
         if not user:
             raise ValueError("User not found")
 
         # Create verification token
         verification_token = self.create_verification_token()
-        
+
         # Store token in database with expiry
         expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-        await db.verification_tokens.insert_one({
-            "user_id": user["_id"],
-            "token": verification_token,
-            "type": "email_verification",
-            "expires_at": expires_at,
-            "created_at": datetime.now(timezone.utc)
-        })
+        await db.verification_tokens.insert_one(
+            {
+                "user_id": user["_id"],
+                "token": verification_token,
+                "type": "email_verification",
+                "expires_at": expires_at,
+                "created_at": datetime.now(timezone.utc),
+            }
+        )
 
         # Create verification URL
         verification_url = f"{settings.API_URL}/auth/verify-email/{verification_token}"
@@ -217,14 +218,16 @@ class AuthService:
     async def verify_email(self, token: str) -> None:
         """Verify user's email using token."""
         db = await get_db()
-        
+
         # Find and validate token
-        token_data = await db.verification_tokens.find_one({
-            "token": token,
-            "type": "email_verification",
-            "expires_at": {"$gt": datetime.now(timezone.utc)}
-        })
-        
+        token_data = await db.verification_tokens.find_one(
+            {
+                "token": token,
+                "type": "email_verification",
+                "expires_at": {"$gt": datetime.now(timezone.utc)},
+            }
+        )
+
         if not token_data:
             raise ValueError("Invalid or expired verification token")
 
@@ -234,9 +237,9 @@ class AuthService:
             {
                 "$set": {
                     "is_verified": True,
-                    "email_verified_at": datetime.now(timezone.utc)
+                    "email_verified_at": datetime.now(timezone.utc),
                 }
-            }
+            },
         )
 
         if result.modified_count == 0:
@@ -252,12 +255,12 @@ class AuthService:
             payload = jwt.decode(
                 refresh_token,
                 settings.AUTH_SECRET_KEY,
-                algorithms=[settings.AUTH_ALGORITHM]
+                algorithms=[settings.AUTH_ALGORITHM],
             )
-            
+
             if payload.get("type") != "refresh":
                 raise ValueError("Invalid token type")
-                
+
             email: str = payload.get("sub")
             if email is None:
                 raise ValueError("Invalid token")
@@ -267,21 +270,18 @@ class AuthService:
                 current_token,
                 settings.AUTH_SECRET_KEY,
                 algorithms=[settings.AUTH_ALGORITHM],
-                options={"verify_exp": False}  # Don't verify expiration of current token
+                options={
+                    "verify_exp": False
+                },  # Don't verify expiration of current token
             )
             if current_payload.get("sub") != email:
                 raise ValueError("Token mismatch")
 
             # Create new access token
-            access_token = self.create_access_token(
-                data={"sub": email}
-            )
-            
-            return Token(
-                access_token=access_token,
-                token_type="bearer"
-            )
-            
+            access_token = self.create_access_token(data={"sub": email})
+
+            return Token(access_token=access_token, token_type="bearer")
+
         except JWTError:
             raise ValueError("Invalid refresh token")
 
@@ -289,11 +289,11 @@ class AuthService:
     async def register_user(cls, user_data: UserCreate) -> UserResponse:
         """Register a new user."""
         db = await get_db()
-        
+
         # Check if user exists
         if await db.users.find_one({"email": user_data.email}):
             raise ValueError("Email already registered")
-        
+
         # Create user
         user_dict = user_data.model_dump()
         user_dict["hashed_password"] = cls.get_password_hash(user_dict.pop("password"))
@@ -303,23 +303,23 @@ class AuthService:
         user_dict["is_verified"] = False
         user_dict["is_superuser"] = False
         user_dict["preferences"] = {}
-        
+
         result = await db.users.insert_one(user_dict)
         user_dict["_id"] = str(result.inserted_id)  # Convert ObjectId to string
-        
+
         # Create access token
         access_token = cls.create_access_token(
             data={"sub": user_dict["email"]},
-            expires_delta=timedelta(minutes=settings.AUTH_ACCESS_TOKEN_EXPIRE_MINUTES)
+            expires_delta=timedelta(minutes=settings.AUTH_ACCESS_TOKEN_EXPIRE_MINUTES),
         )
-        
+
         # Create response with token
         user_response = UserResponse(**user_dict)
         user_response.access_token = access_token
-        
+
         # Send verification email
         await cls().send_verification_email(user_dict["email"])
-        
+
         return user_response
 
     @classmethod
@@ -327,35 +327,33 @@ class AuthService:
         """Authenticate user and return tokens."""
         db = await get_db()
         user_dict = await db.users.find_one({"email": email})
-        
+
         if not user_dict:
             raise ValueError("Invalid email or password")
-        
+
         # Convert ObjectId to string for Pydantic model
         user_dict["_id"] = str(user_dict["_id"])
-            
+
         user = UserInDB(**user_dict)
-        
+
         if not cls.verify_password(password, user.hashed_password):
             raise ValueError("Invalid email or password")
-            
+
         if not user.is_active:
             raise ValueError("User is not active")
 
         # Update last login time
         await db.users.update_one(
-            {"_id": ObjectId(user_dict["_id"])},  # Convert string back to ObjectId for query
-            {"$set": {"last_login": datetime.now(timezone.utc)}}
+            {
+                "_id": ObjectId(user_dict["_id"])
+            },  # Convert string back to ObjectId for query
+            {"$set": {"last_login": datetime.now(timezone.utc)}},
         )
 
         # Create access and refresh tokens
-        access_token = cls.create_access_token(
-            data={"sub": user.email}
-        )
-        refresh_token = cls.create_refresh_token(
-            data={"sub": user.email}
-        )
-        
+        access_token = cls.create_access_token(data={"sub": user.email})
+        refresh_token = cls.create_refresh_token(data={"sub": user.email})
+
         return LoginResponse(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -366,9 +364,10 @@ class AuthService:
                 full_name=user.full_name,
                 is_active=user.is_active,
                 is_superuser=user.is_superuser,
-                preferences=user.preferences
-            )
+                preferences=user.preferences,
+            ),
         )
+
 
 # Create and export service instance
 auth_service = AuthService()

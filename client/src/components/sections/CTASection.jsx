@@ -1,8 +1,9 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { Section } from "../ui/Section";
-import { Card } from "../ui/Card";
-import { Button } from "../ui/Button";
+import PropTypes from 'prop-types';
+import React from 'react';
+
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Section } from '../ui/Section';
 
 export const CTASection = ({ user, title, subtitle, buttonText }) => (
   <Section>
@@ -14,13 +15,10 @@ export const CTASection = ({ user, title, subtitle, buttonText }) => (
             <span className="block">{subtitle}</span>
           </h2>
           <p className="mt-4 text-lg leading-6 text-indigo-200">
-            Join thousands of satisfied users who are already creating amazing content with Tripvar AI.
+            Join thousands of satisfied users who are already creating amazing content with Tripvar
+            AI.
           </p>
-          <Button
-            to={user ? "/text-generator" : "/signup"}
-            variant="secondary"
-            className="mt-8"
-          >
+          <Button to={user ? '/text-generator' : '/signup'} variant="secondary" className="mt-8">
             {buttonText}
           </Button>
         </div>
@@ -35,3 +33,5 @@ CTASection.propTypes = {
   subtitle: PropTypes.string.isRequired,
   buttonText: PropTypes.string.isRequired,
 };
+
+export default CTASection;

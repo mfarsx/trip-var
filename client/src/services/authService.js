@@ -1,8 +1,14 @@
-import { axiosInstance as axios } from "../config/axios";
-import { tryExecute } from "../utils/error/errorHandler.jsx";
-import { AuthenticationError, NetworkError } from "../utils/error";
-import { getStoredToken, storeToken, removeToken, getAuthHeader, hasValidToken } from "../utils/tokenUtils";
-import { AUTH_ENDPOINTS, AUTH_CONFIG } from "../constants/auth";
+import { axiosInstance as axios } from '../config/axios';
+import { AUTH_ENDPOINTS, AUTH_CONFIG } from '../constants/auth';
+import { AuthenticationError, NetworkError } from '../utils/error';
+import { tryExecute } from '../utils/error/errorHandler.jsx';
+import {
+  getStoredToken,
+  storeToken,
+  removeToken,
+  getAuthHeader,
+  hasValidToken,
+} from '../utils/tokenUtils';
 
 class AuthService {
   constructor() {
@@ -19,19 +25,16 @@ class AuthService {
 
   setAuthHeader(token) {
     if (token) {
-      axios.defaults.headers.common["Authorization"] = getAuthHeader();
+      axios.defaults.headers.common['Authorization'] = getAuthHeader();
     } else {
-      delete axios.defaults.headers.common["Authorization"];
+      delete axios.defaults.headers.common['Authorization'];
     }
   }
 
   async login(credentials) {
     return tryExecute(async () => {
       try {
-        const response = await axios.post(
-          `${this.baseUrl}${AUTH_ENDPOINTS.LOGIN}`,
-          credentials
-        );
+        const response = await axios.post(`${this.baseUrl}${AUTH_ENDPOINTS.LOGIN}`, credentials);
         const { access_token, user } = response.data;
 
         if (access_token) {
@@ -42,22 +45,19 @@ class AuthService {
         return {
           success: true,
           data: { user, access_token },
-          message: "Login successful",
+          message: 'Login successful',
         };
       } catch (error) {
         this._clearAuth();
         throw this._handleError(error);
       }
-    }, "auth");
+    }, 'auth');
   }
 
   async register(userData) {
     return tryExecute(async () => {
       try {
-        const response = await axios.post(
-          `${this.baseUrl}${AUTH_ENDPOINTS.SIGNUP}`,
-          userData
-        );
+        const response = await axios.post(`${this.baseUrl}${AUTH_ENDPOINTS.SIGNUP}`, userData);
         const { access_token, user } = response.data;
 
         if (access_token) {
@@ -68,13 +68,13 @@ class AuthService {
         return {
           success: true,
           data: { user, access_token },
-          message: "Registration successful",
+          message: 'Registration successful',
         };
       } catch (error) {
         this._clearAuth();
         throw this._handleError(error);
       }
-    }, "auth");
+    }, 'auth');
   }
 
   async logout() {
@@ -86,16 +86,16 @@ class AuthService {
       }
       return {
         success: true,
-        message: "Logout successful",
+        message: 'Logout successful',
       };
-    }, "auth");
+    }, 'auth');
   }
 
   async checkAuth() {
     if (!hasValidToken()) {
       return {
         success: false,
-        message: "No auth token found",
+        message: 'No auth token found',
         user: null,
       };
     }
@@ -104,12 +104,12 @@ class AuthService {
       try {
         const response = await axios.get(`${this.baseUrl}${AUTH_ENDPOINTS.CHECK}`);
         const token = getStoredToken();
-        
+
         // Handle the /auth/me response format
         const userData = response.data;
-        
+
         if (!userData) {
-          throw new Error("Invalid user data received from server");
+          throw new Error('Invalid user data received from server');
         }
 
         return {
@@ -118,13 +118,13 @@ class AuthService {
             user: userData,
             access_token: token,
           },
-          message: "Authentication valid",
+          message: 'Authentication valid',
         };
       } catch (error) {
         this._clearAuth();
         throw this._handleError(error);
       }
-    }, "auth");
+    }, 'auth');
   }
 
   _clearAuth() {
@@ -134,11 +134,11 @@ class AuthService {
 
   _handleError(error) {
     if (!error.response) {
-      return new NetworkError("Network connection error");
+      return new NetworkError('Network connection error');
     }
 
     const { status, data } = error.response;
-    const message = data?.message || "An error occurred";
+    const message = data?.message || 'An error occurred';
 
     switch (status) {
       case 401:

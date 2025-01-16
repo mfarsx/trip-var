@@ -1,12 +1,15 @@
-import { FormInput } from "../forms/FormInput";
-import { Alert } from "../profile/Alert";
+import PropTypes from 'prop-types';
+import React from 'react';
 
-export function LoginForm({ formData, onChange, onSubmit, error, loading }) {
+import { FormInput } from '../forms/FormInput';
+import { Alert } from '../profile/Alert';
+
+const LoginForm = ({ formData, onChange, onSubmit, error = null, loading = false }) => {
   return (
     <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
       <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-        <Alert type="error" message={error} />
-        
+        {error && <Alert type="error" message={error} />}
+
         <form onSubmit={onSubmit} className="space-y-6">
           <FormInput
             label="Email Address"
@@ -47,11 +50,25 @@ export function LoginForm({ formData, onChange, onSubmit, error, loading }) {
               disabled={loading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-900"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-}
+};
+
+LoginForm.propTypes = {
+  formData: PropTypes.shape({
+    email: PropTypes.string.isRequired,
+    password: PropTypes.string.isRequired,
+  }).isRequired,
+  onChange: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  error: PropTypes.string,
+  loading: PropTypes.bool,
+};
+
+export { LoginForm };
+export default LoginForm;

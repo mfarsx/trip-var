@@ -1,6 +1,9 @@
-import { ProfileInput } from "./ProfileInput";
+import PropTypes from 'prop-types';
+import React from 'react';
 
-export function ProfileForm({ formData, onChange, onSubmit, loading }) {
+import { ProfileInput } from './ProfileInput';
+
+const ProfileForm = ({ formData, onChange, onSubmit, loading }) => {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <ProfileInput
@@ -48,9 +51,28 @@ export function ProfileForm({ formData, onChange, onSubmit, loading }) {
           disabled={loading}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-900"
         >
-          {loading ? "Updating..." : "Update Profile"}
+          {loading ? 'Updating...' : 'Update Profile'}
         </button>
       </div>
     </form>
   );
-}
+};
+
+ProfileForm.propTypes = {
+  formData: PropTypes.shape({
+    displayName: PropTypes.string.isRequired,
+    email: PropTypes.string.isRequired,
+    currentPassword: PropTypes.string.isRequired,
+    newPassword: PropTypes.string.isRequired,
+    confirmNewPassword: PropTypes.string.isRequired,
+  }).isRequired,
+  onChange: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  loading: PropTypes.bool,
+};
+
+ProfileForm.defaultProps = {
+  loading: false,
+};
+
+export default ProfileForm;

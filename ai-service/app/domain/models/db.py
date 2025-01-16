@@ -1,13 +1,15 @@
 """Database schema models."""
 
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
-from typing import Optional, List, Any, Annotated, Dict
 from datetime import datetime
+from typing import Annotated, Any, Dict, List, Optional
+
 from bson import ObjectId
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
 
 class PyObjectId(str):
     """Custom type for handling MongoDB ObjectId."""
-    
+
     @classmethod
     def __get_validators__(cls):
         yield cls.validate
@@ -28,11 +30,13 @@ class PyObjectId(str):
         return {
             "type": "string",
             "description": "MongoDB ObjectId",
-            "pattern": "^[0-9a-fA-F]{24}$"
+            "pattern": "^[0-9a-fA-F]{24}$",
         }
+
 
 class DBModelBase(BaseModel):
     """Base model for database models with ID handling."""
+
     id: Optional[Annotated[str, PyObjectId]] = Field(default=None, alias="_id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
@@ -44,13 +48,15 @@ class DBModelBase(BaseModel):
             "example": {
                 "id": "507f1f77bcf86cd799439011",
                 "created_at": "2023-01-01T00:00:00Z",
-                "updated_at": "2023-01-01T00:00:00Z"
+                "updated_at": "2023-01-01T00:00:00Z",
             }
-        }
+        },
     )
+
 
 class UserInDB(DBModelBase):
     """User model for database storage."""
+
     email: EmailStr
     hashed_password: str
     full_name: str
@@ -75,13 +81,15 @@ class UserInDB(DBModelBase):
                 "is_superuser": False,
                 "preferences": {},
                 "created_at": "2023-01-01T00:00:00Z",
-                "updated_at": "2023-01-01T00:00:00Z"
+                "updated_at": "2023-01-01T00:00:00Z",
             }
-        }
+        },
     )
+
 
 class GenerationHistoryEntry(DBModelBase):
     """Text generation history entry for database storage."""
+
     user_id: Annotated[str, PyObjectId]
     prompt: str
     response: str
@@ -98,18 +106,17 @@ class GenerationHistoryEntry(DBModelBase):
                 "response": "The capital of France is Paris.",
                 "model": "phi-4",
                 "tokens_used": 8,
-                "metadata": {
-                    "temperature": 0.7,
-                    "max_tokens": 100
-                },
+                "metadata": {"temperature": 0.7, "max_tokens": 100},
                 "created_at": "2023-01-01T00:00:00Z",
-                "updated_at": "2023-01-01T00:00:00Z"
+                "updated_at": "2023-01-01T00:00:00Z",
             }
         }
     )
 
+
 class TravelPlanInDB(DBModelBase):
     """Travel plan model for database storage."""
+
     user_id: Annotated[str, PyObjectId]
     destination: str
     start_date: datetime
@@ -128,12 +135,9 @@ class TravelPlanInDB(DBModelBase):
                 "end_date": "2024-06-07T00:00:00Z",
                 "plan_data": {},
                 "status": "draft",
-                "metadata": {
-                    "budget_level": "mid-range",
-                    "num_travelers": 2
-                },
+                "metadata": {"budget_level": "mid-range", "num_travelers": 2},
                 "created_at": "2023-01-01T00:00:00Z",
-                "updated_at": "2023-01-01T00:00:00Z"
+                "updated_at": "2023-01-01T00:00:00Z",
             }
         }
-    ) 
+    )

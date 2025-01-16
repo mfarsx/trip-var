@@ -1,28 +1,30 @@
-"use client";
+'use client';
 
-import React from "react";
-import PropTypes from "prop-types";
-import { useAuth } from "../hooks/useAuth.js";
-import { Logo } from "./ui/Logo";
-import { DesktopNav } from "./navigation/DesktopNav";
-import { MobileNav } from "./navigation/MobileNav";
-import { UserMenu } from "./navigation/UserMenu";
+import PropTypes from 'prop-types';
+import React from 'react';
+
+import { useAuth } from '../hooks/useAuth.js';
+
+import { DesktopNav } from './navigation/DesktopNav';
+import { MobileNav } from './navigation/MobileNav';
+import { UserMenu } from './navigation/UserMenu';
+import { Logo } from './ui/Logo';
 
 const NAV_ITEMS = [
   {
-    name: "Home",
-    path: "/",
-    icon: "HomeIcon",
+    name: 'Home',
+    path: '/',
+    icon: 'HomeIcon',
   },
   {
-    name: "Text Generator",
-    path: "/text-generator",
-    icon: "DocumentTextIcon",
+    name: 'Text Generator',
+    path: '/text-generator',
+    icon: 'DocumentTextIcon',
   },
   {
-    name: "Travel Planner",
-    path: "/travel-planner",
-    icon: "GlobeAltIcon",
+    name: 'Travel Planner',
+    path: '/travel-planner',
+    icon: 'GlobeAltIcon',
   },
 ];
 
@@ -57,9 +59,7 @@ export function Layout({ children }) {
 
       {/* Main Content */}
       <main className="pt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
       </main>
     </div>
   );

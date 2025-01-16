@@ -1,18 +1,16 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { Card } from "./Card";
-import { commonStyles } from "../../constants/styles";
+import PropTypes from 'prop-types';
+import React from 'react';
+
+import { commonStyles } from '../../constants/styles';
+
+import { Card } from './Card';
 
 export const StatsCard = ({ stats }) => (
   <Card className="stats-grid">
     {stats.map(({ label, value }) => (
       <div key={label} className="text-center">
-        <p className={`text-2xl font-semibold ${commonStyles.text.accent}`}>
-          {value}
-        </p>
-        <p className={`mt-2 text-sm font-medium ${commonStyles.text.secondary}`}>
-          {label}
-        </p>
+        <p className={`text-2xl font-semibold ${commonStyles.text.accent}`}>{value}</p>
+        <p className={`mt-2 text-sm font-medium ${commonStyles.text.secondary}`}>{label}</p>
       </div>
     ))}
   </Card>
@@ -26,3 +24,5 @@ StatsCard.propTypes = {
     })
   ).isRequired,
 };
+
+export default StatsCard;

@@ -1,19 +1,23 @@
-// Error Classes
+// Export error classes
 export {
   AppError,
   ValidationError,
   AuthenticationError,
   NetworkError,
   ApiError,
-} from "./errorHandler.jsx";
+} from './errorHandler.jsx';
 
-// Error Utilities
+// Export error handling utilities
 export {
   initializeErrorTracking,
   handleError,
-  wrapWithErrorHandler,
-} from "./errorHandler.jsx";
+  wrapWithErrorHandler as withErrorHandling,
+  ErrorBoundaryWithFallback,
+  ErrorFallback,
+  createErrorFromResponse,
+  formatErrorMessage,
+  tryExecute,
+} from './errorHandler.jsx';
 
-// Hooks and HOCs
-export { useErrorHandler } from "../../hooks/useErrorHandler";
-export { withErrorHandling } from "../../hoc/withErrorHandling";
+// Export error hooks
+export { useErrorHandler } from '../../hooks/useErrorHandler';

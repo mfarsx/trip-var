@@ -1,39 +1,45 @@
-import { useState, useCallback } from "react";
-import { useErrorHandler } from "./useErrorHandler";
-import { aiService } from "../services/aiService";
-import { AI_MODELS } from "../constants/ai";
+import { useState, useCallback } from 'react';
+
+import { AI_MODELS } from '../constants/ai';
+import { aiService } from '../services/aiService';
+
+import { useErrorHandler } from './useErrorHandler';
 
 export function useTextGenerator() {
-  const [prompt, setPrompt] = useState("");
-  const [result, setResult] = useState("");
+  const [prompt, setPrompt] = useState('');
+  const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
-  const { error, setError: handleError, clearError } = useErrorHandler({ 
-    context: "text-generator",
+  const {
+    error,
+    setError: handleError,
+    clearError,
+  } = useErrorHandler({
+    context: 'text-generator',
     onError: (error) => {
-      if (error?.type === "validation" && error.field === "apiKey") {
+      if (error?.type === 'validation' && error.field === 'apiKey') {
         setShowApiKeyInput(true);
       }
-    }
+    },
   });
-  const [selectedModel, setSelectedModel] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [selectedModel, setSelectedModel] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
       if (!prompt.trim()) {
-        handleError({ type: "validation", message: "Please enter a prompt" });
+        handleError({ type: 'validation', message: 'Please enter a prompt' });
         return;
       }
 
       setLoading(true);
       clearError();
-      setResult("");
+      setResult('');
 
       try {
         if (!selectedModel) {
-          throw new Error("Please select a model");
+          throw new Error('Please select a model');
         }
 
         const model = AI_MODELS[selectedModel];
@@ -56,16 +62,22 @@ export function useTextGenerator() {
     [prompt, selectedModel, apiKey, handleError, clearError]
   );
 
-  const handleModelSelect = useCallback((model) => {
-    setSelectedModel(model);
-    clearError();
-  }, [clearError]);
+  const handleModelSelect = useCallback(
+    (model) => {
+      setSelectedModel(model);
+      clearError();
+    },
+    [clearError]
+  );
 
-  const handleApiKeySubmit = useCallback((key) => {
-    setApiKey(key);
-    setShowApiKeyInput(false);
-    clearError();
-  }, [clearError]);
+  const handleApiKeySubmit = useCallback(
+    (key) => {
+      setApiKey(key);
+      setShowApiKeyInput(false);
+      clearError();
+    },
+    [clearError]
+  );
 
   return {
     prompt,

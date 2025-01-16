@@ -1,14 +1,14 @@
-import axios from "axios";
-import config from "./index";
-import { logError } from "../utils/logger";
-import { 
-  ValidationError, 
-  AuthenticationError, 
-  NetworkError, 
-  ApiError 
-} from "../utils/error/errorHandler";
-import { createErrorFromResponse } from "../utils/error/errorHandler";
-import { AUTH_ERRORS } from "../constants/auth";
+import axios from 'axios';
+
+import { AUTH_ERRORS } from '../constants/auth';
+import {
+  AuthenticationError,
+  NetworkError,
+  createErrorFromResponse,
+} from '../utils/error/errorHandler';
+import { logError } from '../utils/logger';
+
+import config from './index';
 
 const API_CONFIG = {
   baseURL: config.api.url + config.api.path,
@@ -24,8 +24,8 @@ const defaultConfig = {
   baseURL: API_CONFIG.baseURL,
   timeout: API_CONFIG.timeout,
   headers: {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
   withCredentials: true,
   secure: API_CONFIG.secure,
@@ -42,16 +42,15 @@ const handleApiError = (error) => {
 
   // Handle network errors
   if (!error.response) {
-    if (error.code === "ECONNABORTED") {
+    if (error.code === 'ECONNABORTED') {
       customError = new NetworkError(
         `Request timed out after ${API_CONFIG.timeout / 1000} seconds`,
         { code: AUTH_ERRORS.NETWORK_ERROR }
       );
     } else {
-      customError = new NetworkError(
-        "Network error. Please check your connection",
-        { code: AUTH_ERRORS.NETWORK_ERROR }
-      );
+      customError = new NetworkError('Network error. Please check your connection', {
+        code: AUTH_ERRORS.NETWORK_ERROR,
+      });
     }
   } else {
     // Convert axios error to our custom error type
@@ -63,15 +62,17 @@ const handleApiError = (error) => {
     // Clear auth data
     localStorage.removeItem(config.auth.tokenKey);
     localStorage.removeItem(config.auth.storageKey);
-    
+
     // Dispatch authentication error event
-    window.dispatchEvent(new CustomEvent("auth:error", { 
-      detail: {
-        type: "auth",
-        message: customError.message,
-        code: customError.code
-      }
-    }));
+    window.dispatchEvent(
+      new CustomEvent('auth:error', {
+        detail: {
+          type: 'auth',
+          message: customError.message,
+          code: customError.code,
+        },
+      })
+    );
   }
 
   // Log error if enabled
@@ -82,8 +83,8 @@ const handleApiError = (error) => {
       context: {
         url: error.config?.url,
         method: error.config?.method,
-        status: error.response?.status
-      }
+        status: error.response?.status,
+      },
     });
   }
 

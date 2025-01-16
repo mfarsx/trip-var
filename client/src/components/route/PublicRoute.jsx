@@ -1,8 +1,9 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth.js";
-import { LoadingSpinner } from "../ui/LoadingSpinner";
-import PropTypes from "prop-types";
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+
+import { useAuth } from '../../hooks/useAuth.js';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 export function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -21,3 +22,5 @@ export function PublicRoute({ children }) {
 PublicRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
+
+export default PublicRoute;

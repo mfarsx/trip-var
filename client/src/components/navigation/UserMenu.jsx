@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import PropTypes from "prop-types";
-import { Link } from "react-router-dom";
+import PropTypes from 'prop-types';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export const UserMenu = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,11 +12,9 @@ export const UserMenu = ({ user, onLogout }) => {
         className="flex items-center space-x-3 focus:outline-none"
       >
         <div className="h-8 w-8 rounded-full bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center text-white font-medium">
-          {user?.email?.[0]?.toUpperCase() || "U"}
+          {user?.email?.[0]?.toUpperCase() || 'U'}
         </div>
-        <span className="hidden sm:block text-gray-700 dark:text-gray-300">
-          {user?.email}
-        </span>
+        <span className="hidden sm:block text-gray-700 dark:text-gray-300">{user?.email}</span>
       </button>
 
       {/* Profile Dropdown */}

@@ -108,3 +108,6 @@ site/
 .local/
 .history/
 .hypothesis/
+
+# windsurf rules
+.windsurfrules

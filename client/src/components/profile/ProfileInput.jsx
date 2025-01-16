@@ -1,10 +1,10 @@
-export function ProfileInput({ label, type = "text", id, value, onChange, ...props }) {
+import PropTypes from 'prop-types';
+import React from 'react';
+
+const ProfileInput = ({ label, type = 'text', id, value, onChange, ...props }) => {
   return (
     <div className="space-y-1">
-      <label
-        htmlFor={id}
-        className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-      >
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         {label}
       </label>
       <input
@@ -18,4 +18,19 @@ export function ProfileInput({ label, type = "text", id, value, onChange, ...pro
       />
     </div>
   );
-}
+};
+
+ProfileInput.propTypes = {
+  label: PropTypes.string.isRequired,
+  type: PropTypes.oneOf(['text', 'email', 'password']),
+  id: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
+ProfileInput.defaultProps = {
+  type: 'text',
+};
+
+export { ProfileInput };
+export default ProfileInput;

@@ -7,7 +7,7 @@ class RequestCache {
   }
 
   generateKey(prompt, modelId) {
-    return `${prompt}:${modelId || "default"}`;
+    return `${prompt}:${modelId || 'default'}`;
   }
 
   set(prompt, modelId, value) {

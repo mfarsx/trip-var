@@ -1,24 +1,22 @@
-import React from "react";
-import PropTypes from "prop-types";
+import PropTypes from 'prop-types';
+import React from 'react';
 
-export const FormError = ({ error, className = "" }) => {
+export const FormError = ({ error, className = '' }) => {
   if (!error) return null;
 
   const getErrorStyle = () => {
     switch (error.type) {
-      case "validation":
-        return "bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200";
-      case "api":
-        return "bg-orange-50 dark:bg-orange-900/50 text-orange-700 dark:text-orange-200";
+      case 'validation':
+        return 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200';
+      case 'api':
+        return 'bg-orange-50 dark:bg-orange-900/50 text-orange-700 dark:text-orange-200';
       default:
-        return "bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200";
+        return 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-200';
     }
   };
 
   return (
-    <div
-      className={`rounded-md p-3 animate-shake ${getErrorStyle()} ${className}`}
-    >
+    <div className={`rounded-md p-3 animate-shake ${getErrorStyle()} ${className}`}>
       <div className="flex">
         <div className="flex-shrink-0">
           {/* Error Icon */}
@@ -40,7 +38,7 @@ export const FormError = ({ error, className = "" }) => {
 
 FormError.propTypes = {
   error: PropTypes.shape({
-    type: PropTypes.oneOf(["validation", "api", "generic"]),
+    type: PropTypes.oneOf(['validation', 'api', 'generic']),
     message: PropTypes.string.isRequired,
     field: PropTypes.string,
     status: PropTypes.number,

@@ -1,23 +1,29 @@
-import { useState } from "react";
-import { useErrorHandler } from "./useErrorHandler";
-import { logError, logInfo } from "../utils/logger";
-import { travelService } from "../services/travelService";
-import { DEFAULT_PREFERENCES } from "../constants/travel";
-import { useAuth } from "./useAuth";
+import { useState } from 'react';
+
+import { DEFAULT_PREFERENCES } from '../constants/travel';
+import { travelService } from '../services/travelService';
+import { logError, logInfo } from '../utils/logger';
+
+import { useAuth } from './useAuth';
+import { useErrorHandler } from './useErrorHandler';
 
 export const useTravelPlanner = () => {
   const { user } = useAuth();
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
-  const [specialRequests, setSpecialRequests] = useState("");
+  const [specialRequests, setSpecialRequests] = useState('');
   const [travelPlan, setTravelPlan] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { error, setError: handleError, clearError } = useErrorHandler({ 
-    context: "travel-planner",
+  const {
+    error,
+    setError: handleError,
+    clearError,
+  } = useErrorHandler({
+    context: 'travel-planner',
     onError: (error) => {
-      if (error?.type === "api") {
-        logError("Failed to generate travel plan", error);
+      if (error?.type === 'api') {
+        logError('Failed to generate travel plan', error);
       }
-    }
+    },
   });
 
   const handleInputChange = (e) => {
@@ -42,9 +48,9 @@ export const useTravelPlanner = () => {
   const generatePlan = async () => {
     setIsLoading(true);
     clearError();
-    
+
     try {
-      logInfo("Generating travel plan", "travel", {
+      logInfo('Generating travel plan', 'travel', {
         userId: user?.id,
         preferences: JSON.stringify(preferences),
       });
@@ -53,15 +59,15 @@ export const useTravelPlanner = () => {
         ...preferences,
         specialRequests,
       });
-      
+
       setTravelPlan(plan);
-      
-      logInfo("Travel plan generated successfully", "travel", {
+
+      logInfo('Travel plan generated successfully', 'travel', {
         userId: user?.id,
         planId: plan.id,
       });
     } catch (err) {
-      logError("Failed to generate travel plan", err, {
+      logError('Failed to generate travel plan', err, {
         userId: user?.id,
         preferences: JSON.stringify(preferences),
       });

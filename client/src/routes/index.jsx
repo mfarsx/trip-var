@@ -1,7 +1,9 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { ROUTES } from "./config";
-import { PrivateRoute } from "../components/route/PrivateRoute";
-import { PublicRoute } from "../components/route/PublicRoute";
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+import { PrivateRoute } from '../components/route/PrivateRoute';
+import { PublicRoute } from '../components/route/PublicRoute';
+
+import { ROUTES } from './config.jsx';
 
 export default function AppRoutes() {
   return (
@@ -33,7 +35,14 @@ export default function AppRoutes() {
       ))}
 
       {/* Catch all route - redirect to home */}
-      <Route path="*" element={<PrivateRoute><Navigate to="/" /></PrivateRoute>} />
+      <Route
+        path="*"
+        element={
+          <PrivateRoute>
+            <Navigate to="/" />
+          </PrivateRoute>
+        }
+      />
     </Routes>
   );
 }

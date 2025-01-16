@@ -1,11 +1,13 @@
+import PropTypes from 'prop-types';
 import React from 'react';
-import { logError, logWarn } from '../logger';
+
 import { AUTH_ERRORS } from '../../constants/auth';
+import { logError, logWarn } from '../logger';
 
 /**
  * Base error class for application errors
  */
-export class AppError extends Error {
+class AppError extends Error {
   constructor(message, type = 'generic') {
     super(message);
     this.name = this.constructor.name;
@@ -31,7 +33,7 @@ export class AppError extends Error {
 /**
  * Error class for validation errors
  */
-export class ValidationError extends AppError {
+class ValidationError extends AppError {
   constructor(message, field = 'form') {
     super(message, 'validation');
     this.field = field;
@@ -41,7 +43,7 @@ export class ValidationError extends AppError {
 /**
  * Error class for authentication errors
  */
-export class AuthenticationError extends AppError {
+class AuthenticationError extends AppError {
   constructor(message = 'Authentication failed', code = AUTH_ERRORS.UNKNOWN_ERROR) {
     super(message, 'auth');
     this.name = 'AuthenticationError';
@@ -53,7 +55,7 @@ export class AuthenticationError extends AppError {
 /**
  * Error class for network errors
  */
-export class NetworkError extends AppError {
+class NetworkError extends AppError {
   constructor(message = 'Network error occurred', details = {}) {
     super(message, 'network');
     this.name = 'NetworkError';
@@ -65,7 +67,7 @@ export class NetworkError extends AppError {
 /**
  * Error class for API errors
  */
-export class ApiError extends AppError {
+class ApiError extends AppError {
   constructor(message, status, data = {}) {
     super(message, 'api');
     this.name = 'ApiError';
@@ -78,85 +80,98 @@ export class ApiError extends AppError {
 /**
  * Initialize error tracking (e.g., Sentry)
  */
-export function initializeErrorTracking() {
-  // Add error tracking initialization here
-  window.addEventListener('error', (event) => {
-    logError('Global error:', event.error);
-  });
-
-  window.addEventListener('unhandledrejection', (event) => {
-    logError('Unhandled promise rejection:', event.reason);
-  });
+function initializeErrorTracking() {
+  // TODO: Initialize error tracking service
+  logWarn('Error tracking not initialized');
 }
+
+/**
+ * Error fallback component
+ */
+const ErrorFallback = ({ error, resetError }) => {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 text-center">
+        <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-gray-100">
+          Oops! Something went wrong
+        </h2>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{formatErrorMessage(error)}</p>
+        {resetError && (
+          <button
+            onClick={resetError}
+            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Try Again
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+ErrorFallback.propTypes = {
+  error: PropTypes.object.isRequired,
+  resetError: PropTypes.func,
+};
 
 /**
  * Error boundary component with fallback UI
  */
-export class ErrorBoundaryWithFallback extends React.Component {
+class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { error: null };
+    this.resetError = this.resetError.bind(this);
   }
 
   static getDerivedStateFromError(error) {
-    return { hasError: true, error };
+    return { error };
   }
 
   componentDidCatch(error, errorInfo) {
-    logError('React error boundary caught error:', {
-      error,
-      componentStack: errorInfo.componentStack,
-    });
+    logError('Error caught by boundary:', error, errorInfo);
+  }
+
+  resetError() {
+    this.setState({ error: null });
+    if (this.props.onRetry) {
+      this.props.onRetry();
+    }
   }
 
   render() {
-    if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="error-fallback p-4 bg-red-50 border border-red-200 rounded-md">
-          <h2 className="text-lg font-semibold text-red-800">Something went wrong</h2>
-          <p className="mt-2 text-sm text-red-600">{this.state.error.message}</p>
-          {this.props.onRetry && (
-            <button
-              onClick={() => {
-                this.setState({ hasError: false, error: null });
-                this.props.onRetry();
-              }}
-              className="mt-4 px-4 py-2 bg-red-100 text-red-800 rounded hover:bg-red-200"
-            >
-              Try again
-            </button>
-          )}
-        </div>
-      );
+    const { children } = this.props;
+    const { error } = this.state;
+
+    if (error) {
+      return <ErrorFallback error={error} resetError={this.resetError} />;
     }
 
-    return this.props.children;
+    return children;
   }
 }
+
+ErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+  onRetry: PropTypes.func,
+};
 
 /**
  * Create error state from error object
  */
 function createErrorState(error, context = 'app') {
   const errorState = {
-    message: error.message || 'An unexpected error occurred',
+    message: error.message || 'An unknown error occurred',
     type: error.type || 'generic',
+    timestamp: error.timestamp || new Date().toISOString(),
     context,
-    timestamp: new Date().toISOString(),
   };
 
-  if (error instanceof ValidationError) {
-    errorState.field = error.field;
-  }
-
-  if (error instanceof ApiError) {
-    errorState.status = error.status;
-    errorState.data = error.data;
-  }
-
-  if (error instanceof NetworkError) {
-    errorState.details = error.details;
-  }
+  if (error.code) errorState.code = error.code;
+  if (error.field) errorState.field = error.field;
+  if (error.status) errorState.status = error.status;
+  if (error.data) errorState.data = error.data;
+  if (error.details) errorState.details = error.details;
 
   return errorState;
 }
@@ -164,37 +179,34 @@ function createErrorState(error, context = 'app') {
 /**
  * Handle error and return formatted error state
  */
-export function handleError(error, context = 'app') {
-  // Log error
+function handleError(error, context = 'app') {
   logError(`Error in ${context}:`, error);
-
-  // Create error state
-  const errorState = createErrorState(error, context);
-
-  // Return formatted error state
-  return errorState;
+  return createErrorState(error, context);
 }
 
 /**
  * HOC to wrap component with error handling
  */
-export function wrapWithErrorHandler(WrappedComponent, context = 'app') {
-  return function ErrorHandlerWrapper(props) {
+function wrapWithErrorHandler(WrappedComponent) {
+  const ErrorHandlerWrapper = ({ onRetry, ...props }) => {
     return (
-      <ErrorBoundaryWithFallback
-        fallback={props.errorFallback}
-        onRetry={props.onRetry}
-      >
+      <ErrorBoundary onRetry={onRetry}>
         <WrappedComponent {...props} />
-      </ErrorBoundaryWithFallback>
+      </ErrorBoundary>
     );
   };
+
+  ErrorHandlerWrapper.propTypes = {
+    onRetry: PropTypes.func,
+  };
+
+  return ErrorHandlerWrapper;
 }
 
 /**
  * Create error from API response
  */
-export function createErrorFromResponse(error) {
+function createErrorFromResponse(error) {
   if (!error.response) {
     return new NetworkError('Network error occurred', {
       isAxiosError: error.isAxiosError,
@@ -203,72 +215,78 @@ export function createErrorFromResponse(error) {
   }
 
   const { status, data } = error.response;
-  const message = data?.message || data?.detail || 'An error occurred';
-
-  // Log the response data to help debug
-  logError('API Error Response:', {
-    status,
-    data,
-    message,
-    error
-  });
+  let message = data?.message || error.message || 'API request failed';
 
   switch (status) {
     case 400:
-    case 422:
-      return new ValidationError(message, data?.field || 'form');
+      return new ValidationError(message, data?.field);
     case 401:
-      return new AuthenticationError(message, AUTH_ERRORS.INVALID_CREDENTIALS);
     case 403:
-      return new AuthenticationError(message, AUTH_ERRORS.UNAUTHORIZED);
+      return new AuthenticationError(message, data?.code);
     case 404:
-      return new ApiError(message, status, { type: 'not_found' });
-    case 409:
-      return new ValidationError(message, 'email');
+      return new ApiError('Resource not found', status, data);
+    case 500:
+      return new ApiError('Internal server error', status, data);
     default:
       return new ApiError(message, status, data);
   }
 }
 
 /**
- * Format error for display to user
+ * Format error message for display
  */
-export function formatErrorMessage(error) {
+function formatErrorMessage(error) {
   if (!error) return 'An unknown error occurred';
 
-  if (typeof error === 'string') return error;
-
   if (error instanceof ValidationError) {
-    return error.message;
+    return `Validation error: ${error.message}`;
   }
 
   if (error instanceof AuthenticationError) {
-    return error.message;
+    return `Authentication error: ${error.message}`;
   }
 
   if (error instanceof NetworkError) {
-    return 'Network error occurred. Please check your connection and try again.';
+    return `Network error: ${error.message}`;
   }
 
   if (error instanceof ApiError) {
-    return error.message;
+    return `API error: ${error.message}`;
   }
 
-  if (error.response?.data?.detail) {
-    return error.response.data.detail;
-  }
-
-  return error.message || 'An unexpected error occurred';
+  return error.message || 'An unknown error occurred';
 }
 
 /**
  * Try to execute a function and handle any errors
  */
-export async function tryExecute(fn, context = 'app') {
+function tryExecute(fn, context = 'app') {
   try {
-    return await fn();
+    return fn();
   } catch (error) {
-    logWarn(`Failed to execute in ${context}:`, error);
-    throw error;
+    return handleError(error, context);
   }
 }
+
+// Export a pre-configured error boundary for convenience
+const ErrorBoundaryWithFallback = ErrorBoundary;
+const ErrorFallbackWithFallback = ErrorFallback;
+
+// Export everything as a single object
+export {
+  AppError,
+  ValidationError,
+  AuthenticationError,
+  NetworkError,
+  ApiError,
+  ErrorBoundaryWithFallback,
+  ErrorFallback,
+  ErrorFallbackWithFallback,
+  handleError,
+  wrapWithErrorHandler,
+  createErrorFromResponse,
+  formatErrorMessage,
+  tryExecute,
+  createErrorState,
+  initializeErrorTracking,
+};

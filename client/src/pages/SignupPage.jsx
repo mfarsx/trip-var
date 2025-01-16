@@ -1,30 +1,27 @@
-import { useState, useCallback, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth.js";
-import { useErrorHandler } from "../hooks/useErrorHandler";
-import {
-  ValidationError,
-  AuthenticationError,
-  NetworkError,
-} from "../utils/error";
-import { SignupForm } from "../components/auth/SignupForm";
-import { withErrorHandling } from "../hoc/withErrorHandling";
+import { useState, useCallback, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+
+import { SignupForm } from '../components/auth/SignupForm';
+import { withErrorHandling } from '../hoc/withErrorHandling';
+import { useAuth } from '../hooks/useAuth.js';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { ValidationError, AuthenticationError, NetworkError } from '../utils/error';
 
 const INITIAL_FORM_STATE = {
-  full_name: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
+  full_name: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
 };
 
 function SignupPage() {
   const navigate = useNavigate();
   const { signup } = useAuth();
-  const { error: globalError, setError: handleError } = useErrorHandler({
-    context: "signup",
+  const { setError: handleError } = useErrorHandler({
+    context: 'signup',
     onError: (error) => {
-      if (error?.type === "auth") {
-        navigate("/login", { replace: true });
+      if (error?.type === 'auth') {
+        navigate('/login', { replace: true });
       }
     },
   });
@@ -34,30 +31,30 @@ function SignupPage() {
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
   useEffect(() => {
-    document.title = "Create Account - TripVar";
+    document.title = 'Create Account - TripVar';
   }, []);
 
   const validateForm = useCallback(() => {
     const newErrors = {};
 
     if (!formData.full_name?.trim()) {
-      newErrors.full_name = "Full name is required";
+      newErrors.full_name = 'Full name is required';
     }
 
     if (!formData.email?.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = "Invalid email format";
+      newErrors.email = 'Invalid email format';
     }
 
     if (!formData.password?.trim()) {
-      newErrors.password = "Password is required";
+      newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters long";
+      newErrors.password = 'Password must be at least 8 characters long';
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     return newErrors;
@@ -87,7 +84,7 @@ function SignupPage() {
           password: formData.password,
         });
         // Use replace to prevent going back to signup page
-        navigate("/", { replace: true });
+        navigate('/', { replace: true });
       } catch (err) {
         if (err instanceof ValidationError) {
           setErrors({
@@ -96,7 +93,7 @@ function SignupPage() {
           document.querySelector(`[name="${err.field}"]`)?.focus();
         } else if (err instanceof NetworkError) {
           setErrors({
-            form: "Network error occurred. Please check your connection and try again.",
+            form: 'Network error occurred. Please check your connection and try again.',
           });
         } else if (err instanceof AuthenticationError) {
           setErrors({ form: err.message });
@@ -121,7 +118,7 @@ function SignupPage() {
       if (errors[name]) {
         setErrors((prev) => ({
           ...prev,
-          [name]: "",
+          [name]: '',
         }));
       }
     },
@@ -135,7 +132,7 @@ function SignupPage() {
           Create your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          Already have an account?{" "}
+          Already have an account?{' '}
           <Link
             to="/login"
             className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
@@ -156,4 +153,4 @@ function SignupPage() {
   );
 }
 
-export default withErrorHandling(SignupPage, "signup");
+export default withErrorHandling(SignupPage, 'signup');

@@ -1,38 +1,36 @@
 """Domain models package."""
 
-from .domain import (
-    Message,
-    TravelPreferences,
-    TravelPlan,
-    DayPlan,
-    BudgetLevel,
-    AccommodationType,
-    TravelStyle
-)
-
 from .api import (
-    UserBase,
-    UserCreate,
-    UserUpdate,
-    User,
-    UserResponse,
-    Token,
-    TokenData,
+    DataResponse,
+    ListResponse,
     LoginResponse,
     TextGenerationRequest,
     TextGenerationResponse,
+    Token,
+    TokenData,
     TravelPlanningRequest,
     TravelPlanningResponse,
-    DataResponse,
-    ListResponse
+    User,
+    UserBase,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
 )
-
 from .db import (
-    PyObjectId,
     DBModelBase,
-    UserInDB,
     GenerationHistoryEntry,
-    TravelPlanInDB
+    PyObjectId,
+    TravelPlanInDB,
+    UserInDB,
+)
+from .domain import (
+    AccommodationType,
+    BudgetLevel,
+    DayPlan,
+    Message,
+    TravelPlan,
+    TravelPreferences,
+    TravelStyle,
 )
 
 __all__ = [
@@ -44,7 +42,6 @@ __all__ = [
     "BudgetLevel",
     "AccommodationType",
     "TravelStyle",
-    
     # API Models
     "UserBase",
     "UserCreate",
@@ -60,11 +57,10 @@ __all__ = [
     "TravelPlanningResponse",
     "DataResponse",
     "ListResponse",
-    
     # Database Models
     "PyObjectId",
     "DBModelBase",
     "UserInDB",
     "GenerationHistoryEntry",
-    "TravelPlanInDB"
-] 
+    "TravelPlanInDB",
+]

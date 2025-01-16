@@ -4,8 +4,6 @@
 
 import { AUTH_STORAGE_KEYS, AUTH_CONFIG } from '../constants/auth';
 
-const TOKEN_PREFIX = AUTH_CONFIG.TOKEN_PREFIX;
-
 /**
  * Parse JWT token without validation
  * @param {string} token - JWT token
@@ -67,7 +65,7 @@ export const storeToken = (token, user = null) => {
     }
 
     localStorage.setItem(AUTH_STORAGE_KEYS.TOKEN, token);
-    
+
     if (user) {
       localStorage.setItem(AUTH_STORAGE_KEYS.USER, JSON.stringify(user));
     }
@@ -127,4 +125,22 @@ export const getStoredUser = () => {
 export const getAuthHeader = () => {
   const token = getStoredToken();
   return token ? `${AUTH_CONFIG.TOKEN_PREFIX} ${token}` : null;
+};
+
+const TOKEN_KEY = 'auth_token';
+
+export const setToken = (token) => {
+  localStorage.setItem(TOKEN_KEY, token);
+};
+
+export const getToken = () => {
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+export const removeTokenLocal = () => {
+  localStorage.removeItem(TOKEN_KEY);
+};
+
+export const hasToken = () => {
+  return Boolean(getToken());
 };

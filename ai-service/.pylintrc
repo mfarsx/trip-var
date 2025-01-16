@@ -1,0 +1,7 @@
+[MASTER]
+max-line-length=88
+disable=C0111
+extension-pkg-whitelist=pydantic
+
+[MESSAGES CONTROL]
+disable=C0111,R0903,C0103

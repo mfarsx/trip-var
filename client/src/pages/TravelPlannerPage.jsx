@@ -1,17 +1,16 @@
-import React from "react";
-import { withErrorHandling } from "../utils/error";
-import TravelHeader from "../components/travel/TravelHeader";
-import TravelForm from "../components/travel/TravelForm";
-import TravelPlan from "../components/travel/TravelPlan";
-import { useTravelPlanner } from "../hooks/useTravelPlanner";
+import React from 'react';
 
-export function TravelPlannerPage() {
+import { Section, TravelForm, TravelHeader, TravelPlan } from '../components';
+import { useTravelPlanner } from '../hooks/useTravelPlanner';
+import { withErrorHandling } from '../utils/error';
+
+const TravelPlannerPage = () => {
   const {
     preferences,
     specialRequests,
-    travelPlan,
     isLoading,
     error,
+    travelPlan,
     handleInputChange,
     handleInterestToggle,
     handleSpecialRequestsChange,
@@ -19,23 +18,33 @@ export function TravelPlannerPage() {
   } = useTravelPlanner();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="space-y-8">
+    <div className="min-h-screen bg-gray-50">
+      <Section>
         <TravelHeader />
-        <TravelForm
-          preferences={preferences}
-          specialRequests={specialRequests}
-          isLoading={isLoading}
-          error={error}
-          onInputChange={handleInputChange}
-          onInterestToggle={handleInterestToggle}
-          onSpecialRequestsChange={handleSpecialRequestsChange}
-          onSubmit={generatePlan}
-        />
-        <TravelPlan plan={travelPlan} />
-      </div>
+      </Section>
+
+      <Section className="bg-white">
+        <div className="mx-auto max-w-2xl">
+          <TravelForm
+            preferences={preferences}
+            specialRequests={specialRequests}
+            isLoading={isLoading}
+            error={error}
+            onInputChange={handleInputChange}
+            onInterestToggle={handleInterestToggle}
+            onSpecialRequestsChange={handleSpecialRequestsChange}
+            onSubmit={generatePlan}
+          />
+        </div>
+      </Section>
+
+      <Section>
+        <div className="mx-auto max-w-3xl">
+          <TravelPlan plan={travelPlan} />
+        </div>
+      </Section>
     </div>
   );
-}
+};
 
 export default withErrorHandling(TravelPlannerPage);

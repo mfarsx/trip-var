@@ -54,16 +54,16 @@ const defaults = {
  */
 const config = {
   api: {
-    url: getEnvVar("VITE_API_URL", "http://localhost:8000"),
-    aiUrl: getEnvVar("VITE_API_AI_URL", ""),
+    url: getEnvVar('VITE_API_URL', 'http://localhost:8000'),
+    aiUrl: getEnvVar('VITE_API_AI_URL', ''),
     ...defaults.api,
   },
   auth: {
     ...defaults.auth,
   },
   app: {
-    version: getEnvVar("VITE_APP_VERSION", "1.0.0"),
-    enableErrorReporting: getEnvVar("VITE_ENABLE_ERROR_REPORTING", "true") === "true",
+    version: getEnvVar('VITE_APP_VERSION', '1.0.0'),
+    enableErrorReporting: getEnvVar('VITE_ENABLE_ERROR_REPORTING', 'true') === 'true',
     ...defaults.app,
   },
   features: {

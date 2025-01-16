@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 export const HeroPattern = () => (
   <div className="hero-background">
@@ -29,12 +29,10 @@ export const HeroPattern = () => (
             />
           </pattern>
         </defs>
-        <rect
-          width="404"
-          height="784"
-          fill="url(#f210dbf6-a58d-4871-961e-36d5016a0f49)"
-        />
+        <rect width="404" height="784" fill="url(#f210dbf6-a58d-4871-961e-36d5016a0f49)" />
       </svg>
     </div>
   </div>
 );
+
+export default HeroPattern;

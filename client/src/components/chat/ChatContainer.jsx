@@ -1,9 +1,10 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
+
 import ChatHeader from './ChatHeader';
-import SettingsPanel from './SettingsPanel';
-import MessageList from './MessageList';
 import ChatInput from './ChatInput';
+import MessageList from './MessageList';
+import SettingsPanel from './SettingsPanel';
 
 const ChatContainer = ({
   showSettings,
@@ -37,12 +38,7 @@ const ChatContainer = ({
       />
     )}
 
-    <MessageList
-      ref={messagesEndRef}
-      messages={messages}
-      error={error}
-      isLoading={isLoading}
-    />
+    <MessageList ref={messagesEndRef} messages={messages} error={error} isLoading={isLoading} />
 
     <ChatInput
       ref={inputRef}
@@ -62,7 +58,7 @@ ChatContainer.propTypes = {
   messages: PropTypes.arrayOf(
     PropTypes.shape({
       content: PropTypes.string.isRequired,
-      isUser: PropTypes.bool.isRequired
+      isUser: PropTypes.bool.isRequired,
     })
   ).isRequired,
   error: PropTypes.string,

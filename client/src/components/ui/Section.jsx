@@ -1,32 +1,52 @@
-import React from "react";
-import { commonStyles } from "../../constants/styles";
+import PropTypes from 'prop-types';
+import React from 'react';
 
-export const Section = ({
+const Section = ({
   children,
-  className = "",
-  title,
-  subtitle,
+  className = '',
+  title = '',
+  subtitle = '',
   centered = false,
-  ...props
+  titleClassName = '',
+  subtitleClassName = '',
 }) => {
+  const containerClasses = `py-16 sm:py-24 ${className}`;
+  const contentClasses = centered ? 'text-center' : '';
+
   return (
-    <div
-      className={`${commonStyles.section} ${commonStyles.container} ${className}`}
-      {...props}
-    >
-      {(title || subtitle) && (
-        <div
-          className={`max-w-3xl ${centered ? "mx-auto text-center" : ""} mb-12`}
-        >
-          {title && <h2 className={commonStyles.heading.h2}>{title}</h2>}
-          {subtitle && (
-            <p className={`mt-4 text-lg ${commonStyles.text.secondary}`}>
-              {subtitle}
-            </p>
-          )}
-        </div>
-      )}
-      {children}
+    <div className={containerClasses}>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {(title || subtitle) && (
+          <div className={`mx-auto max-w-2xl lg:max-w-3xl ${contentClasses}`}>
+            {title && (
+              <h2
+                className={`text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl ${titleClassName}`}
+              >
+                {title}
+              </h2>
+            )}
+            {subtitle && (
+              <p className={`mt-4 text-xl leading-8 text-gray-600 ${subtitleClassName}`}>
+                {subtitle}
+              </p>
+            )}
+          </div>
+        )}
+        <div className="mt-8 sm:mt-12">{children}</div>
+      </div>
     </div>
   );
 };
+
+Section.propTypes = {
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+  title: PropTypes.string,
+  subtitle: PropTypes.string,
+  centered: PropTypes.bool,
+  titleClassName: PropTypes.string,
+  subtitleClassName: PropTypes.string,
+};
+
+export { Section };
+export default Section;

@@ -1,15 +1,16 @@
-import React, { useCallback } from "react";
-import PropTypes from "prop-types";
-import { useErrorHandler } from "../hooks/useErrorHandler";
-import { ErrorBoundaryWithFallback } from "../utils/error/errorHandler";
-import { logError } from "../utils/logger";
+import PropTypes from 'prop-types';
+import React, { useCallback } from 'react';
+
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { ErrorBoundaryWithFallback } from '../utils/error/errorHandler';
+import { logError } from '../utils/logger';
 
 /**
  * HOC that adds error handling capabilities to a component
  * @param {React.ComponentType} WrappedComponent - Component to wrap
  * @param {string} context - Error context identifier
  */
-export function withErrorHandling(WrappedComponent, context = "component") {
+export function withErrorHandling(WrappedComponent, context = 'component') {
   function WithErrorHandlingComponent(props) {
     const { error, setError, clearError } = useErrorHandler({
       context,
@@ -18,34 +19,28 @@ export function withErrorHandling(WrappedComponent, context = "component") {
       },
     });
 
+    const { onError, onReset } = props;
+
     const handleError = useCallback(
       (error) => {
         setError(error);
-        if (props.onError) {
-          props.onError(error);
+        if (onError) {
+          onError(error);
         }
       },
-      [setError, props.onError]
+      [setError, onError]
     );
 
     const handleReset = useCallback(() => {
       clearError();
-      if (props.onReset) {
-        props.onReset();
+      if (onReset) {
+        onReset();
       }
-    }, [clearError, props.onReset]);
+    }, [clearError, onReset]);
 
     return (
-      <ErrorBoundaryWithFallback
-        onRetry={handleReset}
-        fallback={props.errorFallback}
-      >
-        <WrappedComponent
-          {...props}
-          error={error}
-          onError={handleError}
-          onReset={handleReset}
-        />
+      <ErrorBoundaryWithFallback onRetry={handleReset} fallback={props.errorFallback}>
+        <WrappedComponent {...props} error={error} onError={handleError} onReset={handleReset} />
       </ErrorBoundaryWithFallback>
     );
   }
@@ -57,7 +52,7 @@ export function withErrorHandling(WrappedComponent, context = "component") {
   };
 
   WithErrorHandlingComponent.displayName = `withErrorHandling(${
-    WrappedComponent.displayName || WrappedComponent.name || "Component"
+    WrappedComponent.displayName || WrappedComponent.name || 'Component'
   })`;
 
   return WithErrorHandlingComponent;

@@ -3,13 +3,13 @@
  */
 
 const LOG_LEVELS = {
-  DEBUG: "debug",
-  INFO: "info",
-  WARN: "warn",
-  ERROR: "error",
+  DEBUG: 'debug',
+  INFO: 'info',
+  WARN: 'warn',
+  ERROR: 'error',
 };
 
-const isDevelopment = process.env.NODE_ENV !== "production";
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
 /**
  * Format log message with timestamp and additional data
@@ -27,7 +27,7 @@ function formatLogMessage(level, message, data) {
  * Format console output
  */
 function formatConsoleOutput(timestamp, level, message, data) {
-  return [`[${timestamp}] [${level.toUpperCase()}]`, message, data || ""].filter(Boolean);
+  return [`[${timestamp}] [${level.toUpperCase()}]`, message, data || ''].filter(Boolean);
 }
 
 /**
@@ -82,10 +82,8 @@ export function logError(message, error) {
  * Format error message for user display
  */
 export function formatErrorMessage(error) {
-  if (!error) return "An unknown error occurred";
-  if (typeof error === "string") return error;
-  
-  return error.response?.data?.detail || 
-         error.message || 
-         "An unexpected error occurred";
+  if (!error) return 'An unknown error occurred';
+  if (typeof error === 'string') return error;
+
+  return error.response?.data?.detail || error.message || 'An unexpected error occurred';
 }

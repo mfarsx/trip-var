@@ -1,14 +1,17 @@
+import PropTypes from 'prop-types';
+import React from 'react';
+
 export function Alert({ type, message }) {
   if (!message) return null;
 
   const styles = {
     error: {
-      wrapper: "bg-red-50 dark:bg-red-900/50",
-      text: "text-red-700 dark:text-red-200",
+      wrapper: 'bg-red-50 dark:bg-red-900/50',
+      text: 'text-red-700 dark:text-red-200',
     },
     success: {
-      wrapper: "bg-green-50 dark:bg-green-900/50",
-      text: "text-green-700 dark:text-green-200",
+      wrapper: 'bg-green-50 dark:bg-green-900/50',
+      text: 'text-green-700 dark:text-green-200',
     },
   };
 
@@ -20,3 +23,10 @@ export function Alert({ type, message }) {
     </div>
   );
 }
+
+Alert.propTypes = {
+  type: PropTypes.oneOf(['error', 'success']).isRequired,
+  message: PropTypes.string,
+};
+
+export default Alert;

@@ -1,9 +1,10 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
-import PropTypes from "prop-types";
-import { useAuth } from "../../hooks/useAuth.js";
-import { Layout } from "../Layout";
-import { LoadingSpinner } from "../ui/LoadingSpinner";
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+
+import { useAuth } from '../../hooks/useAuth.js';
+import { Layout } from '../Layout';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 export function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -26,3 +27,5 @@ export function PrivateRoute({ children }) {
 PrivateRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
+
+export default PrivateRoute;

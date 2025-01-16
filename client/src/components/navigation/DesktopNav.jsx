@@ -1,6 +1,6 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { NavLink } from "react-router-dom";
+import PropTypes from 'prop-types';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
 
 export function DesktopNav({ items }) {
   return (
@@ -12,8 +12,8 @@ export function DesktopNav({ items }) {
           className={({ isActive }) =>
             `inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
               isActive
-                ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/50"
-                : "text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:text-indigo-400 dark:hover:bg-indigo-900/50"
+                ? 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/50'
+                : 'text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:text-indigo-400 dark:hover:bg-indigo-900/50'
             }`
           }
         >
@@ -32,3 +32,5 @@ DesktopNav.propTypes = {
     })
   ).isRequired,
 };
+
+export default DesktopNav;

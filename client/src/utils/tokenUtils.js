@@ -4,12 +4,20 @@
 
 import { AUTH_STORAGE_KEYS, AUTH_CONFIG } from '../constants/auth';
 
+const TOKEN_KEY = AUTH_STORAGE_KEYS.TOKEN;
+const USER_KEY = AUTH_STORAGE_KEYS.USER;
+
 /**
  * Parse JWT token without validation
  * @param {string} token - JWT token
  * @returns {Object|null} Decoded token payload or null if invalid
  */
 const parseToken = (token) => {
+  // In development mode, accept mock tokens
+  if (AUTH_CONFIG.DEV_MODE && token === 'mock_token') {
+    return { exp: Math.floor(Date.now() / 1000) + 3600 }; // 1 hour expiry
+  }
+
   try {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -35,10 +43,15 @@ const isTokenExpired = (decodedToken) => {
  * Get the stored authentication token
  * @returns {string|null} The stored token or null if not found
  */
-export const getStoredToken = () => {
+export const getToken = () => {
   try {
-    const token = localStorage.getItem(AUTH_STORAGE_KEYS.TOKEN);
+    const token = localStorage.getItem(TOKEN_KEY);
     if (!token) return null;
+
+    // In development mode, always accept mock token
+    if (AUTH_CONFIG.DEV_MODE && token === 'mock_token') {
+      return token;
+    }
 
     const decoded = parseToken(token);
     if (!decoded || isTokenExpired(decoded)) {
@@ -58,20 +71,22 @@ export const getStoredToken = () => {
  * @param {string} token - The token to store
  * @param {Object} user - User data to store
  */
-export const storeToken = (token, user = null) => {
+export const setToken = (token, user = null) => {
   try {
     if (!token) {
       throw new Error('Token is required');
     }
 
-    localStorage.setItem(AUTH_STORAGE_KEYS.TOKEN, token);
+    // Store token first
+    localStorage.setItem(TOKEN_KEY, token);
 
+    // Then store user data if provided
     if (user) {
-      localStorage.setItem(AUTH_STORAGE_KEYS.USER, JSON.stringify(user));
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
     }
   } catch (error) {
     console.error('Error storing token:', error);
-    throw error;
+    removeToken();
   }
 };
 
@@ -80,8 +95,8 @@ export const storeToken = (token, user = null) => {
  */
 export const removeToken = () => {
   try {
-    localStorage.removeItem(AUTH_STORAGE_KEYS.TOKEN);
-    localStorage.removeItem(AUTH_STORAGE_KEYS.USER);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   } catch (error) {
     console.error('Error removing token:', error);
   }
@@ -92,16 +107,8 @@ export const removeToken = () => {
  * @returns {boolean} True if a valid non-expired token exists
  */
 export const hasValidToken = () => {
-  try {
-    const token = getStoredToken();
-    if (!token) return false;
-
-    const decoded = parseToken(token);
-    return decoded && !isTokenExpired(decoded);
-  } catch (error) {
-    console.error('Error checking token validity:', error);
-    return false;
-  }
+  const token = getToken();
+  return !!token;
 };
 
 /**
@@ -110,8 +117,8 @@ export const hasValidToken = () => {
  */
 export const getStoredUser = () => {
   try {
-    const userData = localStorage.getItem(AUTH_STORAGE_KEYS.USER);
-    return userData ? JSON.parse(userData) : null;
+    const userJson = localStorage.getItem(USER_KEY);
+    return userJson ? JSON.parse(userJson) : null;
   } catch (error) {
     console.error('Error getting stored user:', error);
     return null;
@@ -123,24 +130,6 @@ export const getStoredUser = () => {
  * @returns {string|null} Authorization header value or null if no valid token
  */
 export const getAuthHeader = () => {
-  const token = getStoredToken();
+  const token = getToken();
   return token ? `${AUTH_CONFIG.TOKEN_PREFIX} ${token}` : null;
-};
-
-const TOKEN_KEY = 'auth_token';
-
-export const setToken = (token) => {
-  localStorage.setItem(TOKEN_KEY, token);
-};
-
-export const getToken = () => {
-  return localStorage.getItem(TOKEN_KEY);
-};
-
-export const removeTokenLocal = () => {
-  localStorage.removeItem(TOKEN_KEY);
-};
-
-export const hasToken = () => {
-  return Boolean(getToken());
 };

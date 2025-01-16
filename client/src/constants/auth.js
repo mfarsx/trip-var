@@ -57,6 +57,6 @@ export const AUTH_CONFIG = {
   API_TIMEOUT: parseInt(env.VITE_API_TIMEOUT || '30000', 10),
   API_SECURE: env.VITE_API_SECURE === 'true',
   TOKEN_PREFIX: 'Bearer',
-  DEV_MODE: env.VITE_DEV_MODE === 'true',
+  DEV_MODE: env.VITE_DEV_MODE !== 'false', // Enable dev mode by default
   ERROR_REPORTING: env.VITE_ENABLE_ERROR_REPORTING === 'true',
 };

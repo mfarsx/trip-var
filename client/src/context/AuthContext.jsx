@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { useNavigate } from 'react-router-dom';
 
 import { AUTH_CONFIG, AUTH_ERRORS } from '../constants/auth';
-import { getToken, removeToken, setToken } from '../utils/tokenUtils';
+import { getToken, removeToken, setToken, getStoredUser } from '../utils/tokenUtils';
 
 const initialState = {
   user: null,
@@ -118,7 +118,8 @@ export const AuthProvider = ({ children }) => {
         });
 
         const { token, user } = response.data;
-        setToken(token);
+        // Store both token and user data
+        setToken(token, user);
 
         updateState({
           user,
@@ -140,18 +141,35 @@ export const AuthProvider = ({ children }) => {
     try {
       updateState({ loading: true });
 
-      // Mock API call
+      // Mock API call for logout
       await new Promise((resolve) => setTimeout(resolve, 500));
 
+      // First remove the token
       removeToken();
-      resetState();
-      navigate('/login');
+
+      // Then reset state and mark as not authenticated
+      updateState({
+        user: null,
+        isAuthenticated: false,
+        loading: false,
+        error: null,
+      });
+
+      // Finally navigate to login
+      navigate('/login', { replace: true });
     } catch (error) {
       handleAuthError(error);
-      resetState();
-      navigate('/login');
+      // Even if there's an error, we should clean up
+      removeToken();
+      updateState({
+        user: null,
+        isAuthenticated: false,
+        loading: false,
+        error: getErrorDetails(error),
+      });
+      navigate('/login', { replace: true });
     }
-  }, [navigate, handleAuthError, resetState, updateState]);
+  }, [navigate, handleAuthError, updateState]);
 
   const signup = useCallback(
     async (userData) => {
@@ -195,23 +213,21 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = getToken();
-      if (!token) {
-        updateState({ loading: false });
-        return;
-      }
-
       try {
-        // Mock API call to validate token
+        const token = getToken();
+        const storedUser = getStoredUser();
+        
+        if (!token || !storedUser) {
+          updateState({ loading: false });
+          return;
+        }
+
+        // Mock API call to validate token and get fresh user data if needed
         const response = await new Promise((resolve) => {
           setTimeout(() => {
             resolve({
               data: {
-                user: {
-                  id: '1',
-                  email: 'test@example.com',
-                  name: 'Test User',
-                },
+                user: storedUser // Use stored user data
               },
             });
           }, 500);
@@ -224,6 +240,7 @@ export const AuthProvider = ({ children }) => {
         });
       } catch (error) {
         handleAuthError(error);
+        updateState({ loading: false });
       }
     };
 

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:latest
@@ -39,12 +37,12 @@ services:
     networks:
       - app-network
 
-  ai-service:
+  server:
     build:
-      context: ./ai-service
+      context: ./tripvar-server
       dockerfile: Dockerfile.prod
     env_file:
-      - ./ai-service/.env
+      - ./tripvar-server/.env
     volumes:
       - ./logs:/app/logs
     depends_on:
@@ -53,7 +51,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -71,12 +69,12 @@ services:
 
   client:
     build:
-      context: ./client
+      context: ./tripvar-client
       dockerfile: Dockerfile.prod
     env_file:
-      - ./client/.env
+      - ./tripvar-client/.env
     depends_on:
-      ai-service:
+      server:
         condition: service_healthy
     deploy:
       resources:
@@ -99,7 +97,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - ai-service
+      - server
       - client
     healthcheck:
       test: ["CMD", "nginx", "-t"]

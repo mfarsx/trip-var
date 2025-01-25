@@ -1,31 +1,24 @@
-# Tripvar AI Service
+# TripVar Backend
 
-This project consists of two main services:
+This is the backend service for TripVar application, built with FastAPI and MongoDB.
 
-- A React-based client application
-- A Python-based AI service using GPT-2 for text generation
+## Features
 
-## Prerequisites
+- User authentication with JWT
+- User management (CRUD operations)
+- User preferences management
+- Role-based access control
+- MongoDB integration
+- CORS support
+- Environment configuration
+- Error handling
 
-- Docker and Docker Compose
-- Git
+## Requirements
 
-## Project Structure
+- Python 3.8+
+- MongoDB 4.4+
 
-```
-tripvar/
-├── ai-service/         # Python FastAPI backend
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── src/
-├── client/            # React frontend
-│   ├── Dockerfile
-│   ├── package.json
-│   └── src/
-└── docker-compose.yml
-```
-
-## Quick Start
+## Installation
 
 1. Clone the repository:
 
@@ -34,72 +27,86 @@ git clone https://github.com/yourusername/tripvar.git
 cd tripvar
 ```
 
-2. Start the services:
+2. Create and activate a virtual environment:
 
 ```bash
-docker-compose up --build
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-The services will be available at:
-
-- Client: http://localhost:5173
-- AI Service: http://localhost:8000
-
-## Development
-
-### Running Services Individually
-
-AI Service:
+3. Install dependencies:
 
 ```bash
-cd ai-service
 pip install -r requirements.txt
-python main.py
 ```
 
-Client:
+4. Create `.env` file:
 
 ```bash
-cd client
-npm install
-npm run dev
+cp .env.example .env
 ```
 
-### Environment Variables
+5. Update the `.env` file with your configuration.
 
-Client:
+## Running the Application
 
-- `VITE_API_URL`: AI service URL (default: http://localhost:8000)
+1. Start MongoDB:
 
-AI Service:
+```bash
+mongod
+```
 
-- `PYTHONUNBUFFERED`: Python output buffering (set in docker-compose.yml)
+2. Run the application:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The API will be available at `http://localhost:8000`.
+
+## API Documentation
+
+Once the application is running, you can access:
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## Project Structure
+
+```
+app/
+├── api/
+│   └── v1/
+│       ├── auth.py
+│       ├── users.py
+│       └── router.py
+├── core/
+│   ├── auth.py
+│   ├── config.py
+│   ├── database.py
+│   └── security.py
+├── domain/
+│   └── models/
+│       └── user.py
+├── repositories/
+│   └── users.py
+├── services/
+│   ├── auth.py
+│   └── users.py
+├── utils/
+│   ├── api.py
+│   └── error.py
+└── main.py
+```
 
 ## Contributing
 
-1. Create a new branch for your feature
-2. Make your changes
-3. Submit a pull request
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT
-
-## Environment Setup
-
-1. Copy the example environment file:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Update the `.env` file with your API keys:
-
-   ```env
-   HF_API_KEY=your_huggingface_api_key
-   ```
-
-3. Start the services:
-   ```bash
-   docker-compose up --build
-   ```
+This project is licensed under the MIT License - see the LICENSE file for details.

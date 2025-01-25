@@ -5,43 +5,98 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
+      interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 3
       start_period: 10s
+    logging:
+      driver: "local"
+      options:
+        mode: "non-blocking"
     networks:
       - app-network
 
-  ai-service:
-    build: ./ai-service
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "local"
+      options:
+        mode: "non-blocking"
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app-network
+
+  server:
+    build: ./tripvar-server
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - ./tripvar-server/.env
     volumes:
-      - ./ai-service:/app
+      - ./tripvar-server:/app
     depends_on:
       mongodb:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017
-      - MONGODB_NAME=tripvar_db
+      - DEBUG=true
+      - LOG_LEVEL=debug
+      - LLM_HOST=host.docker.internal
+      - LLM_PORT=1234
+      - LLM_PROTOCOL=http
+      - HOST=0.0.0.0
+      - NODE_ENV=development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - app-network
 
   client:
-    build: ./client
+    build:
+      context: ./tripvar-client
+      dockerfile: Dockerfile.dev
     ports:
-      - "3000:3000"
+      - "5173:5173"
     env_file:
-      - .env
+      - ./tripvar-client/.env
     volumes:
-      - ./client:/app
+      - ./tripvar-client:/app
       - /app/node_modules
     depends_on:
-      - ai-service
+      server:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000
+      - VITE_API_PATH=/api/v1
+      - VITE_HOST=0.0.0.0
     networks:
       - app-network
 
@@ -52,3 +107,5 @@ networks:
 volumes:
   mongodb_data:
     name: mongodb_data
+  redis_data:
+    name: redis_data

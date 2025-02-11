@@ -23,7 +23,7 @@ This is the backend service for TripVar application, built with FastAPI and Mong
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/tripvar.git
+git clone https://github.com/mfarsx/tripvar.git
 cd tripvar
 ```
 

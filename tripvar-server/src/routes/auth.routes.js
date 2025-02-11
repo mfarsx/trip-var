@@ -11,6 +11,9 @@ router.post('/login', authController.login);
 // Protected routes
 router.use(protect);
 
+// Get all users
+router.get('/users', authController.getAllUsers);
+
 // Profile routes
 router.route('/profile')
   .get(authController.getProfile)

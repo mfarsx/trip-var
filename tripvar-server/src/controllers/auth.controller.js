@@ -148,6 +148,16 @@ exports.deleteAccount = async (req, res, next) => {
   }
 };
 
+// Get all users
+exports.getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find().select('-password');
+    res.status(200).json(successResponse({ users }));
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Helper function to filter objects
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};

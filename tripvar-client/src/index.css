@@ -3,37 +3,93 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 26 31 45; /* #1a1f2d */
+    --primary: 139 92 246; /* purple-500 */
+    --secondary: 236 72 153; /* pink-500 */
+  }
+
   html {
     font-family: Inter, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    @apply bg-[#1a1f2d] text-gray-200;
+  }
+
+  body {
+    @apply min-h-screen;
+  }
+
+  ::selection {
+    @apply bg-purple-500/30 text-white;
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-xl font-medium transition-all duration-300;
   }
   
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 text-white 
+           hover:from-purple-600 hover:to-pink-600 
+           focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-[#1a1f2d]
+           transform hover:-translate-y-0.5 active:translate-y-0;
   }
   
   .btn-secondary {
-    @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+    @apply bg-gray-800/50 text-gray-300 border border-gray-700
+           hover:bg-gray-800 hover:text-white
+           focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 focus:ring-offset-[#1a1f2d]
+           transform hover:-translate-y-0.5 active:translate-y-0;
   }
   
   .input {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
+    @apply w-full px-4 py-3.5 bg-gray-800/50 border border-gray-700 rounded-xl 
+           text-gray-200 placeholder:text-gray-500
+           focus:ring-2 focus:ring-purple-500 focus:border-transparent
+           transition-all duration-300;
+  }
+
+  .input-icon {
+    @apply pl-11;
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-md p-6 transition-transform hover:scale-[1.02];
+    @apply bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 
+           rounded-xl p-6 
+           transition-all duration-300
+           hover:transform hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/10;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400;
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 8s ease infinite;
+  }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .glass-effect {
+    @apply bg-gray-900/50 backdrop-blur-lg border border-gray-800/50;
   }
 }

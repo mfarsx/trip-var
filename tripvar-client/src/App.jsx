@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { store } from './store'
-import MainLayout from './layouts/MainLayout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -21,12 +20,10 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <MainLayout>
-                    <Routes>
-                      <Route index element={<Home />} />
-                      {/* Add more protected routes here */}
-                    </Routes>
-                  </MainLayout>
+                  <Routes>
+                    <Route index element={<Home />} />
+                    {/* Add more protected routes here */}
+                  </Routes>
                 </ProtectedRoute>
               }
             />

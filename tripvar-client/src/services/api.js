@@ -40,7 +40,8 @@ api.interceptors.response.use(
       response,
       duration
     )
-    return response.data
+    // Return the full response to handle in the actions
+    return response
   },
   (error) => {
     const duration = new Date() - error.config.metadata.startTime
@@ -51,11 +52,15 @@ api.interceptors.response.use(
       error: error.response?.data || error.message
     })
 
+    // Handle unauthorized error
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Only remove token and redirect if not already on login page
+      if (!window.location.pathname.includes('/login')) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      }
     }
-    return Promise.reject(error.response?.data || error)
+    return Promise.reject(error)
   }
 )
 

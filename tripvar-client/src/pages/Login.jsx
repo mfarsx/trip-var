@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { login } from "../store/slices/authSlice";
 import Button from "../components/ui/Button";
 import { FiMail, FiLock, FiGithub } from "react-icons/fi";
@@ -17,7 +17,7 @@ export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [formData, setFormData] = useState({
     email: "",
@@ -49,6 +49,11 @@ export default function Login() {
       navigate(from);
     }
   };
+
+  // Redirect if already authenticated
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen flex">

@@ -6,14 +6,13 @@ export const login = createAsyncThunk(
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const response = await api.post("/auth/login", { email, password });
-      console.log(response.status);
-      if (response.status === "success") {
-        localStorage.setItem("token", response.data.token);
-        return response.data;
+      if (response.data.status === "success") {
+        localStorage.setItem("token", response.data.data.token);
+        return response.data.data;
       }
-      return rejectWithValue(response.message || "Login failed");
+      return rejectWithValue(response.data.message || "Login failed");
     } catch (error) {
-      return rejectWithValue(error.message || "Login failed");
+      return rejectWithValue(error.response?.data?.message || "Login failed");
     }
   }
 );
@@ -27,13 +26,15 @@ export const register = createAsyncThunk(
         password,
         name,
       });
-      if (response.status === "success") {
-        localStorage.setItem("token", response.data.token);
-        return response.data;
+      if (response.data.status === "success") {
+        localStorage.setItem("token", response.data.data.token);
+        return response.data.data;
       }
-      return rejectWithValue(response.message || "Registration failed");
+      return rejectWithValue(response.data.message || "Registration failed");
     } catch (error) {
-      return rejectWithValue(error.message || "Registration failed");
+      return rejectWithValue(
+        error.response?.data?.message || "Registration failed"
+      );
     }
   }
 );
@@ -43,12 +44,19 @@ export const fetchProfile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get("/auth/profile");
-      if (response.status === "success") {
-        return response.data;
+      if (response.data.status === "success") {
+        return response.data.data;
       }
-      return rejectWithValue(response.message || "Failed to fetch profile");
+      return rejectWithValue(
+        response.data.message || "Failed to fetch profile"
+      );
     } catch (error) {
-      return rejectWithValue(error.message || "Failed to fetch profile");
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+      }
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch profile"
+      );
     }
   }
 );
@@ -58,12 +66,16 @@ export const updateProfile = createAsyncThunk(
   async (profileData, { rejectWithValue }) => {
     try {
       const response = await api.patch("/auth/profile", profileData);
-      if (response.status === "success") {
-        return response.data;
+      if (response.data.status === "success") {
+        return response.data.data;
       }
-      return rejectWithValue(response.message || "Failed to update profile");
+      return rejectWithValue(
+        response.data.message || "Failed to update profile"
+      );
     } catch (error) {
-      return rejectWithValue(error.message || "Failed to update profile");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update profile"
+      );
     }
   }
 );

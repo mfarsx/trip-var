@@ -1,4 +1,5 @@
 import axios from 'axios'
+import logger from '../utils/logger'
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL}/api/v1`,
@@ -14,22 +15,52 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+
+    // Log the request
+    logger.logRequest(config.method.toUpperCase(), config.url, config.data)
+    
+    // Add request timestamp for duration calculation
+    config.metadata = { startTime: new Date() }
+    
     return config
   },
   (error) => {
+    logger.error('Request error', error)
     return Promise.reject(error)
   }
 )
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const duration = new Date() - response.config.metadata.startTime
+    logger.logResponse(
+      response.config.method.toUpperCase(),
+      response.config.url,
+      response,
+      duration
+    )
+    // Return the full response to handle in the actions
+    return response
+  },
   (error) => {
+    const duration = new Date() - error.config.metadata.startTime
+    logger.error('Response error', {
+      method: error.config.method.toUpperCase(),
+      url: error.config.url,
+      duration: `${duration}ms`,
+      error: error.response?.data || error.message
+    })
+
+    // Handle unauthorized error
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Only remove token and redirect if not already on login page
+      if (!window.location.pathname.includes('/login')) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      }
     }
-    return Promise.reject(error.response?.data || error)
+    return Promise.reject(error)
   }
 )
 

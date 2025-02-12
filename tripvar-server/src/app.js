@@ -32,11 +32,11 @@ app.all("*", (req, res, next) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  error('Error occurred', {
+  error("Error occurred", {
     error: err.message,
     stack: err.stack,
     path: req.path,
-    method: req.method
+    method: req.method,
   });
   errorHandler(err, req, res, next);
 });

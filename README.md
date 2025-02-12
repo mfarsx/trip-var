@@ -1,112 +1,77 @@
-# TripVar Backend
+# TripVar Application
 
-This is the backend service for TripVar application, built with FastAPI and MongoDB.
+![React Version](https://img.shields.io/badge/react-18.3.1-blue)
+![Node Version](https://img.shields.io/badge/node-18.x-green)
+![License](https://img.shields.io/badge/License-MIT-orange)
 
-## Features
+Modern travel planning application featuring:
 
-- User authentication with JWT
-- User management (CRUD operations)
-- User preferences management
-- Role-based access control
-- MongoDB integration
-- CORS support
-- Environment configuration
-- Error handling
+## 🏗️ Architecture
 
-## Requirements
+```
+Client (React/Vite) <-> API Server (Node.js/Express)
+```
 
-- Python 3.8+
-- MongoDB 4.4+
+## 🚀 Features
 
-## Installation
+### Client
 
-1. Clone the repository:
+- Modern React UI with Vite
+- State management with Redux Toolkit
+- Responsive design with Tailwind CSS
+- Animation with Framer Motion
+
+### Server
+
+- REST API with Express.js
+- JWT authentication
+- Session management
+- Comprehensive API documentation
+
+## 📦 Installation
+
+### Client
 
 ```bash
-git clone https://github.com/mfarsx/tripvar.git
-cd tripvar
+cd tripvar-client
+npm install
+npm run dev
 ```
 
-2. Create and activate a virtual environment:
+### Server
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+cd tripvar-server
+npm install
+npm run dev
 ```
 
-3. Install dependencies:
+## ⚙️ Configuration
+
+Create `.env` files in both client and server directories with required environment variables.
+
+## 📚 API Documentation
+
+See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for detailed API reference.
+
+## 🐳 Docker Deployment
 
 ```bash
-pip install -r requirements.txt
+docker-compose up --build
 ```
 
-4. Create `.env` file:
-
-```bash
-cp .env.example .env
-```
-
-5. Update the `.env` file with your configuration.
-
-## Running the Application
-
-1. Start MongoDB:
-
-```bash
-mongod
-```
-
-2. Run the application:
-
-```bash
-uvicorn app.main:app --reload
-```
-
-The API will be available at `http://localhost:8000`.
-
-## API Documentation
-
-Once the application is running, you can access:
-
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Project Structure
-
-```
-app/
-├── api/
-│   └── v1/
-│       ├── auth.py
-│       ├── users.py
-│       └── router.py
-├── core/
-│   ├── auth.py
-│   ├── config.py
-│   ├── database.py
-│   └── security.py
-├── domain/
-│   └── models/
-│       └── user.py
-├── repositories/
-│   └── users.py
-├── services/
-│   ├── auth.py
-│   └── users.py
-├── utils/
-│   ├── api.py
-│   └── error.py
-└── main.py
-```
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Distributed under MIT License. See `LICENSE` for details.
+
+## 📧 Contact
+
+Project Maintainer - [Mfarsx](mailto:mfarsx@tripvar.com)

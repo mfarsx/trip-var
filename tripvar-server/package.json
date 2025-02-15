@@ -4,10 +4,11 @@
   "description": "Server component for the Tripvar application",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "seed": "node src/scripts/seedDestinations.js"
   },
   "keywords": [
     "tripvar",
@@ -24,6 +25,7 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
+    "morgan": "^1.10.0",
     "winston": "^3.17.0"
   },
   "devDependencies": {

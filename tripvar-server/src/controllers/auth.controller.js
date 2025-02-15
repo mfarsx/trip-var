@@ -1,11 +1,12 @@
 const User = require("../models/user.model");
 const { ValidationError, UnauthorizedError } = require("../utils/errors");
 const { successResponse } = require("../utils/response");
+const COUNTRIES = require("../utils/countries");
 
 // Register new user
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, dateOfBirth, nationality } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -13,11 +14,16 @@ exports.register = async (req, res, next) => {
       throw new ValidationError("Email already registered");
     }
 
+    // Format dateOfBirth to handle timezone issues
+    const formattedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : undefined;
+
     // Create new user
     const user = await User.create({
       email,
       password,
       name,
+      dateOfBirth: formattedDateOfBirth,
+      nationality
     });
 
     // Generate token
@@ -80,7 +86,30 @@ exports.login = async (req, res, next) => {
 // Get current user profile
 exports.getProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id)
+      .select('-password')
+      .lean();
+
+    // Calculate age if dateOfBirth exists
+    if (user.dateOfBirth) {
+      const today = new Date();
+      const birthDate = new Date(user.dateOfBirth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      user.age = age;
+    }
+
+    // Get country code if nationality exists
+    if (user.nationality) {
+      const country = COUNTRIES.find(c => c.name === user.nationality);
+      if (country) {
+        user.countryCode = country.code;
+      }
+    }
 
     res.status(200).json(
       successResponse(
@@ -106,7 +135,7 @@ exports.updateProfile = async (req, res, next) => {
     }
 
     // Filter out unwanted fields that are not allowed to be updated
-    const filteredBody = filterObj(req.body, "name", "email");
+    const filteredBody = filterObj(req.body, "name", "email", "dateOfBirth", "nationality");
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
@@ -115,7 +144,28 @@ exports.updateProfile = async (req, res, next) => {
         new: true,
         runValidators: true,
       }
-    );
+    ).select('-password');
+
+    // Calculate age if dateOfBirth exists
+    if (updatedUser.dateOfBirth) {
+      const today = new Date();
+      const birthDate = new Date(updatedUser.dateOfBirth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      updatedUser.age = age;
+    }
+
+    // Get country code if nationality exists
+    if (updatedUser.nationality) {
+      const country = COUNTRIES.find(c => c.name === updatedUser.nationality);
+      if (country) {
+        updatedUser.countryCode = country.code;
+      }
+    }
 
     res.status(200).json(
       successResponse(

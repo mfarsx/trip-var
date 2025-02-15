@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import Button from "../components/ui/Button";
 import {
   FiSearch,
@@ -15,151 +15,84 @@ import {
 import { IoAirplaneOutline } from "react-icons/io5";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../store/slices/authSlice";
-
-const popularDestinations = [
-  {
-    id: 1,
-    name: "Bali",
-    country: "Indonesia",
-    description: "Experience the magic of Indonesian paradise",
-    rating: 4.8,
-    reviews: 1234,
-    price: "$899",
-    imageUrl: "https://images.unsplash.com/photo-1537996194471-e657df975ab4",
-    tags: ["Beach", "Culture", "Relaxation"],
-  },
-  {
-    id: 2,
-    name: "Tokyo",
-    country: "Japan",
-    description: "Explore the vibrant culture of Japan",
-    rating: 4.9,
-    reviews: 2156,
-    price: "$1299",
-    imageUrl: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf",
-    tags: ["City", "Technology", "Food"],
-  },
-  {
-    id: 3,
-    name: "Paris",
-    country: "France",
-    description: "Discover the city of love and lights",
-    rating: 4.7,
-    reviews: 3421,
-    price: "$1099",
-    imageUrl: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
-    tags: ["Romance", "Architecture", "Art"],
-  },
-  {
-    id: 4,
-    name: "Santorini",
-    country: "Greece",
-    description: "Experience Mediterranean paradise",
-    rating: 4.9,
-    reviews: 1876,
-    price: "$1499",
-    imageUrl: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e",
-    tags: ["Island", "Sunset", "Luxury"],
-  },
-  {
-    id: 5,
-    name: "Machu Picchu",
-    country: "Peru",
-    description: "Explore ancient Incan civilization",
-    rating: 4.8,
-    reviews: 1543,
-    price: "$1699",
-    imageUrl: "https://images.unsplash.com/photo-1587595431973-160d0d94add1",
-    tags: ["Adventure", "History", "Nature"],
-  },
-  {
-    id: 6,
-    name: "Dubai",
-    country: "UAE",
-    description: "Experience luxury in the desert",
-    rating: 4.7,
-    reviews: 2789,
-    price: "$1899",
-    imageUrl: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c",
-    tags: ["Luxury", "Shopping", "Modern"],
-  },
-];
+import { fetchDestinations } from "../store/slices/destinationSlice";
 
 export default function Home() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useSelector((state) => state.auth);
+  const { destinations, loading, error } = useSelector((state) => state.destinations);
   const [searchParams, setSearchParams] = useState({
     location: "",
     date: "",
     guests: "1 Guest",
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const dispatch = useDispatch();
-  const { user, loading } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    dispatch(fetchDestinations({ featured: true }));
+  }, [dispatch]);
 
   const handleLogout = () => {
     dispatch(logout());
   };
 
+  const handleInputChange = (e) => {
+    setSearchParams({
+      ...searchParams,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   const handleSearch = () => {
-    // TODO: Implement search functionality
     console.log("Search params:", searchParams);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setSearchParams((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   return (
-    <div className="min-h-screen bg-[#1a1f2d] text-gray-200">
-      {/* Minimal Navigation */}
-      <div className="fixed top-4 right-4 z-50">
+    <div className="min-h-screen bg-[#1a1f2d]">
+      {/* Header */}
+      <div className="fixed top-0 right-0 p-4 z-50">
         <div className="relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center text-lg font-medium hover:bg-purple-700 transition-colors border-2 border-gray-700/50 cursor-pointer"
           >
-            {loading ? (
+            {authLoading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : user?.avatar ? (
-              <img 
-                src={user.avatar} 
-                alt={user.name} 
+              <img
+                src={user.avatar}
+                alt={user.name}
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              user?.name?.charAt(0) || 'U'
+              user?.name?.charAt(0)
             )}
           </button>
 
           {/* Profile Dropdown */}
-          {isProfileOpen && !loading && user && (
+          {isProfileOpen && !authLoading && user && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="absolute right-0 mt-2 w-56 bg-gray-800/95 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-lg py-2"
+              className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-xl shadow-lg border border-gray-700/50 overflow-hidden"
             >
-              <div className="px-4 py-2 border-b border-gray-700/50">
-                <p className="text-sm font-medium">{user.name}</p>
-                <p className="text-xs text-gray-400">{user.email}</p>
+              <div className="p-2">
+                <button
+                  onClick={() => navigate("/settings")}
+                  className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700/50 rounded-lg flex items-center gap-2"
+                >
+                  <FiSettings className="w-4 h-4" />
+                  Settings
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700/50 rounded-lg flex items-center gap-2"
+                >
+                  <FiLogOut className="w-4 h-4" />
+                  Logout
+                </button>
               </div>
-              <button 
-                onClick={() => navigate('/settings')}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700/50 flex items-center gap-2"
-              >
-                <FiSettings className="w-4 h-4" />
-                Settings
-              </button>
-              <button 
-                onClick={handleLogout}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700/50 flex items-center gap-2 text-red-400"
-              >
-                <FiLogOut className="w-4 h-4" />
-                Log out
-              </button>
             </motion.div>
           )}
         </div>
@@ -274,66 +207,74 @@ export default function Home() {
             </Button>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {popularDestinations.map((destination, index) => (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                key={destination.id}
-                className="group relative overflow-hidden rounded-xl bg-gray-800/50 border border-gray-700/50 backdrop-blur-sm"
-              >
-                <div className="aspect-w-16 aspect-h-9 relative">
-                  <img
-                    src={destination.imageUrl}
-                    alt={destination.name}
-                    className="h-48 w-full object-cover rounded-t-xl"
-                  />
-                  <button className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors">
-                    <FiHeart className="w-5 h-5" />
-                  </button>
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                    <h3 className="text-xl font-bold text-white">
-                      {destination.name}
-                    </h3>
-                    <p className="text-gray-200 flex items-center gap-2">
-                      <FiMapPin className="w-4 h-4" />
-                      {destination.country}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-gray-400 mt-4">Loading destinations...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-400">{error}</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {destinations.map((destination, index) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  key={destination._id}
+                  className="group relative overflow-hidden rounded-xl bg-gray-800/50 border border-gray-700/50 backdrop-blur-sm"
+                >
+                  <div className="aspect-w-16 aspect-h-9 relative">
+                    <img
+                      src={destination.imageUrl}
+                      alt={destination.title}
+                      className="h-48 w-full object-cover rounded-t-xl"
+                    />
+                    <button className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors">
+                      <FiHeart className="w-5 h-5" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                      <h3 className="text-xl font-bold text-white">
+                        {destination.title}
+                      </h3>
+                      <p className="text-gray-200 flex items-center gap-2">
+                        <FiMapPin className="w-4 h-4" />
+                        {destination.location}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-gray-400 mb-3">
+                      {destination.description}
                     </p>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-gray-400 mb-3">
-                    {destination.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {destination.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="px-2 py-1 text-xs rounded-lg bg-gray-700/50 text-gray-300"
-                      >
-                        {tag}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span className="px-2 py-1 text-xs rounded-lg bg-gray-700/50 text-gray-300">
+                        {destination.category}
                       </span>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <FiStar className="w-4 h-4 text-yellow-500" />
-                      <span className="text-gray-200">
-                        {destination.rating}
-                      </span>
-                      <span className="text-gray-400 text-sm">
-                        ({destination.reviews} reviews)
+                      {destination.featured && (
+                        <span className="px-2 py-1 text-xs rounded-lg bg-yellow-500/20 text-yellow-400">
+                          Featured
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <FiStar className="w-4 h-4 text-yellow-500" />
+                        <span className="text-gray-200">
+                          {destination.rating}
+                        </span>
+                      </div>
+                      <span className="text-lg font-semibold text-purple-400">
+                        ${destination.price}
                       </span>
                     </div>
-                    <span className="text-lg font-semibold text-purple-400">
-                      {destination.price}
-                    </span>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

@@ -64,4 +64,21 @@ api.interceptors.response.use(
   }
 )
 
+// Destination API
+export const destinationApi = {
+  getDestinations: async (params) => {
+    const searchParams = new URLSearchParams();
+    if (params?.category) searchParams.append("category", params.category);
+    if (params?.featured) searchParams.append("featured", params.featured);
+    
+    const response = await api.get(`/destinations?${searchParams.toString()}`);
+    return response.data;
+  },
+  
+  getDestinationById: async (id) => {
+    const response = await api.get(`/destinations/${id}`);
+    return response.data;
+  },
+};
+
 export default api

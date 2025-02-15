@@ -1,26 +1,28 @@
-const express = require('express');
-const { ValidationError } = require('../utils/errors');
-const authRoutes = require('./auth.routes');
+const express = require("express");
+const { ValidationError } = require("../utils/errors");
+const authRoutes = require("./auth.routes");
+const destinationRoutes = require("./destination.routes");
 const router = express.Router();
 
 // Mount auth routes
-router.use('/auth', authRoutes);
+router.use("/auth", authRoutes);
+router.use("/destinations", destinationRoutes);
 
 // Example error endpoint
-router.get('/error-example', (req, res, next) => {
+router.get("/error-example", (req, res, next) => {
   try {
     // Simulating a validation error
-    throw new ValidationError('This is an example validation error');
+    throw new ValidationError("This is an example validation error");
   } catch (error) {
     next(error);
   }
 });
 
 // Example async error
-router.get('/async-error', async (req, res, next) => {
+router.get("/async-error", async (req, res, next) => {
   try {
     // Simulating an async operation that fails
-    await Promise.reject(new Error('Async operation failed'));
+    await Promise.reject(new Error("Async operation failed"));
   } catch (error) {
     next(error);
   }

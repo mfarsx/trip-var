@@ -21,20 +21,32 @@ export default function Home() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useSelector((state) => state.auth);
-  const { destinations, loading, error } = useSelector((state) => state.destinations);
+  const { destinations, loading, error } = useSelector(
+    (state) => state.destinations
+  );
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchParams, setSearchParams] = useState({
     location: "",
     date: "",
     guests: "1 Guest",
   });
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [filteredDestinations, setFilteredDestinations] = useState([]);
 
   useEffect(() => {
     dispatch(fetchDestinations({ featured: true }));
   }, [dispatch]);
 
-  const handleLogout = () => {
-    dispatch(logout());
+  useEffect(() => {
+    setFilteredDestinations(destinations);
+  }, [destinations]);
+
+  const handleSearch = () => {
+    const filtered = destinations.filter((destination) => {
+      return destination.title
+        .toLowerCase()
+        .includes(searchParams.location.toLowerCase());
+    });
+    setFilteredDestinations(filtered);
   };
 
   const handleInputChange = (e) => {
@@ -44,8 +56,12 @@ export default function Home() {
     });
   };
 
-  const handleSearch = () => {
-    console.log("Search params:", searchParams);
+  const handleLogout = () => {
+    dispatch(logout());
+  };
+
+  const handleDestinationClick = (destinationId) => {
+    navigate(`/destinations/${destinationId}`);
   };
 
   return (
@@ -140,7 +156,7 @@ export default function Home() {
               transition={{ delay: 0.4 }}
               className="mt-10 flex flex-col gap-4"
             >
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-800/50 rounded-xl">
                 <div className="relative">
                   <FiMapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
@@ -173,7 +189,8 @@ export default function Home() {
                     <option>1 Guest</option>
                     <option>2 Guests</option>
                     <option>3 Guests</option>
-                    <option>4+ Guests</option>
+                    <option>4 Guests</option>
+                    <option>5+ Guests</option>
                   </select>
                 </div>
                 <Button
@@ -218,13 +235,14 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {destinations.map((destination, index) => (
+              {filteredDestinations.map((destination) => (
                 <motion.div
+                  key={destination._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  key={destination._id}
-                  className="group relative overflow-hidden rounded-xl bg-gray-800/50 border border-gray-700/50 backdrop-blur-sm"
+                  transition={{ delay: 0.1 }}
+                  className="group relative overflow-hidden rounded-xl bg-gray-800/50 border border-gray-700/50 backdrop-blur-sm cursor-pointer"
+                  onClick={() => handleDestinationClick(destination._id)}
                 >
                   <div className="aspect-w-16 aspect-h-9 relative">
                     <img
@@ -232,9 +250,15 @@ export default function Home() {
                       alt={destination.title}
                       className="h-48 w-full object-cover rounded-t-xl"
                     />
-                    <button className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors">
+                    <div
+                      className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Add favorite logic here
+                      }}
+                    >
                       <FiHeart className="w-5 h-5" />
-                    </button>
+                    </div>
                     <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
                       <h3 className="text-xl font-bold text-white">
                         {destination.title}

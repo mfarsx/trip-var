@@ -10,6 +10,7 @@ import { store } from "./store";
 import { Toaster } from "react-hot-toast";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Home from "./pages/Home";
+import Destinations from "./pages/Destinations";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Settings from "./pages/Settings";
@@ -47,6 +48,8 @@ function App() {
               }
             >
               <Route index element={<Home />} />
+              <Route path="destinations" element={<Destinations />} />
+              <Route path="destinations/:id" element={<Destinations />} />
               <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

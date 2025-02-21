@@ -33,13 +33,13 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    // const duration = new Date() - response.config.metadata.startTime
-    // logger.logResponse(
-    //   response.config.method.toUpperCase(),
-    //   response.config.url,
-    //   response,
-    //   duration
-    // )
+    const duration = new Date() - response.config.metadata.startTime;
+    logger.logResponse(
+      response.config.method.toUpperCase(),
+      response.config.url,
+      response,
+      duration
+    );
     // Return the full response to handle in the actions
     return response;
   },

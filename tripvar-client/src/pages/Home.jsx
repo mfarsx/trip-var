@@ -8,6 +8,9 @@ import Header from "../components/header/Header";
 import HeroSection from "../components/hero/HeroSection";
 import SearchSection from "../components/search/SearchSection";
 import DestinationsGrid from "../components/destinations/DestinationsGrid";
+import FeaturesSection from "../components/sections/FeaturesSection";
+import CTASection from "../components/sections/CTASection";
+import Footer from "../components/layout/Footer";
 import { destinationApi } from "../services/api";
 import toast from "react-hot-toast";
 
@@ -86,6 +89,9 @@ export default function Home() {
           destinations={filteredDestinations}
           onDestinationClick={handleDestinationClick}
         />
+        <FeaturesSection />
+        <CTASection />
+        <Footer />
       </motion.div>
     </div>
   );

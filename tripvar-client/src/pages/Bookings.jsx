@@ -1,12 +1,15 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { fetchUserBookings, cancelBooking } from "../store/slices/bookingSlice";
 import { FiCalendar, FiMapPin, FiUsers, FiDollarSign, FiX } from "react-icons/fi";
 import LoadingState from "../components/common/LoadingState";
 import ErrorState from "../components/common/ErrorState";
+import Footer from "../components/layout/Footer";
 
 const Bookings = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { bookings, loading, error, cancelling } = useSelector((state) => state.bookings);
 
   useEffect(() => {
@@ -55,15 +58,29 @@ const Bookings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1f2d] text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">My Bookings</h1>
+    <div className="min-h-screen bg-[#1a1f2d] text-white">
+      <div className="pt-20 pb-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              My Bookings
+            </h1>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              Manage your travel bookings, view details, and make changes to your reservations.
+            </p>
+          </div>
         
         {bookings.length === 0 ? (
           <div className="text-center py-12">
             <FiCalendar className="mx-auto text-6xl text-gray-400 mb-4" />
             <h2 className="text-xl text-gray-400 mb-2">No bookings found</h2>
-            <p className="text-gray-500">Start exploring destinations to make your first booking!</p>
+            <p className="text-gray-500 mb-6">Start exploring destinations to make your first booking!</p>
+            <button
+              onClick={() => navigate("/destinations")}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors"
+            >
+              Explore Destinations
+            </button>
           </div>
         ) : (
           <div className="grid gap-6">
@@ -158,7 +175,9 @@ const Bookings = () => {
             ))}
           </div>
         )}
+        </div>
       </div>
+      <Footer />
     </div>
   );
 };

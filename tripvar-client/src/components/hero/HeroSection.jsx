@@ -31,6 +31,29 @@ export default function HeroSection() {
             Discover extraordinary destinations, create unforgettable
             memories, and explore the world with confidence.
           </motion.p>
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-300"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span>Real-time Availability</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              <span>Instant Booking</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              <span>Secure Payments</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
+              <span>24/7 Support</span>
+            </div>
+          </motion.div>
         </div>
       </div>
     </div>

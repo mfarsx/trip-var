@@ -40,6 +40,11 @@ export default function DestinationDetail({ destination, onBack }) {
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
     
+    if (!bookingData.startDate || !bookingData.endDate) {
+      alert('Please select both check-in and check-out dates');
+      return;
+    }
+
     if (!bookingData.agreeTerms) {
       alert('Please agree to the terms and conditions');
       return;
@@ -64,6 +69,9 @@ export default function DestinationDetail({ destination, onBack }) {
 
       await dispatch(createBooking(bookingPayload)).unwrap();
       
+      // Show success message
+      alert('Booking created successfully! You can view it in your bookings.');
+      
       // Reset form
       setBookingData({
         startDate: '',
@@ -76,6 +84,7 @@ export default function DestinationDetail({ destination, onBack }) {
       
     } catch (error) {
       console.error('Booking failed:', error);
+      alert('Failed to create booking. Please try again.');
     }
   };
 
@@ -89,7 +98,7 @@ export default function DestinationDetail({ destination, onBack }) {
           ← Back to Destinations
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           {/* Image Section */}
           <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg">
             <img
@@ -151,7 +160,7 @@ export default function DestinationDetail({ destination, onBack }) {
               <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700/50">
                 <h2 className="text-2xl font-semibold mb-4">Book Your Stay</h2>
                 <form onSubmit={handleBookingSubmit}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col">
                       <label className="text-gray-300 mb-2" htmlFor="startDate">Start Date</label>
                       <input
@@ -226,15 +235,21 @@ export default function DestinationDetail({ destination, onBack }) {
                   </div>
                   <button
                     type="submit"
-                    disabled={creating || !availabilityChecked || !availability?.available}
+                    disabled={creating || !bookingData.startDate || !bookingData.endDate || !availabilityChecked || !availability?.available || !bookingData.agreeTerms}
                     className={`w-full p-3 rounded-lg mt-4 transition-colors ${
-                      creating || !availabilityChecked || !availability?.available
+                      creating || !bookingData.startDate || !bookingData.endDate || !availabilityChecked || !availability?.available || !bookingData.agreeTerms
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                         : 'bg-purple-400 hover:bg-purple-500 text-white'
                     }`}
                   >
                     {creating ? 'Creating Booking...' : 'Book Now'}
                   </button>
+                  
+                  {(!bookingData.startDate || !bookingData.endDate) && (
+                    <p className="text-yellow-400 text-sm mt-2 text-center">
+                      Please select both check-in and check-out dates
+                    </p>
+                  )}
                 </form>
               </div>
             </div>

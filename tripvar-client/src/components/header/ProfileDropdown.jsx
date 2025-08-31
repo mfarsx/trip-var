@@ -3,8 +3,13 @@ import { FiSettings, FiLogOut, FiCalendar } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import PropTypes from 'prop-types';
 
-export default function ProfileDropdown({ onLogout }) {
+export default function ProfileDropdown({ onLogout, onClose }) {
   const navigate = useNavigate();
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    onClose?.();
+  };
 
   return (
     <motion.div
@@ -14,21 +19,24 @@ export default function ProfileDropdown({ onLogout }) {
     >
       <div className="p-2">
         <button
-          onClick={() => navigate("/bookings")}
+          onClick={() => handleNavigation("/bookings")}
           className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700/50 rounded-lg flex items-center gap-2"
         >
           <FiCalendar className="w-4 h-4" />
           My Bookings
         </button>
         <button
-          onClick={() => navigate("/settings")}
+          onClick={() => handleNavigation("/settings")}
           className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700/50 rounded-lg flex items-center gap-2"
         >
           <FiSettings className="w-4 h-4" />
           Settings
         </button>
         <button
-          onClick={onLogout}
+          onClick={() => {
+            onLogout();
+            onClose?.();
+          }}
           className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700/50 rounded-lg flex items-center gap-2"
         >
           <FiLogOut className="w-4 h-4" />
@@ -40,5 +48,6 @@ export default function ProfileDropdown({ onLogout }) {
 }
 
 ProfileDropdown.propTypes = {
-  onLogout: PropTypes.func.isRequired
+  onLogout: PropTypes.func.isRequired,
+  onClose: PropTypes.func
 };

@@ -69,8 +69,8 @@ const Bookings = () => {
               Manage your travel bookings, view details, and make changes to your reservations.
             </p>
           </div>
-        
-        {bookings.length === 0 ? (
+          
+          {bookings.length === 0 ? (
           <div className="text-center py-12">
             <FiCalendar className="mx-auto text-6xl text-gray-400 mb-4" />
             <h2 className="text-xl text-gray-400 mb-2">No bookings found</h2>

@@ -2,11 +2,13 @@ const express = require("express");
 const { ValidationError } = require("../utils/errors");
 const authRoutes = require("./auth.routes");
 const destinationRoutes = require("./destination.routes");
+const bookingRoutes = require("./booking.routes");
 const router = express.Router();
 
 // Mount auth routes
 router.use("/auth", authRoutes);
 router.use("/destinations", destinationRoutes);
+router.use("/bookings", bookingRoutes);
 
 // Example error endpoint
 router.get("/error-example", (req, res, next) => {

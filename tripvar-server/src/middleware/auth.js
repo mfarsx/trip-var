@@ -3,7 +3,7 @@ const { promisify } = require("util");
 const User = require("../models/user.model");
 const { UnauthorizedError, ForbiddenError } = require("../utils/errors");
 
-exports.protect = async (req, res, next) => {
+exports.authenticate = async (req, res, next) => {
   try {
     // 1) Get token and check if it exists
     let token;
@@ -62,7 +62,7 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-exports.restrictTo = (...roles) => {
+exports.authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return next(
@@ -72,3 +72,7 @@ exports.restrictTo = (...roles) => {
     next();
   };
 };
+
+// Keep the old exports for backward compatibility
+exports.protect = exports.authenticate;
+exports.restrictTo = exports.authorize;

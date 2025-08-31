@@ -1,8 +1,13 @@
 import { FiHeart, FiMapPin, FiStar, FiInfo, FiDollarSign } from "react-icons/fi";
 import PropTypes from 'prop-types';
 import { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { createBooking, checkAvailability } from '../../store/slices/bookingSlice';
 
 export default function DestinationDetail({ destination, onBack }) {
+  const dispatch = useDispatch();
+  const { creating, availability } = useSelector((state) => state.bookings);
+  
   const [bookingData, setBookingData] = useState({
     startDate: '',
     endDate: '',
@@ -11,9 +16,67 @@ export default function DestinationDetail({ destination, onBack }) {
     agreeTerms: false
   });
 
-  const handleBookingSubmit = (e) => {
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
+
+  const handleDateChange = async (field, value) => {
+    const newBookingData = { ...bookingData, [field]: value };
+    setBookingData(newBookingData);
+
+    // Check availability when both dates are selected
+    if (newBookingData.startDate && newBookingData.endDate) {
+      try {
+        await dispatch(checkAvailability({
+          destinationId: destination._id,
+          checkInDate: newBookingData.startDate,
+          checkOutDate: newBookingData.endDate
+        })).unwrap();
+        setAvailabilityChecked(true);
+      } catch (error) {
+        console.error('Availability check failed:', error);
+      }
+    }
+  };
+
+  const handleBookingSubmit = async (e) => {
     e.preventDefault();
-    // Handle booking submission
+    
+    if (!bookingData.agreeTerms) {
+      alert('Please agree to the terms and conditions');
+      return;
+    }
+
+    if (!availabilityChecked || !availability?.available) {
+      alert('Please check availability first');
+      return;
+    }
+
+    try {
+      const bookingPayload = {
+        destinationId: destination._id,
+        checkInDate: bookingData.startDate,
+        checkOutDate: bookingData.endDate,
+        numberOfGuests: parseInt(bookingData.guests),
+        paymentMethod: bookingData.paymentMethod,
+        specialRequests: '',
+        contactEmail: '',
+        contactPhone: ''
+      };
+
+      await dispatch(createBooking(bookingPayload)).unwrap();
+      
+      // Reset form
+      setBookingData({
+        startDate: '',
+        endDate: '',
+        guests: 1,
+        paymentMethod: 'credit-card',
+        agreeTerms: false
+      });
+      setAvailabilityChecked(false);
+      
+    } catch (error) {
+      console.error('Booking failed:', error);
+    }
   };
 
   return (
@@ -95,8 +158,9 @@ export default function DestinationDetail({ destination, onBack }) {
                         type="date"
                         id="startDate"
                         value={bookingData.startDate}
-                        onChange={(e) => setBookingData({ ...bookingData, startDate: e.target.value })}
+                        onChange={(e) => handleDateChange('startDate', e.target.value)}
                         className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50"
+                        min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
                     <div className="flex flex-col">
@@ -105,8 +169,9 @@ export default function DestinationDetail({ destination, onBack }) {
                         type="date"
                         id="endDate"
                         value={bookingData.endDate}
-                        onChange={(e) => setBookingData({ ...bookingData, endDate: e.target.value })}
+                        onChange={(e) => handleDateChange('endDate', e.target.value)}
                         className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50"
+                        min={bookingData.startDate || new Date().toISOString().split('T')[0]}
                       />
                     </div>
                     <div className="flex flex-col">
@@ -132,6 +197,24 @@ export default function DestinationDetail({ destination, onBack }) {
                       </select>
                     </div>
                   </div>
+                  
+                  {/* Availability Status */}
+                  {availabilityChecked && (
+                    <div className="mt-4 p-3 rounded-lg border">
+                      {availability?.available ? (
+                        <div className="flex items-center gap-2 text-green-400">
+                          <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                          <span>Available for selected dates</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-400">
+                          <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                          <span>Not available for selected dates</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 mt-4">
                     <input
                       type="checkbox"
@@ -143,9 +226,14 @@ export default function DestinationDetail({ destination, onBack }) {
                   </div>
                   <button
                     type="submit"
-                    className="bg-purple-400 hover:bg-purple-500 text-white p-3 rounded-lg mt-4"
+                    disabled={creating || !availabilityChecked || !availability?.available}
+                    className={`w-full p-3 rounded-lg mt-4 transition-colors ${
+                      creating || !availabilityChecked || !availability?.available
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-purple-400 hover:bg-purple-500 text-white'
+                    }`}
                   >
-                    Book Now
+                    {creating ? 'Creating Booking...' : 'Book Now'}
                   </button>
                 </form>
               </div>

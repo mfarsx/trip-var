@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 
 export default function HeroSection() {
   return (
-    <div className="relative isolate overflow-hidden py-24 sm:py-32">
+    <div className="relative isolate overflow-hidden pt-28 pb-24 sm:pt-32 sm:pb-32">
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/90 to-indigo-900/90" />
         <img

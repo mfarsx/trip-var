@@ -130,6 +130,11 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  favorites: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Destination',
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -1,6 +1,9 @@
 import axios from "axios";
 import logger from "../utils/logger";
 
+// Flag to track if we're already handling token expiration
+let isRefreshing = false;
+
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL}/api/v1`,
   headers: {
@@ -54,10 +57,28 @@ api.interceptors.response.use(
 
     // Handle unauthorized error
     if (error.response?.status === 401) {
-      // Only remove token and redirect if not already on login page
-      if (!window.location.pathname.includes("/login")) {
+      // Prevent infinite loops by checking if we're already handling token expiration
+      if (!isRefreshing && !window.location.pathname.includes("/login")) {
+        isRefreshing = true;
+        
+        // Clear token from localStorage
         localStorage.removeItem("token");
-        window.location.href = "/login";
+        
+        // Dispatch logout action to update Redux store
+        // We need to import the store dynamically to avoid circular dependency
+        import("../store").then(({ store }) => {
+          import("../store/slices/authSlice").then(({ logout }) => {
+            store.dispatch(logout());
+            
+            // Redirect to login page
+            window.location.href = "/login";
+            
+            // Reset the flag after a delay to ensure all pending requests are completed
+            setTimeout(() => {
+              isRefreshing = false;
+            }, 1000);
+          });
+        });
       }
     }
     return Promise.reject(error);
@@ -77,6 +98,19 @@ export const destinationApi = {
 
   getDestinationById: async (id) => {
     const response = await api.get(`/destinations/${id}`);
+    return response.data;
+  },
+  
+  searchDestinations: async (searchParams) => {
+    const params = new URLSearchParams();
+    
+    // Add search term for title, description, and location
+    if (searchParams.from) params.append("from", searchParams.from);
+    if (searchParams.to) params.append("search", searchParams.to);
+    if (searchParams.date) params.append("date", searchParams.date);
+    if (searchParams.guests) params.append("guests", searchParams.guests);
+    
+    const response = await api.get(`/destinations?${params.toString()}`);
     return response.data;
   },
 };

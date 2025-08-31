@@ -30,6 +30,26 @@ export const userService = {
       throw error;
     }
   },
+  
+  getFavorites: async () => {
+    try {
+      const response = await api.get("/auth/favorites");
+      return response;
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      throw error;
+    }
+  },
+  
+  toggleFavorite: async (destinationId) => {
+    try {
+      const response = await api.post(`/auth/favorites/${destinationId}`);
+      return response;
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      throw error;
+    }
+  }
 };
 
 export default userService;

@@ -41,7 +41,7 @@ export const register = createAsyncThunk(
 
 export const fetchProfile = createAsyncThunk(
   "auth/fetchProfile",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       const response = await api.get("/auth/profile");
       if (response.data.status === "success") {
@@ -51,12 +51,26 @@ export const fetchProfile = createAsyncThunk(
         response.data.message || "Failed to fetch profile"
       );
     } catch (error) {
+      // Handle token expiration explicitly
       if (error.response?.status === 401) {
-        localStorage.removeItem("token");
+        // The API interceptor will handle removing the token and redirecting,
+        // but we'll also dispatch logout here to ensure Redux state is updated
+        dispatch(logout());
+        return rejectWithValue("Token expired or invalid. Please login again.");
       }
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch profile"
-      );
+      
+      // For other errors, just return the error message
+      const errorMessage = error.response?.data?.message || "Failed to fetch profile";
+      
+      // If the error message contains anything about token or authorization,
+      // we'll also dispatch logout to be safe
+      if (errorMessage.toLowerCase().includes('token') || 
+          errorMessage.toLowerCase().includes('auth') ||
+          errorMessage.toLowerCase().includes('expired')) {
+        dispatch(logout());
+      }
+      
+      return rejectWithValue(errorMessage);
     }
   }
 );

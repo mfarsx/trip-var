@@ -1,6 +1,10 @@
 import { motion } from "framer-motion";
 import { FiHeart, FiStar, FiMapPin } from "react-icons/fi";
+import { FaHeart } from "react-icons/fa";
 import PropTypes from "prop-types";
+import { useState, useEffect } from "react";
+import { userService } from "../../services/userService";
+import { toast } from "react-hot-toast";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -9,6 +13,58 @@ const cardVariants = {
 };
 
 export default function DestinationsGrid({ destinations, onDestinationClick }) {
+  const [favoriteDestinations, setFavoriteDestinations] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchFavorites();
+  }, []);
+
+  const fetchFavorites = async () => {
+    try {
+      const response = await userService.getFavorites();
+      if (response && response.data && response.data.data) {
+        const favoriteIds = response.data.data.favorites.map(fav => fav._id);
+        setFavoriteDestinations(favoriteIds);
+      }
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      // Don't show toast error here as it might not be relevant for all users
+    }
+  };
+
+  const handleToggleFavorite = async (e, destinationId) => {
+    e.stopPropagation(); // Prevent triggering the destination click
+    
+    if (loading) return;
+    
+    try {
+      setLoading(true);
+      const response = await userService.toggleFavorite(destinationId);
+      
+      if (response && response.data && response.data.data) {
+        const { isFavorite } = response.data.data;
+        
+        if (isFavorite) {
+          setFavoriteDestinations([...favoriteDestinations, destinationId]);
+          toast.success("Added to favorites");
+        } else {
+          setFavoriteDestinations(favoriteDestinations.filter(id => id !== destinationId));
+          toast.success("Removed from favorites");
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Failed to update favorites. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isFavorite = (destinationId) => {
+    return favoriteDestinations.includes(destinationId);
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-4">
       {destinations.map((destination, index) => (
@@ -33,8 +89,16 @@ export default function DestinationsGrid({ destinations, onDestinationClick }) {
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-            <button className="absolute top-3 right-3 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors transform hover:scale-110">
-              <FiHeart className="w-5 h-5" />
+            <button 
+              className="absolute top-3 right-3 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors transform hover:scale-110"
+              onClick={(e) => handleToggleFavorite(e, destination._id)}
+              disabled={loading}
+            >
+              {isFavorite(destination._id) ? (
+                <FaHeart className="w-5 h-5 text-red-500" />
+              ) : (
+                <FiHeart className="w-5 h-5" />
+              )}
             </button>
             <div className="absolute bottom-3 left-3 right-3">
               <h3 className="text-lg font-semibold text-white line-clamp-1">

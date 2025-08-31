@@ -8,17 +8,21 @@ import Header from "../components/header/Header";
 import HeroSection from "../components/hero/HeroSection";
 import SearchSection from "../components/search/SearchSection";
 import DestinationsGrid from "../components/destinations/DestinationsGrid";
+import { destinationApi } from "../services/api";
+import toast from "react-hot-toast";
 
 export default function Home() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { destinations } = useSelector((state) => state.destinations);
   const [searchParams, setSearchParams] = useState({
-    location: "",
+    from: "",
+    to: "",
     date: "",
     guests: "1 Guest",
   });
   const [filteredDestinations, setFilteredDestinations] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     dispatch(fetchDestinations({ featured: true }));
@@ -28,13 +32,32 @@ export default function Home() {
     setFilteredDestinations(destinations);
   }, [destinations]);
 
-  const handleSearch = () => {
-    const filtered = destinations.filter((destination) => {
-      return destination.title
-        .toLowerCase()
-        .includes(searchParams.location.toLowerCase());
-    });
-    setFilteredDestinations(filtered);
+  const handleSearch = async () => {
+    // Validate search parameters
+    if (!searchParams.to.trim()) {
+      toast.error("Please enter a destination");
+      return;
+    }
+    
+    try {
+      setIsSearching(true);
+      
+      // Use the backend search API
+      const response = await destinationApi.searchDestinations(searchParams);
+      
+      if (response.data.destinations.length === 0) {
+        toast.error("No destinations found matching your criteria");
+        return;
+      }
+      
+      setFilteredDestinations(response.data.destinations);
+      toast.success(`Found ${response.data.destinations.length} destinations`);
+    } catch (error) {
+      console.error("Search error:", error);
+      toast.error("Error searching for destinations");
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleDestinationClick = (destinationId) => {
@@ -57,6 +80,7 @@ export default function Home() {
           searchParams={searchParams}
           onSearchParamsChange={setSearchParams}
           onSearch={handleSearch}
+          isSearching={isSearching}
         />
         <DestinationsGrid 
           destinations={filteredDestinations}

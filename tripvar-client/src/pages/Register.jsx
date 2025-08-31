@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import { register } from "../store/slices/authSlice";
 import Button from "../components/ui/Button";
-import { motion } from "framer-motion";
+
 import { FiUser, FiMail, FiLock } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";

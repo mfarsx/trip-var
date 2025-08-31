@@ -245,6 +245,62 @@ exports.logout = async (req, res, next) => {
   }
 };
 
+// Toggle favorite destination
+exports.toggleFavorite = async (req, res, next) => {
+  try {
+    const { destinationId } = req.params;
+    
+    if (!destinationId) {
+      throw new ValidationError("Destination ID is required");
+    }
+    
+    const user = await User.findById(req.user.id);
+    
+    // Check if the destination is already in favorites
+    const isFavorite = user.favorites.includes(destinationId);
+    
+    if (isFavorite) {
+      // Remove from favorites
+      user.favorites = user.favorites.filter(id => id.toString() !== destinationId);
+    } else {
+      // Add to favorites
+      user.favorites.push(destinationId);
+    }
+    
+    await user.save();
+    
+    res.status(200).json(
+      successResponse(
+        {
+          isFavorite: !isFavorite,
+          favorites: user.favorites
+        },
+        `Destination ${isFavorite ? 'removed from' : 'added to'} favorites`
+      )
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get user's favorite destinations
+exports.getFavorites = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id).populate('favorites');
+    
+    res.status(200).json(
+      successResponse(
+        {
+          favorites: user.favorites
+        },
+        "Favorites retrieved successfully"
+      )
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Helper function to filter objects
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};

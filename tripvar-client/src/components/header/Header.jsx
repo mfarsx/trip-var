@@ -2,17 +2,24 @@ import { useState } from "react";
 import { useSelector } from "react-redux";
 import PropTypes from 'prop-types';
 import ProfileDropdown from "./ProfileDropdown";
+import Logo from "../common/Logo";
 
 export default function Header({ onLogout }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, loading: authLoading } = useSelector((state) => state.auth);
 
   return (
-    <div className="fixed top-0 right-0 p-4 z-50">
+    <header className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center p-4 bg-gray-900/70 backdrop-blur-sm shadow-md">
+      {/* Logo in the top left corner */}
+      <div className="ml-2">
+        <Logo size="default" />
+      </div>
+      
+      {/* Profile button in the top right corner */}
       <div className="relative">
         <button
           onClick={() => setIsProfileOpen(!isProfileOpen)}
-          className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center text-lg font-medium hover:bg-purple-700 transition-colors border-2 border-gray-700/50 cursor-pointer"
+          className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center text-lg font-medium hover:bg-purple-700 transition-colors border-2 border-gray-700/50 cursor-pointer shadow-md"
         >
           {authLoading ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -31,7 +38,7 @@ export default function Header({ onLogout }) {
           <ProfileDropdown onLogout={onLogout} />
         )}
       </div>
-    </div>
+    </header>
   );
 }
 

@@ -27,4 +27,8 @@ router
 // Password update
 router.patch("/update-password", authController.updatePassword);
 
+// Favorites routes
+router.get("/favorites", authController.getFavorites);
+router.post("/favorites/:destinationId", authController.toggleFavorite);
+
 module.exports = router;

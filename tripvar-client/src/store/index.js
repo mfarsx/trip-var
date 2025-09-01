@@ -1,11 +1,15 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/authSlice'
+import destinationReducer from "./slices/destinationSlice";
+import bookingReducer from "./slices/bookingSlice";
 import logger from '../utils/logger'
 import loggerMiddleware from './middleware/loggerMiddleware'
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    destinations: destinationReducer,
+    bookings: bookingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

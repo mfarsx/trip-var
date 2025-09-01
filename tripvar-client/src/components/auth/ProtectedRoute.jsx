@@ -1,20 +1,39 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { Navigate, useLocation } from 'react-router-dom'
-import { fetchProfile } from '../../store/slices/authSlice'
+import { fetchProfile, logout } from '../../store/slices/authSlice'
+import PropTypes from 'prop-types'
 
 export default function ProtectedRoute({ children }) {
   const dispatch = useDispatch()
   const { isAuthenticated, user, loading } = useSelector((state) => state.auth)
   const location = useLocation()
+  const [profileFetchAttempted, setProfileFetchAttempted] = useState(false)
 
   useEffect(() => {
-    // Only fetch if authenticated and no user data exists and not currently loading
-    if (isAuthenticated && !user && !loading) {
-      dispatch(fetchProfile())
+    // Only fetch if authenticated, no user data exists, not currently loading, and we haven't already attempted
+    if (isAuthenticated && !user && !loading && !profileFetchAttempted) {
+      setProfileFetchAttempted(true)
+      
+      // Attempt to fetch the user profile
+      dispatch(fetchProfile()).unwrap()
+        .catch((error) => {
+          // If we get an error, it might be due to an expired token
+          if (error?.includes('unauthorized') || error?.includes('token') || error?.includes('expired')) {
+            dispatch(logout())
+          }
+        })
     }
-  }, [dispatch, isAuthenticated, user, loading])
+  }, [dispatch, isAuthenticated, user, loading, profileFetchAttempted])
 
+  // Reset the fetch attempt flag when authentication state changes
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setProfileFetchAttempted(false)
+    }
+  }, [isAuthenticated])
+
+  // If there's an authentication error or user is not authenticated, redirect to login
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
@@ -27,4 +46,8 @@ export default function ProtectedRoute({ children }) {
   }
 
   return children
+}
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
 }

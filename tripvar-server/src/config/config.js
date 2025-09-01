@@ -1,5 +1,6 @@
 const dotenv = require('dotenv');
 const path = require('path');
+const { validateEnvironment } = require('../utils/envValidator');
 
 // Load environment variables based on NODE_ENV
 const envFile = process.env.NODE_ENV === 'production' 
@@ -10,21 +11,8 @@ const envFile = process.env.NODE_ENV === 'production'
 
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
-// Validate required environment variables
-const requiredEnvVars = [
-  'NODE_ENV',
-  'PORT',
-  'MONGODB_URI',
-  'JWT_SECRET'
-];
-
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-
-if (missingEnvVars.length > 0) {
-  // Use process.stderr for critical startup errors before logger is available
-  process.stderr.write(`Missing required environment variables: ${missingEnvVars.join(', ')}\n`);
-  process.exit(1);
-}
+// Validate environment variables
+validateEnvironment();
 
 // Configuration object
 const config = {

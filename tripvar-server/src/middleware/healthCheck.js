@@ -1,468 +1,378 @@
 const mongoose = require('mongoose');
-const { info, warn, error } = require('../utils/logger');
-const { createError } = require('../utils/errors');
+const { getRedisClient } = require('../config/redis');
+const { health } = require('../utils/logger');
+const config = require('../config/config');
 
 /**
- * Health check utilities
+ * Health check status
  */
-class HealthChecker {
-  constructor(redisClient) {
-    this.redis = redisClient;
-    this.checks = new Map();
-    this.registerDefaultChecks();
+const HealthStatus = {
+  HEALTHY: 'healthy',
+  UNHEALTHY: 'unhealthy',
+  DEGRADED: 'degraded'
+};
+
+/**
+ * Component health check result
+ */
+class ComponentHealth {
+  constructor(name, status, message = '', details = {}) {
+    this.name = name;
+    this.status = status;
+    this.message = message;
+    this.details = details;
+    this.timestamp = new Date().toISOString();
+  }
+}
+
+/**
+ * Overall health check result
+ */
+class HealthCheckResult {
+  constructor() {
+    this.status = HealthStatus.HEALTHY;
+    this.timestamp = new Date().toISOString();
+    this.uptime = process.uptime();
+    this.version = process.env.npm_package_version || '1.0.0';
+    this.environment = config.server.nodeEnv;
+    this.components = [];
   }
 
-  /**
-   * Register a health check
-   */
-  register(name, checkFunction, options = {}) {
-    this.checks.set(name, {
-      check: checkFunction,
-      critical: options.critical || false,
-      timeout: options.timeout || 5000,
-      description: options.description || `Health check for ${name}`
-    });
+  addComponent(component) {
+    this.components.push(component);
+    
+    // Update overall status based on component status
+    if (component.status === HealthStatus.UNHEALTHY) {
+      this.status = HealthStatus.UNHEALTHY;
+    } else if (component.status === HealthStatus.DEGRADED && this.status === HealthStatus.HEALTHY) {
+      this.status = HealthStatus.DEGRADED;
+    }
   }
 
-  /**
-   * Register default health checks
-   */
-  registerDefaultChecks() {
-    // Database health check
-    this.register('database', async () => {
-      const startTime = Date.now();
-      
-      if (mongoose.connection.readyState !== 1) {
-        throw new Error('Database connection not ready');
-      }
+  toJSON() {
+    return {
+      status: this.status,
+      timestamp: this.timestamp,
+      uptime: this.uptime,
+      version: this.version,
+      environment: this.environment,
+      components: this.components
+    };
+  }
+}
 
-      // Test database connectivity
-      await mongoose.connection.db.admin().ping();
-      
-      const responseTime = Date.now() - startTime;
-      
-      return {
-        status: 'healthy',
+/**
+ * Check database health
+ */
+async function checkDatabase() {
+  const startTime = Date.now();
+  
+  try {
+    // Check connection status
+    if (mongoose.connection.readyState !== 1) {
+      return new ComponentHealth(
+        'database',
+        HealthStatus.UNHEALTHY,
+        'Database connection is not established',
+        { readyState: mongoose.connection.readyState }
+      );
+    }
+
+    // Test database query
+    await mongoose.connection.db.admin().ping();
+    const responseTime = Date.now() - startTime;
+
+    return new ComponentHealth(
+      'database',
+      HealthStatus.HEALTHY,
+      'Database is healthy',
+      {
         responseTime: `${responseTime}ms`,
-        connectionState: mongoose.connection.readyState,
+        readyState: mongoose.connection.readyState,
         host: mongoose.connection.host,
         port: mongoose.connection.port,
         name: mongoose.connection.name
-      };
-    }, { critical: true, description: 'MongoDB database connectivity' });
-
-    // Redis health check
-    this.register('redis', async () => {
-      if (!this.redis) {
-        return {
-          status: 'disabled',
-          message: 'Redis not configured'
-        };
       }
-
-      const startTime = Date.now();
-      
-      try {
-        await this.redis.ping();
-        const responseTime = Date.now() - startTime;
-        
-        return {
-          status: 'healthy',
-          responseTime: `${responseTime}ms`,
-          version: await this.redis.info('server').then(info => {
-            const match = info.match(/redis_version:([^\r\n]+)/);
-            return match ? match[1] : 'unknown';
-          })
-        };
-      } catch (err) {
-        throw new Error(`Redis connection failed: ${err.message}`);
+    );
+  } catch (error) {
+    return new ComponentHealth(
+      'database',
+      HealthStatus.UNHEALTHY,
+      'Database health check failed',
+      {
+        error: error.message,
+        responseTime: `${Date.now() - startTime}ms`
       }
-    }, { critical: false, description: 'Redis cache connectivity' });
+    );
+  }
+}
 
-    // Memory health check
-    this.register('memory', async () => {
-      const memUsage = process.memoryUsage();
-      const totalMem = memUsage.heapTotal;
-      const usedMem = memUsage.heapUsed;
-      const usagePercent = (usedMem / totalMem) * 100;
-
-      if (usagePercent > 90) {
-        throw new Error(`High memory usage: ${usagePercent.toFixed(2)}%`);
-      }
-
-      return {
-        status: 'healthy',
-        heapUsed: `${Math.round(usedMem / 1024 / 1024)}MB`,
-        heapTotal: `${Math.round(totalMem / 1024 / 1024)}MB`,
-        usagePercent: `${usagePercent.toFixed(2)}%`,
-        external: `${Math.round(memUsage.external / 1024 / 1024)}MB`,
-        rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`
-      };
-    }, { critical: true, description: 'Memory usage monitoring' });
-
-    // CPU health check
-    this.register('cpu', async () => {
-      const startUsage = process.cpuUsage();
-      
-      // Wait a bit to measure CPU usage
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const endUsage = process.cpuUsage(startUsage);
-      const cpuPercent = (endUsage.user + endUsage.system) / 1000000; // Convert to seconds
-
-      if (cpuPercent > 80) {
-        warn('High CPU usage detected', { cpuPercent });
-      }
-
-      return {
-        status: 'healthy',
-        cpuPercent: `${cpuPercent.toFixed(2)}%`,
-        uptime: `${Math.round(process.uptime())}s`,
-        loadAverage: process.platform !== 'win32' ? require('os').loadavg() : 'N/A'
-      };
-    }, { critical: false, description: 'CPU usage monitoring' });
-
-    // Disk space health check
-    this.register('disk', async () => {
-      const fs = require('fs').promises;
-      const path = require('path');
-      
-      try {
-        const stats = await fs.statfs('/');
-        const total = stats.bavail * stats.bsize;
-        const free = stats.bavail * stats.bsize;
-        const used = (stats.blocks - stats.bavail) * stats.bsize;
-        const usagePercent = (used / (used + free)) * 100;
-
-        if (usagePercent > 90) {
-          throw new Error(`High disk usage: ${usagePercent.toFixed(2)}%`);
-        }
-
-        return {
-          status: 'healthy',
-          total: `${Math.round(total / 1024 / 1024 / 1024)}GB`,
-          free: `${Math.round(free / 1024 / 1024 / 1024)}GB`,
-          used: `${Math.round(used / 1024 / 1024 / 1024)}GB`,
-          usagePercent: `${usagePercent.toFixed(2)}%`
-        };
-      } catch (err) {
-        return {
-          status: 'unknown',
-          message: 'Disk space check not available on this platform'
-        };
-      }
-    }, { critical: false, description: 'Disk space monitoring' });
-
-    // External services health check
-    this.register('external', async () => {
-      const axios = require('axios');
-      const services = [
-        { name: 'Google', url: 'https://www.google.com', timeout: 3000 },
-        { name: 'Cloudflare', url: 'https://www.cloudflare.com', timeout: 3000 }
-      ];
-
-      const results = await Promise.allSettled(
-        services.map(async (service) => {
-          const startTime = Date.now();
-          try {
-            await axios.get(service.url, { timeout: service.timeout });
-            const responseTime = Date.now() - startTime;
-            return {
-              name: service.name,
-              status: 'healthy',
-              responseTime: `${responseTime}ms`
-            };
-          } catch (err) {
-            return {
-              name: service.name,
-              status: 'unhealthy',
-              error: err.message
-            };
-          }
-        })
+/**
+ * Check Redis health
+ */
+async function checkRedis() {
+  const startTime = Date.now();
+  
+  try {
+    const client = getRedisClient();
+    
+    if (!client) {
+      return new ComponentHealth(
+        'redis',
+        HealthStatus.DEGRADED,
+        'Redis client not available',
+        { responseTime: `${Date.now() - startTime}ms` }
       );
+    }
 
-      const healthy = results.filter(r => r.status === 'fulfilled' && r.value.status === 'healthy').length;
-      const total = results.length;
+    // Test Redis connection
+    const pong = await client.ping();
+    const responseTime = Date.now() - startTime;
 
-      return {
-        status: healthy === total ? 'healthy' : 'degraded',
-        services: results.map(r => r.status === 'fulfilled' ? r.value : { status: 'error' }),
-        summary: `${healthy}/${total} services healthy`
-      };
-    }, { critical: false, description: 'External services connectivity' });
-  }
-
-  /**
-   * Run all health checks
-   */
-  async runAllChecks() {
-    const results = {};
-    let overallStatus = 'healthy';
-    let criticalFailures = 0;
-
-    for (const [name, check] of this.checks) {
-      try {
-        const startTime = Date.now();
-        
-        // Run check with timeout
-        const result = await Promise.race([
-          check.check(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Check timeout')), check.timeout)
-          )
-        ]);
-
-        const duration = Date.now() - startTime;
-        
-        results[name] = {
-          ...result,
-          duration: `${duration}ms`,
-          timestamp: new Date().toISOString()
-        };
-
-        if (result.status !== 'healthy' && check.critical) {
-          criticalFailures++;
-          overallStatus = 'unhealthy';
-        } else if (result.status !== 'healthy' && overallStatus === 'healthy') {
-          overallStatus = 'degraded';
+    if (pong === 'PONG') {
+      return new ComponentHealth(
+        'redis',
+        HealthStatus.HEALTHY,
+        'Redis is healthy',
+        {
+          responseTime: `${responseTime}ms`,
+          status: client.status
         }
-
-      } catch (err) {
-        results[name] = {
-          status: 'unhealthy',
-          error: err.message,
-          timestamp: new Date().toISOString()
-        };
-
-        if (check.critical) {
-          criticalFailures++;
-          overallStatus = 'unhealthy';
-        } else if (overallStatus === 'healthy') {
-          overallStatus = 'degraded';
+      );
+    } else {
+      return new ComponentHealth(
+        'redis',
+        HealthStatus.UNHEALTHY,
+        'Redis ping failed',
+        {
+          responseTime: `${responseTime}ms`,
+          pingResponse: pong
         }
+      );
+    }
+  } catch (error) {
+    return new ComponentHealth(
+      'redis',
+      HealthStatus.DEGRADED,
+      'Redis health check failed',
+      {
+        error: error.message,
+        responseTime: `${Date.now() - startTime}ms`
       }
-    }
+    );
+  }
+}
 
-    return {
-      status: overallStatus,
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      version: process.env.npm_package_version || '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      criticalFailures,
-      checks: results
-    };
+/**
+ * Check memory usage
+ */
+function checkMemory() {
+  const memUsage = process.memoryUsage();
+  const totalMem = memUsage.heapTotal;
+  const usedMem = memUsage.heapUsed;
+  const usagePercent = (usedMem / totalMem) * 100;
+
+  let status = HealthStatus.HEALTHY;
+  let message = 'Memory usage is normal';
+
+  if (usagePercent > 90) {
+    status = HealthStatus.UNHEALTHY;
+    message = 'Memory usage is critically high';
+  } else if (usagePercent > 80) {
+    status = HealthStatus.DEGRADED;
+    message = 'Memory usage is high';
   }
 
-  /**
-   * Run a specific health check
-   */
-  async runCheck(name) {
-    const check = this.checks.get(name);
-    if (!check) {
-      throw new Error(`Health check '${name}' not found`);
+  return new ComponentHealth(
+    'memory',
+    status,
+    message,
+    {
+      heapUsed: `${Math.round(usedMem / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(totalMem / 1024 / 1024)}MB`,
+      usagePercent: `${Math.round(usagePercent)}%`,
+      external: `${Math.round(memUsage.external / 1024 / 1024)}MB`,
+      rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`
     }
+  );
+}
 
-    try {
-      const startTime = Date.now();
-      const result = await Promise.race([
-        check.check(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Check timeout')), check.timeout)
-        )
-      ]);
-
-      const duration = Date.now() - startTime;
-      
-      return {
-        ...result,
-        duration: `${duration}ms`,
-        timestamp: new Date().toISOString(),
-        description: check.description
-      };
-    } catch (err) {
-      return {
-        status: 'unhealthy',
-        error: err.message,
-        timestamp: new Date().toISOString(),
-        description: check.description
-      };
+/**
+ * Check CPU usage
+ */
+function checkCPU() {
+  const cpuUsage = process.cpuUsage();
+  const totalUsage = cpuUsage.user + cpuUsage.system;
+  
+  // This is a simplified CPU check - in production, you might want to use a more sophisticated approach
+  return new ComponentHealth(
+    'cpu',
+    HealthStatus.HEALTHY,
+    'CPU usage is normal',
+    {
+      user: `${Math.round(cpuUsage.user / 1000)}ms`,
+      system: `${Math.round(cpuUsage.system / 1000)}ms`,
+      total: `${Math.round(totalUsage / 1000)}ms`
     }
+  );
+}
+
+/**
+ * Check disk space
+ */
+function checkDiskSpace() {
+  // This is a placeholder - in production, you might want to use a library like 'diskusage'
+  return new ComponentHealth(
+    'disk',
+    HealthStatus.HEALTHY,
+    'Disk space is available',
+    {
+      note: 'Disk space monitoring not implemented'
+    }
+  );
+}
+
+/**
+ * Check external dependencies
+ */
+async function checkExternalDependencies() {
+  const dependencies = [];
+  
+  // Check if required environment variables are set
+  const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+  const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+  
+  if (missingEnvVars.length > 0) {
+    dependencies.push(new ComponentHealth(
+      'environment',
+      HealthStatus.UNHEALTHY,
+      'Missing required environment variables',
+      { missing: missingEnvVars }
+    ));
+  } else {
+    dependencies.push(new ComponentHealth(
+      'environment',
+      HealthStatus.HEALTHY,
+      'All required environment variables are set'
+    ));
+  }
+
+  return dependencies;
+}
+
+/**
+ * Perform comprehensive health check
+ */
+async function performHealthCheck() {
+  const result = new HealthCheckResult();
+  
+  try {
+    // Check core components
+    result.addComponent(await checkDatabase());
+    result.addComponent(await checkRedis());
+    result.addComponent(checkMemory());
+    result.addComponent(checkCPU());
+    result.addComponent(checkDiskSpace());
+    
+    // Check external dependencies
+    const externalDeps = await checkExternalDependencies();
+    externalDeps.forEach(dep => result.addComponent(dep));
+    
+    // Log health check result
+    health('Health check completed', {
+      status: result.status,
+      components: result.components.length,
+      unhealthy: result.components.filter(c => c.status === HealthStatus.UNHEALTHY).length,
+      degraded: result.components.filter(c => c.status === HealthStatus.DEGRADED).length
+    });
+    
+    return result;
+  } catch (error) {
+    result.status = HealthStatus.UNHEALTHY;
+    result.addComponent(new ComponentHealth(
+      'health-check',
+      HealthStatus.UNHEALTHY,
+      'Health check failed',
+      { error: error.message }
+    ));
+    
+    return result;
   }
 }
 
 /**
  * Health check middleware
  */
-const createHealthCheckMiddleware = (healthChecker) => {
-  return async (req, res, next) => {
-    try {
-      const { check } = req.query;
-      
-      if (check) {
-        // Run specific check
-        const result = await healthChecker.runCheck(check);
-        const statusCode = result.status === 'healthy' ? 200 : 503;
-        
-        res.status(statusCode).json(result);
-      } else {
-        // Run all checks
-        const results = await healthChecker.runAllChecks();
-        const statusCode = results.status === 'healthy' ? 200 : 
-                          results.status === 'degraded' ? 200 : 503;
-        
-        res.status(statusCode).json(results);
-      }
-    } catch (err) {
-      error('Health check error', { error: err.message, requestId: req.requestId });
-      res.status(500).json({
-        status: 'error',
-        message: 'Health check failed',
-        error: err.message,
-        timestamp: new Date().toISOString()
-      });
-    }
-  };
+const healthCheckMiddleware = async (req, res, next) => {
+  try {
+    const healthResult = await performHealthCheck();
+    
+    // Set appropriate HTTP status code
+    const statusCode = healthResult.status === HealthStatus.HEALTHY ? 200 : 
+                      healthResult.status === HealthStatus.DEGRADED ? 200 : 503;
+    
+    res.status(statusCode).json(healthResult.toJSON());
+  } catch (error) {
+    res.status(503).json({
+      status: HealthStatus.UNHEALTHY,
+      timestamp: new Date().toISOString(),
+      message: 'Health check failed',
+      error: error.message
+    });
+  }
 };
 
 /**
- * Readiness probe middleware
+ * Liveness probe - simple check if the application is running
  */
-const createReadinessMiddleware = (healthChecker) => {
-  return async (req, res, next) => {
-    try {
-      const results = await healthChecker.runAllChecks();
-      
-      // Only return 200 if all critical checks pass
-      const criticalChecks = Array.from(healthChecker.checks.entries())
-        .filter(([_, check]) => check.critical)
-        .map(([name, _]) => name);
-      
-      const criticalResults = criticalChecks.map(name => results.checks[name]);
-      const allCriticalHealthy = criticalResults.every(result => result.status === 'healthy');
-      
-      if (allCriticalHealthy) {
-        res.status(200).json({
-          status: 'ready',
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        res.status(503).json({
-          status: 'not ready',
-          criticalFailures: results.criticalFailures,
-          timestamp: new Date().toISOString()
-        });
-      }
-    } catch (err) {
-      error('Readiness check error', { error: err.message, requestId: req.requestId });
+const livenessProbe = (req, res) => {
+  res.status(200).json({
+    status: 'alive',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+};
+
+/**
+ * Readiness probe - check if the application is ready to serve traffic
+ */
+const readinessProbe = async (req, res) => {
+  try {
+    // Quick check of critical components
+    const dbHealthy = mongoose.connection.readyState === 1;
+    
+    if (dbHealthy) {
+      res.status(200).json({
+        status: 'ready',
+        timestamp: new Date().toISOString(),
+        components: {
+          database: 'ready'
+        }
+      });
+    } else {
       res.status(503).json({
         status: 'not ready',
-        error: err.message,
-        timestamp: new Date().toISOString()
-      });
-    }
-  };
-};
-
-/**
- * Liveness probe middleware
- */
-const createLivenessMiddleware = () => {
-  return (req, res) => {
-    res.status(200).json({
-      status: 'alive',
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
-      pid: process.pid,
-      memory: process.memoryUsage()
-    });
-  };
-};
-
-/**
- * Metrics middleware
- */
-const createMetricsMiddleware = () => {
-  const metrics = {
-    requests: {
-      total: 0,
-      successful: 0,
-      failed: 0,
-      byMethod: {},
-      byStatus: {},
-      responseTime: {
-        min: Infinity,
-        max: 0,
-        sum: 0,
-        count: 0
-      }
-    },
-    errors: {
-      total: 0,
-      byType: {},
-      byEndpoint: {}
-    }
-  };
-
-  return (req, res, next) => {
-    const startTime = Date.now();
-    
-    const originalSend = res.send;
-    res.send = function(data) {
-      const duration = Date.now() - startTime;
-      
-      // Update metrics
-      metrics.requests.total++;
-      metrics.requests.byMethod[req.method] = (metrics.requests.byMethod[req.method] || 0) + 1;
-      metrics.requests.byStatus[res.statusCode] = (metrics.requests.byStatus[res.statusCode] || 0) + 1;
-      
-      if (res.statusCode < 400) {
-        metrics.requests.successful++;
-      } else {
-        metrics.requests.failed++;
-        metrics.errors.total++;
-        metrics.errors.byEndpoint[req.path] = (metrics.errors.byEndpoint[req.path] || 0) + 1;
-      }
-      
-      // Update response time metrics
-      metrics.requests.responseTime.min = Math.min(metrics.requests.responseTime.min, duration);
-      metrics.requests.responseTime.max = Math.max(metrics.requests.responseTime.max, duration);
-      metrics.requests.responseTime.sum += duration;
-      metrics.requests.responseTime.count++;
-      
-      originalSend.call(this, data);
-    };
-
-    // Expose metrics endpoint
-    if (req.path === '/metrics') {
-      const avgResponseTime = metrics.requests.responseTime.count > 0 
-        ? metrics.requests.responseTime.sum / metrics.requests.responseTime.count 
-        : 0;
-
-      res.json({
-        ...metrics,
-        requests: {
-          ...metrics.requests,
-          responseTime: {
-            ...metrics.requests.responseTime,
-            average: Math.round(avgResponseTime)
-          }
-        },
         timestamp: new Date().toISOString(),
-        uptime: process.uptime()
+        components: {
+          database: 'not ready'
+        }
       });
-      return;
     }
-
-    next();
-  };
+  } catch (error) {
+    res.status(503).json({
+      status: 'not ready',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
 };
 
 module.exports = {
-  HealthChecker,
-  createHealthCheckMiddleware,
-  createReadinessMiddleware,
-  createLivenessMiddleware,
-  createMetricsMiddleware
+  healthCheckMiddleware,
+  livenessProbe,
+  readinessProbe,
+  performHealthCheck,
+  HealthStatus,
+  ComponentHealth,
+  HealthCheckResult
 };

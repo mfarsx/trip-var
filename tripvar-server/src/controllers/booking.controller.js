@@ -1,6 +1,5 @@
 const Booking = require("../models/booking.model");
 const Destination = require("../models/destination.model");
-const User = require("../models/user.model");
 const { ValidationError, NotFoundError, ConflictError } = require("../utils/errors");
 const { info, error } = require("../utils/logger");
 

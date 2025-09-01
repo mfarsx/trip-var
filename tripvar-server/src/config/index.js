@@ -2,6 +2,14 @@ module.exports = {
   env: process.env.NODE_ENV,
   port: process.env.PORT,
   
+  // Server Configuration
+  server: {
+    nodeEnv: process.env.NODE_ENV || 'development',
+    isDevelopment: process.env.NODE_ENV === 'development',
+    isProduction: process.env.NODE_ENV === 'production',
+    isTest: process.env.NODE_ENV === 'test'
+  },
+  
   // Database Configuration
   mongodb: {
     uri: process.env.MONGODB_URI || 'mongodb://mongodb:27017/tripvar'
@@ -24,6 +32,10 @@ module.exports = {
   
   // Logging Configuration
   logging: {
-    level: process.env.LOG_LEVEL || 'debug'
+    level: process.env.LOG_LEVEL || 'debug',
+    filePath: process.env.LOG_FILE_PATH || './logs/application.log',
+    maxSize: process.env.LOG_MAX_SIZE || '20m',
+    maxFiles: process.env.LOG_MAX_FILES || '14d',
+    datePattern: process.env.LOG_DATE_PATTERN || 'YYYY-MM-DD'
   }
 };

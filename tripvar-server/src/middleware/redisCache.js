@@ -1,5 +1,5 @@
 const { redisUtils } = require('../config/redis');
-const { info } = require('../utils/logger');
+const { info, error } = require('../utils/logger');
 
 /**
  * Redis caching middleware
@@ -50,7 +50,7 @@ const redisCache = (options = {}) => {
       res.json = function(data) {
         // Cache the response (async, don't wait)
         redisUtils.setCache(cacheKey, data, ttl).catch(err => {
-          console.error('Failed to cache response:', err);
+          error('Failed to cache response', { error: err.message, cacheKey });
         });
         
         // Call original json method
@@ -58,9 +58,9 @@ const redisCache = (options = {}) => {
       };
 
       next();
-    } catch (error) {
+    } catch (err) {
       // If Redis fails, continue without caching
-      console.error('Redis cache middleware error:', error);
+      error('Redis cache middleware error', { error: err.message, stack: err.stack });
       next();
     }
   };
@@ -80,8 +80,8 @@ const invalidateCache = async (pattern) => {
       await client.del(...keys);
       info('Cache invalidated', { pattern, keysCount: keys.length });
     }
-  } catch (error) {
-    console.error('Failed to invalidate cache:', error);
+  } catch (err) {
+    error('Failed to invalidate cache', { error: err.message, pattern });
   }
 };
 
@@ -125,8 +125,8 @@ const redisSession = (options = {}) => {
       };
 
       next();
-    } catch (error) {
-      console.error('Redis session middleware error:', error);
+    } catch (err) {
+      error('Redis session middleware error', { error: err.message, stack: err.stack });
       next();
     }
   };

@@ -52,4 +52,7 @@ export const userService = {
   }
 };
 
+// Named exports for individual functions
+export const { getCurrentUser, updateProfile, updatePassword, getFavorites, toggleFavorite } = userService;
+
 export default userService;

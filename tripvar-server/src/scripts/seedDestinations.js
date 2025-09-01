@@ -68,6 +68,7 @@ const destinations = [
 async function seedDestinations() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
+    // Use console.log for seed script as it's a one-time operation
     console.log("Connected to MongoDB");
 
     // Clear existing destinations
@@ -81,6 +82,7 @@ async function seedDestinations() {
     console.log("Database seeded successfully");
     process.exit(0);
   } catch (error) {
+    // Use console.error for seed script as it's a one-time operation
     console.error("Error seeding database:", error);
     process.exit(1);
   }

@@ -2,10 +2,27 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const { getRedisClient } = require('../config/redis');
-const { info, error } = require('../utils/logger');
-const config = require('../config');
+const { HealthChecker, createHealthCheckMiddleware, createReadinessMiddleware, createLivenessMiddleware, createMetricsMiddleware } = require('../middleware/healthCheck');
+
+const config = require('../config/config');
 const os = require('os');
 const process = require('process');
+
+// Initialize health checker
+let healthChecker;
+let redisClient;
+
+// Initialize Redis connection for health checks
+getRedisClient().then(client => {
+  redisClient = client;
+  healthChecker = new HealthChecker(redisClient);
+}).catch(err => {
+  console.warn('Redis not available for health checks:', err.message);
+  healthChecker = new HealthChecker(null);
+});
+
+// Metrics middleware
+const metricsMiddleware = createMetricsMiddleware();
 
 // Basic health check
 router.get('/', (req, res) => {

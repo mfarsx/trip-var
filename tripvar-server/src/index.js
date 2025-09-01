@@ -1,6 +1,6 @@
 const app = require("./app");
 const { info, error } = require("./utils/logger");
-const config = require("./config");
+const config = require("./config/config");
 
 // Global error handlers
 process.on("uncaughtException", (err) => {

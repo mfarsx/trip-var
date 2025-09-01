@@ -3,10 +3,15 @@ import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { createBooking, checkAvailability } from '../../store/slices/bookingSlice';
+import { fetchProfile } from '../../store/slices/authSlice';
+import { toggleFavorite } from '../../services/userService';
+import ReviewsSection from '../reviews/ReviewsSection';
+import toast from 'react-hot-toast';
 
 export default function DestinationDetail({ destination, onBack }) {
   const dispatch = useDispatch();
   const { creating, availability } = useSelector((state) => state.bookings);
+  const { user } = useSelector((state) => state.auth);
   
   const [bookingData, setBookingData] = useState({
     startDate: '',
@@ -17,6 +22,23 @@ export default function DestinationDetail({ destination, onBack }) {
   });
 
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
+
+  const isFavorite = user?.favorites?.some(fav => fav._id === destination._id);
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      toast.error("Please log in to add favorites");
+      return;
+    }
+
+    try {
+      await toggleFavorite(destination._id);
+      dispatch(fetchProfile()); // Refresh user data
+      toast.success(isFavorite ? "Removed from favorites" : "Added to favorites");
+    } catch {
+      toast.error("Failed to update favorites");
+    }
+  };
 
   const handleDateChange = async (field, value) => {
     const newBookingData = { ...bookingData, [field]: value };
@@ -108,8 +130,16 @@ export default function DestinationDetail({ destination, onBack }) {
               loading="lazy"
             />
             <div className="absolute top-4 right-4">
-              <button className="p-3 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors transform hover:scale-110">
-                <FiHeart className="w-6 h-6" />
+              <button 
+                onClick={handleToggleFavorite}
+                className={`p-3 rounded-full transition-colors transform hover:scale-110 ${
+                  isFavorite 
+                    ? 'bg-red-500/80 hover:bg-red-500 text-white' 
+                    : 'bg-black/50 hover:bg-black/70 text-white'
+                }`}
+                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <FiHeart className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} />
               </button>
             </div>
           </div>
@@ -255,6 +285,11 @@ export default function DestinationDetail({ destination, onBack }) {
             </div>
           </div>
         </div>
+
+        {/* Reviews Section */}
+        <div className="mt-12">
+          <ReviewsSection destinationId={destination._id} destination={destination} />
+        </div>
       </div>
     </div>
   );
@@ -262,6 +297,7 @@ export default function DestinationDetail({ destination, onBack }) {
 
 DestinationDetail.propTypes = {
   destination: PropTypes.shape({
+    _id: PropTypes.string.isRequired,
     imageUrl: PropTypes.string.isRequired,
     title: PropTypes.string.isRequired,
     location: PropTypes.string.isRequired,

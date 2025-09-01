@@ -20,6 +20,11 @@ const destinationSchema = new mongoose.Schema(
       required: true,
       min: 0,
       max: 5,
+      default: 0,
+    },
+    ratingCount: {
+      type: Number,
+      default: 0,
     },
     price: {
       type: Number,

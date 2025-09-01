@@ -1,17 +1,3 @@
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /usr/src/app
-
-# Install curl for health checks
-RUN apk --no-cache add curl
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
-
 # Production stage
 FROM node:20-alpine AS production
 

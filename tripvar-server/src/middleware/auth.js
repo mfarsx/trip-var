@@ -14,6 +14,11 @@ exports.authenticate = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
     }
 
+    // Additional security: Check for token in cookies as fallback
+    if (!token && req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+
     if (!token) {
       throw new UnauthorizedError(
         "You are not logged in! Please log in to get access."
@@ -22,7 +27,9 @@ exports.authenticate = async (req, res, next) => {
 
     // 2) Verify token
     try {
-      const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+      const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET, {
+        algorithms: ['HS256'] // Explicitly specify algorithm for security
+      });
       
       // 3) Check if user still exists
       const user = await User.findById(decoded.id);

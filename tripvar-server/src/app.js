@@ -11,7 +11,7 @@ const { error } = require("./utils/logger");
 const connectDB = require("./config/database");
 const { connectRedis } = require("./config/redis");
 const { securityConfig } = require("./config/security");
-const config = require("./config");
+const { specs, swaggerUi, swaggerOptions } = require("./config/swagger");
 
 const app = express();
 
@@ -41,6 +41,9 @@ app.use(redisSession());
 
 // Health check routes (outside of versioned API)
 app.use("/health", healthRoutes);
+
+// API Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
 // API routes
 app.use("/api/v1", routes);

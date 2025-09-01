@@ -1,30 +1,63 @@
-const { AppError } = require('../utils/errors');
+const { AppError, createError } = require('../utils/errors');
 const { error, warn } = require('../utils/logger');
-const config = require('../config');
+const config = require('../config/config');
 
 const handleCastErrorDB = err => {
   const message = `Invalid ${err.path}: ${err.value}`;
-  return new AppError(message, 400);
+  return createError.validation(message, { field: err.path, value: err.value });
 };
 
 const handleValidationErrorDB = err => {
-  const errors = Object.values(err.errors).map(el => el.message);
-  const message = `Invalid input data. ${errors.join('. ')}`;
-  return new AppError(message, 400);
+  const errors = Object.values(err.errors).map(el => ({
+    field: el.path,
+    message: el.message,
+    value: el.value
+  }));
+  const message = `Invalid input data. ${errors.map(e => e.message).join('. ')}`;
+  return createError.validation(message, errors);
 };
 
 const handleJWTError = () =>
-  new AppError('Invalid token. Please log in again!', 401);
+  createError.authentication('Invalid token. Please log in again!');
 
 const handleJWTExpiredError = () =>
-  new AppError('Your token has expired! Please log in again.', 401);
+  createError.authentication('Your token has expired! Please log in again.');
 
-const sendErrorDev = (err, res) => {
+const handleDuplicateFieldsDB = err => {
+  const field = Object.keys(err.keyValue)[0];
+  const value = err.keyValue[field];
+  const message = `${field.charAt(0).toUpperCase() + field.slice(1)} '${value}' already exists`;
+  return createError.conflict(message, { field, value });
+};
+
+const handleMongoError = err => {
+  if (err.code === 11000) {
+    return handleDuplicateFieldsDB(err);
+  }
+  return createError.database('Database operation failed', { code: err.code });
+};
+
+const handleRedisError = err => {
+  return createError.serviceUnavailable('Cache service unavailable', { 
+    service: 'redis',
+    error: err.message 
+  });
+};
+
+const sendErrorDev = (err, res, req) => {
   res.status(err.statusCode).json({
     status: err.status,
-    error: err,
-    message: err.message,
-    stack: err.stack
+    error: {
+      name: err.name,
+      message: err.message,
+      code: err.code,
+      details: err.details,
+      stack: err.stack
+    },
+    requestId: req.requestId,
+    timestamp: err.timestamp,
+    path: req.path,
+    method: req.method
   });
 };
 
@@ -34,8 +67,10 @@ const sendErrorProd = (err, res, req) => {
     res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
+      code: err.code,
+      details: err.details,
       requestId: req.requestId,
-      timestamp: new Date().toISOString()
+      timestamp: err.timestamp
     });
   } 
   // Programming or other unknown error: don't leak error details
@@ -48,13 +83,17 @@ const sendErrorProd = (err, res, req) => {
       url: req.url,
       method: req.method,
       userAgent: req.get('User-Agent'),
-      ip: req.ip
+      ip: req.ip,
+      body: req.body,
+      query: req.query,
+      params: req.params
     });
 
     // Send generic message
     res.status(500).json({
       status: 'error',
       message: 'Something went very wrong!',
+      code: 'INTERNAL_SERVER_ERROR',
       requestId: req.requestId,
       timestamp: new Date().toISOString()
     });
@@ -66,7 +105,7 @@ module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  // Log all errors
+  // Log all errors with appropriate level
   if (err.statusCode >= 500) {
     error('Server error', {
       error: err.message,
@@ -74,32 +113,36 @@ module.exports = (err, req, res, next) => {
       requestId: req.requestId,
       url: req.url,
       method: req.method,
-      statusCode: err.statusCode
+      statusCode: err.statusCode,
+      userAgent: req.get('User-Agent'),
+      ip: req.ip
     });
-  } else {
+  } else if (err.statusCode >= 400) {
     warn('Client error', {
       error: err.message,
       requestId: req.requestId,
       url: req.url,
       method: req.method,
-      statusCode: err.statusCode
+      statusCode: err.statusCode,
+      userAgent: req.get('User-Agent'),
+      ip: req.ip
     });
   }
 
   if (config.server.isDevelopment) {
-    sendErrorDev(err, res);
+    sendErrorDev(err, res, req);
   } else {
     let error = { ...err };
     error.message = err.message;
 
+    // Handle specific error types
     if (error.name === 'CastError') error = handleCastErrorDB(error);
     if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
     if (error.name === 'JsonWebTokenError') error = handleJWTError();
     if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
-    if (error.name === 'MongoError' && error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      error = new AppError(`Duplicate ${field}: ${error.keyValue[field]}`, 400);
-    }
+    if (error.name === 'MongoError') error = handleMongoError(error);
+    if (error.name === 'MongoServerError') error = handleMongoError(error);
+    if (error.name === 'RedisError') error = handleRedisError(error);
 
     sendErrorProd(error, res, req);
   }

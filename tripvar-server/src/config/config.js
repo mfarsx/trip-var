@@ -21,7 +21,8 @@ const requiredEnvVars = [
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
-  console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  // Use process.stderr for critical startup errors before logger is available
+  process.stderr.write(`Missing required environment variables: ${missingEnvVars.join(', ')}\n`);
   process.exit(1);
 }
 
@@ -41,13 +42,9 @@ const config = {
   database: {
     uri: process.env.MONGODB_URI,
     options: {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE, 10) || 10,
       serverSelectionTimeoutMS: parseInt(process.env.DB_SERVER_SELECTION_TIMEOUT, 10) || 5000,
-      socketTimeoutMS: parseInt(process.env.DB_SOCKET_TIMEOUT, 10) || 45000,
-      bufferMaxEntries: 0,
-      bufferCommands: false
+      socketTimeoutMS: parseInt(process.env.DB_SOCKET_TIMEOUT, 10) || 45000
     }
   },
 
@@ -155,8 +152,9 @@ const validateConfig = () => {
   }
 
   if (errors.length > 0) {
-    console.error('Configuration validation errors:');
-    errors.forEach(error => console.error(`- ${error}`));
+    // Use process.stderr for critical startup errors before logger is available
+    process.stderr.write('Configuration validation errors:\n');
+    errors.forEach(error => process.stderr.write(`- ${error}\n`));
     process.exit(1);
   }
 };

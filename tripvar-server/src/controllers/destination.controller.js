@@ -1,5 +1,6 @@
 const Destination = require("../models/destination.model");
 const { ValidationError } = require("../utils/errors");
+const { info } = require("../utils/logger");
 
 const destinationController = {
   // Get all destinations
@@ -43,21 +44,21 @@ const destinationController = {
       if (from) {
         // We could use this to filter based on proximity or routes
         // For now, we'll just log it
-        console.log(`Search request with departure location: ${from}`);
+        info(`Search request with departure location: ${from}`);
       }
       
       // If date is provided
       if (date) {
         // In a real app, you would filter based on availability on this date
         // For now, we'll just log it
-        console.log(`Search request for date: ${date}`);
+        info(`Search request for date: ${date}`);
       }
       
       // If guests count is provided
       if (guests) {
         // In a real app, you would filter based on capacity
         // For now, we'll just log it
-        console.log(`Search request for ${guests}`);
+        info(`Search request for ${guests} guests`);
       }
       
       // Add search conditions to query if any exist
@@ -68,7 +69,7 @@ const destinationController = {
       const destinations = await Destination.find(query);
       
       // Log the search for analytics purposes
-      console.log(`Search performed with params:`, {
+      info('Search performed', {
         category, featured, search, from, to, date, guests,
         resultsCount: destinations.length
       });

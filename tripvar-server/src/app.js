@@ -1,23 +1,43 @@
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
 const routes = require("./routes");
 const healthRoutes = require("./routes/health.routes");
 const errorHandler = require("./middleware/errorHandler");
-const requestLogger = require("./middleware/requestLogger");
+const { requestLogger, addRequestId } = require("./utils/logger");
+const { redisSession } = require("./middleware/redisCache");
 const { NotFoundError } = require("./utils/errors");
 const { error } = require("./utils/logger");
 const connectDB = require("./config/database");
+const { connectRedis } = require("./config/redis");
+const { securityConfig } = require("./config/security");
+const config = require("./config");
 
 const app = express();
 
 // Connect to MongoDB
 connectDB();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Connect to Redis
+connectRedis().catch((err) => {
+  error("Failed to connect to Redis", { error: err.message });
+  // Don't exit the process, continue without Redis
+});
+
+// Security middleware
+app.use(securityConfig.helmet);
+app.use(compression());
+app.use(cors(securityConfig.corsOptions));
+app.use(securityConfig.generalLimiter);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Logging and session middleware
+app.use(addRequestId);
 app.use(requestLogger);
+app.use(redisSession());
 
 // Health check routes (outside of versioned API)
 app.use("/health", healthRoutes);

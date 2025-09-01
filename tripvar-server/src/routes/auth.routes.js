@@ -1,12 +1,24 @@
 const express = require("express");
 const authController = require("../controllers/auth.controller");
 const { protect } = require("../middleware/auth");
+const { securityConfig, validateRequest, validationRules } = require("../config/security");
 
 const router = express.Router();
 
-// Public routes
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+// Public routes with strict rate limiting and validation
+router.post("/register", 
+  securityConfig.authLimiter,
+  [validationRules.email, validationRules.password, validationRules.name],
+  validateRequest,
+  authController.register
+);
+
+router.post("/login", 
+  securityConfig.authLimiter,
+  [validationRules.email],
+  validateRequest,
+  authController.login
+);
 
 // Protected routes (everything after this middleware requires authentication)
 router.use(protect);

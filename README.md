@@ -236,24 +236,44 @@ npm run lint     # Run ESLint
 
 ## 🚀 Deployment
 
-### Production Build
+### Development
 
 ```bash
-# Build client
-cd tripvar-client
-npm run build
-
-# Start server
-cd ../tripvar-server
-npm run start
+# Start development environment
+docker-compose up --build
 ```
 
-### Docker Production
+### Production Deployment
+
+For production deployment, see our comprehensive [Production Deployment Guide](PRODUCTION.md).
+
+**Quick Production Setup:**
 
 ```bash
-# Build production images
-docker-compose -f docker-compose.prod.yml up --build
+# 1. Configure environment files
+cp tripvar-server/.env.example tripvar-server/.env.prod
+cp tripvar-client/.env.example tripvar-client/.env.prod
+
+# 2. Edit production environment variables
+nano tripvar-server/.env.prod
+nano tripvar-client/.env.prod
+
+# 3. Deploy to production
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh deploy
 ```
+
+**Production Features:**
+- ✅ SSL/HTTPS support
+- ✅ Security hardening (Helmet, Rate Limiting, CORS)
+- ✅ Enhanced logging and monitoring
+- ✅ Health checks and metrics
+- ✅ Automated backups
+- ✅ CI/CD pipeline
+- ✅ Performance optimizations
+- ✅ Database connection pooling
+- ✅ Redis caching
+- ✅ Docker multi-stage builds
 
 ## 🤝 Contributing
 

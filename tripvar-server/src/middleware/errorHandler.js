@@ -1,4 +1,6 @@
 const { AppError } = require('../utils/errors');
+const { error, warn } = require('../utils/logger');
+const config = require('../config');
 
 const handleCastErrorDB = err => {
   const message = `Invalid ${err.path}: ${err.value}`;
@@ -26,23 +28,35 @@ const sendErrorDev = (err, res) => {
   });
 };
 
-const sendErrorProd = (err, res) => {
+const sendErrorProd = (err, res, req) => {
   // Operational, trusted error: send message to client
   if (err.isOperational) {
     res.status(err.statusCode).json({
       status: err.status,
-      message: err.message
+      message: err.message,
+      requestId: req.requestId,
+      timestamp: new Date().toISOString()
     });
   } 
   // Programming or other unknown error: don't leak error details
   else {
     // Log error for debugging
-    console.error('ERROR 💥', err);
+    error('Unhandled error', {
+      error: err.message,
+      stack: err.stack,
+      requestId: req.requestId,
+      url: req.url,
+      method: req.method,
+      userAgent: req.get('User-Agent'),
+      ip: req.ip
+    });
 
     // Send generic message
     res.status(500).json({
       status: 'error',
-      message: 'Something went very wrong!'
+      message: 'Something went very wrong!',
+      requestId: req.requestId,
+      timestamp: new Date().toISOString()
     });
   }
 };
@@ -52,7 +66,27 @@ module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  if (process.env.NODE_ENV === 'development') {
+  // Log all errors
+  if (err.statusCode >= 500) {
+    error('Server error', {
+      error: err.message,
+      stack: config.server.isDevelopment ? err.stack : undefined,
+      requestId: req.requestId,
+      url: req.url,
+      method: req.method,
+      statusCode: err.statusCode
+    });
+  } else {
+    warn('Client error', {
+      error: err.message,
+      requestId: req.requestId,
+      url: req.url,
+      method: req.method,
+      statusCode: err.statusCode
+    });
+  }
+
+  if (config.server.isDevelopment) {
     sendErrorDev(err, res);
   } else {
     let error = { ...err };
@@ -62,7 +96,11 @@ module.exports = (err, req, res, next) => {
     if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
     if (error.name === 'JsonWebTokenError') error = handleJWTError();
     if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
+    if (error.name === 'MongoError' && error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      error = new AppError(`Duplicate ${field}: ${error.keyValue[field]}`, 400);
+    }
 
-    sendErrorProd(error, res);
+    sendErrorProd(error, res, req);
   }
 };

@@ -1,226 +1,256 @@
 const winston = require('winston');
+const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
-const fs = require('fs');
 const config = require('../config/config');
 
-// Ensure logs directory exists
-const logsDir = path.dirname(config.logging.filePath);
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
-
-// Custom format for structured logging
-const structuredFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+// Custom log format
+const logFormat = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
-  winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
-    const logEntry = {
-      timestamp,
-      level,
-      message,
-      service: 'tripvar-server',
-      environment: config.server.nodeEnv,
-      pid: process.pid,
-      ...meta
-    };
+  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+    let log = `${timestamp} [${level.toUpperCase()}]: ${message}`;
     
-    if (stack) {
-      logEntry.stack = stack;
+    if (Object.keys(meta).length > 0) {
+      log += ` ${JSON.stringify(meta)}`;
     }
     
-    return JSON.stringify(logEntry);
+    return log;
   })
 );
 
-// Console format for development
-const consoleFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'HH:mm:ss' }),
-  winston.format.colorize(),
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    const metaStr = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
-    return `${timestamp} [${level}]: ${message} ${metaStr}`;
-  })
-);
-
-// Create transports array
-const transports = [];
-
-// Console transport
-transports.push(
-  new winston.transports.Console({
-    format: config.server.isDevelopment ? consoleFormat : structuredFormat,
-    stderrLevels: ['error'],
-    level: config.logging.level
-  })
-);
-
-// File transport for production
-if (config.server.isProduction) {
-  // Error log file
-  transports.push(
-    new winston.transports.File({
-      filename: path.join(logsDir, 'error.log'),
-      level: 'error',
-      format: structuredFormat,
-      maxsize: config.logging.maxSize,
-      maxFiles: config.logging.maxFiles,
-      tailable: true
-    })
-  );
-
-  // Combined log file
-  transports.push(
-    new winston.transports.File({
-      filename: config.logging.filePath,
-      format: structuredFormat,
-      maxsize: config.logging.maxSize,
-      maxFiles: config.logging.maxFiles,
-      tailable: true
-    })
-  );
-
-  // Daily rotating file transport
-  transports.push(
-    new winston.transports.DailyRotateFile({
-      filename: path.join(logsDir, 'application-%DATE%.log'),
-      datePattern: config.logging.datePattern,
-      format: structuredFormat,
-      maxSize: config.logging.maxSize,
-      maxFiles: config.logging.maxFiles,
-      zippedArchive: true
-    })
-  );
-}
+// Create logs directory if it doesn't exist
+const logsDir = path.join(__dirname, '../../logs');
 
 // Create logger instance
 const logger = winston.createLogger({
-  level: config.logging.level,
-  format: structuredFormat,
-  transports,
-  exitOnError: false,
-  silent: config.server.isTest
+  level: config.server.isDevelopment ? 'debug' : 'info',
+  format: logFormat,
+  defaultMeta: { service: 'tripvar-server' },
+  transports: [
+    // Console transport
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    }),
+    
+    // Error log file
+    new DailyRotateFile({
+      filename: path.join(logsDir, 'error-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      level: 'error',
+      maxSize: '20m',
+      maxFiles: '14d',
+      zippedArchive: true
+    }),
+    
+    // Combined log file
+    new DailyRotateFile({
+      filename: path.join(logsDir, 'combined-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxSize: '20m',
+      maxFiles: '14d',
+      zippedArchive: true
+    }),
+    
+    // Access log file
+    new DailyRotateFile({
+      filename: path.join(logsDir, 'access-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      level: 'http',
+      maxSize: '20m',
+      maxFiles: '7d',
+      zippedArchive: true
+    })
+  ],
+  
+  // Handle uncaught exceptions
+  exceptionHandlers: [
+    new winston.transports.File({ 
+      filename: path.join(logsDir, 'exceptions.log') 
+    })
+  ],
+  
+  // Handle unhandled promise rejections
+  rejectionHandlers: [
+    new winston.transports.File({ 
+      filename: path.join(logsDir, 'rejections.log') 
+    })
+  ]
 });
 
-// Add request ID to logs
+// Add custom log levels
+logger.add(new winston.transports.Console({
+  level: 'http',
+  format: winston.format.combine(
+    winston.format.colorize(),
+    winston.format.simple()
+  )
+}));
+
+// Request logging middleware
+const requestLogger = (req, res, next) => {
+  const start = Date.now();
+  
+  // Log request
+  logger.http('Incoming request', {
+    method: req.method,
+    url: req.url,
+    userAgent: req.get('User-Agent'),
+    ip: req.ip,
+    requestId: req.requestId
+  });
+  
+  // Override res.end to log response
+  const originalEnd = res.end;
+  res.end = function(chunk, encoding) {
+    const duration = Date.now() - start;
+    
+    logger.http('Request completed', {
+      method: req.method,
+      url: req.url,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+      requestId: req.requestId
+    });
+    
+    originalEnd.call(this, chunk, encoding);
+  };
+  
+  next();
+};
+
+// Add request ID middleware
 const addRequestId = (req, res, next) => {
   req.requestId = req.headers['x-request-id'] || 
-    req.headers['x-correlation-id'] || 
-    `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                  req.headers['x-correlation-id'] || 
+                  `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   res.setHeader('X-Request-ID', req.requestId);
   next();
 };
 
-// Enhanced logging functions with context
-const createLoggerWithContext = (context = {}) => ({
-  info: (message, meta = {}) => logger.info(message, { ...context, ...meta }),
-  error: (message, meta = {}) => logger.error(message, { ...context, ...meta }),
-  warn: (message, meta = {}) => logger.warn(message, { ...context, ...meta }),
-  debug: (message, meta = {}) => logger.debug(message, { ...context, ...meta }),
-  http: (message, meta = {}) => logger.http(message, { ...context, ...meta })
-});
-
-// Request logger middleware
-const requestLogger = (req, res, next) => {
-  const start = Date.now();
-  const requestId = req.requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
-  req.requestId = requestId;
-  res.setHeader('X-Request-ID', requestId);
-
-  const logContext = {
-    requestId,
-    method: req.method,
-    url: req.url,
-    userAgent: req.get('User-Agent'),
-    ip: req.ip || req.connection.remoteAddress,
-    userId: req.user?.id
-  };
-
-  logger.info('Request started', logContext);
-
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    const responseContext = {
-      ...logContext,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      contentLength: res.get('Content-Length')
-    };
-
-    if (res.statusCode >= 400) {
-      logger.warn('Request completed with error', responseContext);
-    } else {
-      logger.info('Request completed', responseContext);
-    }
-  });
-
-  next();
+// Structured logging methods
+const info = (message, meta = {}) => {
+  logger.info(message, meta);
 };
 
-// Performance logger
-const performanceLogger = (operation, startTime, meta = {}) => {
-  const duration = Date.now() - startTime;
-  logger.info(`Performance: ${operation}`, {
+const error = (message, meta = {}) => {
+  logger.error(message, meta);
+};
+
+const warn = (message, meta = {}) => {
+  logger.warn(message, meta);
+};
+
+const debug = (message, meta = {}) => {
+  logger.debug(message, meta);
+};
+
+const http = (message, meta = {}) => {
+  logger.http(message, meta);
+};
+
+// Performance logging
+const performance = (operation, duration, meta = {}) => {
+  logger.info('Performance metric', {
     operation,
     duration: `${duration}ms`,
     ...meta
   });
 };
 
-// Security logger
-const securityLogger = {
-  loginAttempt: (email, success, ip, userAgent) => {
-    logger.warn('Login attempt', {
-      event: 'login_attempt',
-      email,
-      success,
-      ip,
-      userAgent,
-      timestamp: new Date().toISOString()
-    });
-  },
-  
-  suspiciousActivity: (activity, ip, userAgent, userId) => {
-    logger.error('Suspicious activity detected', {
-      event: 'suspicious_activity',
-      activity,
-      ip,
-      userAgent,
-      userId,
-      timestamp: new Date().toISOString()
-    });
-  },
-  
-  rateLimitExceeded: (ip, endpoint, limit) => {
-    logger.warn('Rate limit exceeded', {
-      event: 'rate_limit_exceeded',
-      ip,
-      endpoint,
-      limit,
-      timestamp: new Date().toISOString()
-    });
+// Security logging
+const security = (event, meta = {}) => {
+  logger.warn('Security event', {
+    event,
+    ...meta
+  });
+};
+
+// Business logic logging
+const business = (event, meta = {}) => {
+  logger.info('Business event', {
+    event,
+    ...meta
+  });
+};
+
+// Database logging
+const database = (operation, duration, meta = {}) => {
+  logger.debug('Database operation', {
+    operation,
+    duration: `${duration}ms`,
+    ...meta
+  });
+};
+
+// API logging
+const api = (endpoint, method, statusCode, duration, meta = {}) => {
+  logger.info('API call', {
+    endpoint,
+    method,
+    statusCode,
+    duration: `${duration}ms`,
+    ...meta
+  });
+};
+
+// Error logging with context
+const logError = (error, context = {}) => {
+  logger.error('Application error', {
+    message: error.message,
+    stack: error.stack,
+    name: error.name,
+    ...context
+  });
+};
+
+// Audit logging
+const audit = (action, user, resource, meta = {}) => {
+  logger.info('Audit log', {
+    action,
+    user: user?.id || 'anonymous',
+    resource,
+    timestamp: new Date().toISOString(),
+    ...meta
+  });
+};
+
+// Health check logging
+const health = (component, status, meta = {}) => {
+  logger.info('Health check', {
+    component,
+    status,
+    ...meta
+  });
+};
+
+// Custom stream for Morgan HTTP logging
+const morganStream = {
+  write: (message) => {
+    logger.http(message.trim());
   }
 };
 
-// Create wrapper functions for common log levels
-const info = (message, meta = {}) => logger.info(message, meta);
-const error = (message, meta = {}) => logger.error(message, meta);
-const warn = (message, meta = {}) => logger.warn(message, meta);
-const debug = (message, meta = {}) => logger.debug(message, meta);
-const http = (message, meta = {}) => logger.http(message, meta);
-
 module.exports = {
   logger,
+  requestLogger,
+  addRequestId,
   info,
   error,
   warn,
   debug,
   http,
-  addRequestId,
-  requestLogger,
-  performanceLogger,
-  securityLogger,
-  createLoggerWithContext
+  performance,
+  security,
+  business,
+  database,
+  api,
+  logError,
+  audit,
+  health,
+  morganStream
 };

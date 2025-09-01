@@ -12,14 +12,8 @@ const process = require('process');
 let healthChecker;
 let redisClient;
 
-// Initialize Redis connection for health checks
-getRedisClient().then(client => {
-  redisClient = client;
-  healthChecker = new HealthChecker(redisClient);
-}).catch(err => {
-  console.warn('Redis not available for health checks:', err.message);
-  healthChecker = new HealthChecker(null);
-});
+// Initialize health checker without Redis initially
+healthChecker = new HealthChecker(null);
 
 // Metrics middleware
 const metricsMiddleware = createMetricsMiddleware();
@@ -200,11 +194,26 @@ router.get('/ready', async (req, res) => {
   try {
     // Check if all critical services are ready
     const dbState = mongoose.connection.readyState;
-    const redisClient = getRedisClient();
-    await redisClient.ping();
+    
+    // Check Redis if available
+    let redisReady = true;
+    try {
+      const redisClient = getRedisClient();
+      await redisClient.ping();
+    } catch (redisError) {
+      redisReady = false;
+      // Redis is not critical for readiness, just log the warning
+      console.warn('Redis not ready:', redisError.message);
+    }
     
     if (dbState === 1) {
-      res.status(200).json({ status: 'ready' });
+      res.status(200).json({ 
+        status: 'ready',
+        services: {
+          database: 'ready',
+          redis: redisReady ? 'ready' : 'not ready'
+        }
+      });
     } else {
       res.status(503).json({ status: 'not ready', reason: 'database not connected' });
     }

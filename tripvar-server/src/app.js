@@ -12,8 +12,12 @@ const connectDB = require("./config/database");
 const { connectRedis } = require("./config/redis");
 const { securityConfig } = require("./config/security");
 const { specs, swaggerUi, swaggerOptions } = require("./config/swagger");
+const { initialize: initializeServices } = require("./container/serviceRegistry");
 
 const app = express();
+
+// Initialize service registry
+initializeServices();
 
 // Connect to MongoDB
 connectDB();

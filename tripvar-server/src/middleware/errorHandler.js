@@ -1,5 +1,5 @@
 const { AppError, createError } = require('../utils/errors');
-const { error, warn } = require('../utils/logger');
+const { error, warn, security } = require('../utils/logger');
 const config = require('../config/config');
 
 const handleCastErrorDB = err => {
@@ -42,6 +42,35 @@ const handleRedisError = err => {
     service: 'redis',
     error: err.message 
   });
+};
+
+const handleRateLimitError = err => {
+  return createError.tooManyRequests('Too many requests, please try again later', {
+    retryAfter: err.retryAfter,
+    limit: err.limit,
+    remaining: err.remaining
+  });
+};
+
+const handleMulterError = err => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return createError.validation('File too large', { 
+      maxSize: err.limit,
+      receivedSize: err.size 
+    });
+  }
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    return createError.validation('Too many files', { 
+      maxFiles: err.limit,
+      receivedFiles: err.files?.length 
+    });
+  }
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return createError.validation('Unexpected file field', { 
+      field: err.field 
+    });
+  }
+  return createError.validation('File upload error', { error: err.message });
 };
 
 const sendErrorDev = (err, res, req) => {
@@ -129,6 +158,18 @@ module.exports = (err, req, res, next) => {
     });
   }
 
+  // Log security-related errors
+  if (err.statusCode === 401 || err.statusCode === 403) {
+    security('Authentication/Authorization error', {
+      error: err.message,
+      requestId: req.requestId,
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+  }
+
   if (config.server.isDevelopment) {
     sendErrorDev(err, res, req);
   } else {
@@ -143,6 +184,8 @@ module.exports = (err, req, res, next) => {
     if (error.name === 'MongoError') error = handleMongoError(error);
     if (error.name === 'MongoServerError') error = handleMongoError(error);
     if (error.name === 'RedisError') error = handleRedisError(error);
+    if (error.name === 'RateLimitError') error = handleRateLimitError(error);
+    if (error.name === 'MulterError') error = handleMulterError(error);
 
     sendErrorProd(error, res, req);
   }

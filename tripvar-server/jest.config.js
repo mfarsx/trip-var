@@ -11,6 +11,9 @@ module.exports = {
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.js'],
   
+  // Load environment variables for tests
+  setupFiles: ['<rootDir>/src/tests/envSetup.js'],
+  
   // Coverage configuration
   collectCoverage: true,
   coverageDirectory: 'coverage',
@@ -52,7 +55,7 @@ module.exports = {
   detectOpenHandles: true,
   
   // Module name mapping for absolute imports
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
   
@@ -69,7 +72,7 @@ module.exports = {
     '/build/'
   ],
   
-  // Global setup and teardown
-  globalSetup: '<rootDir>/src/tests/globalSetup.js',
-  globalTeardown: '<rootDir>/src/tests/globalTeardown.js'
+  // Global setup and teardown (files don't exist, so commented out)
+  // globalSetup: '<rootDir>/src/tests/globalSetup.js',
+  // globalTeardown: '<rootDir>/src/tests/globalTeardown.js'
 };

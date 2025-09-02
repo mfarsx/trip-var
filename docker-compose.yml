@@ -8,13 +8,14 @@ services:
     volumes:
       - mongodb_data:/data/db
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./mongod.conf:/etc/mongod.conf:ro
     environment:
       - MONGO_INITDB_DATABASE=tripvar
-    command: ${MONGO_COMMAND:-mongod --quiet --logpath /dev/null}
+    command: ${MONGO_COMMAND:-mongod --config /etc/mongod.conf}
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"
+        max-size: "5m"
         max-file: "1"
     networks:
       - app-network

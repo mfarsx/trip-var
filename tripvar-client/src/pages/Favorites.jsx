@@ -64,7 +64,7 @@ const Favorites = () => {
               <p className="text-gray-500 mb-6">Start exploring destinations and add them to your favorites!</p>
               <button
                 onClick={() => navigate("/destinations")}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors"
+                className="btn btn-primary"
               >
                 Explore Destinations
               </button>

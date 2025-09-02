@@ -37,7 +37,7 @@ function registerServices() {
 
   // Register repositories
   container.register('UserRepository', UserRepository, [], { singleton: true });
-  
+
   // Register other repositories as factories
   container.registerFactory('DestinationRepository', (Destination) => {
     const DestinationRepository = require('../repositories/destination.repository');
@@ -66,7 +66,7 @@ function registerServices() {
 
   // Register services
   container.register('UserService', UserService, ['UserRepository'], { singleton: true });
-  
+
   // Register other services as factories
   container.registerFactory('DestinationService', (DestinationRepository) => {
     const DestinationService = require('../services/destination.service');
@@ -95,7 +95,7 @@ function registerServices() {
 
   // Register controllers
   container.register('AuthController', AuthController, ['UserService'], { singleton: true });
-  
+
   // Register other controllers as factories
   container.registerFactory('DestinationController', (DestinationService) => {
     const DestinationController = require('../controllers/destination.controller');

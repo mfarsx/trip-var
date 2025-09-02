@@ -38,9 +38,9 @@ const handleMongoError = err => {
 };
 
 const handleRedisError = err => {
-  return createError.serviceUnavailable('Cache service unavailable', { 
+  return createError.serviceUnavailable('Cache service unavailable', {
     service: 'redis',
-    error: err.message 
+    error: err.message
   });
 };
 
@@ -54,20 +54,20 @@ const handleRateLimitError = err => {
 
 const handleMulterError = err => {
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return createError.validation('File too large', { 
+    return createError.validation('File too large', {
       maxSize: err.limit,
-      receivedSize: err.size 
+      receivedSize: err.size
     });
   }
   if (err.code === 'LIMIT_FILE_COUNT') {
-    return createError.validation('Too many files', { 
+    return createError.validation('Too many files', {
       maxFiles: err.limit,
-      receivedFiles: err.files?.length 
+      receivedFiles: err.files?.length
     });
   }
   if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-    return createError.validation('Unexpected file field', { 
-      field: err.field 
+    return createError.validation('Unexpected file field', {
+      field: err.field
     });
   }
   return createError.validation('File upload error', { error: err.message });
@@ -101,7 +101,7 @@ const sendErrorProd = (err, res, req) => {
       requestId: req.requestId,
       timestamp: err.timestamp
     });
-  } 
+  }
   // Programming or other unknown error: don't leak error details
   else {
     // Log error for debugging
@@ -146,7 +146,7 @@ module.exports = (err, req, res, next) => {
       userAgent: req.get('User-Agent'),
       ip: req.ip
     });
-    
+
     // Alert for critical server errors
     if (err.statusCode >= 500) {
       security('CRITICAL SERVER ERROR', {
@@ -190,15 +190,33 @@ module.exports = (err, req, res, next) => {
     error.message = err.message;
 
     // Handle specific error types
-    if (error.name === 'CastError') error = handleCastErrorDB(error);
-    if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
-    if (error.name === 'JsonWebTokenError') error = handleJWTError();
-    if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
-    if (error.name === 'MongoError') error = handleMongoError(error);
-    if (error.name === 'MongoServerError') error = handleMongoError(error);
-    if (error.name === 'RedisError') error = handleRedisError(error);
-    if (error.name === 'RateLimitError') error = handleRateLimitError(error);
-    if (error.name === 'MulterError') error = handleMulterError(error);
+    if (error.name === 'CastError') {
+      error = handleCastErrorDB(error);
+    }
+    if (error.name === 'ValidationError') {
+      error = handleValidationErrorDB(error);
+    }
+    if (error.name === 'JsonWebTokenError') {
+      error = handleJWTError();
+    }
+    if (error.name === 'TokenExpiredError') {
+      error = handleJWTExpiredError();
+    }
+    if (error.name === 'MongoError') {
+      error = handleMongoError(error);
+    }
+    if (error.name === 'MongoServerError') {
+      error = handleMongoError(error);
+    }
+    if (error.name === 'RedisError') {
+      error = handleRedisError(error);
+    }
+    if (error.name === 'RateLimitError') {
+      error = handleRateLimitError(error);
+    }
+    if (error.name === 'MulterError') {
+      error = handleMulterError(error);
+    }
 
     sendErrorProd(error, res, req);
   }

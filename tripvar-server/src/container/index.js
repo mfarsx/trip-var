@@ -16,7 +16,7 @@ class Container {
    */
   register(name, service, options = {}) {
     const { singleton = false, dependencies = [] } = options;
-    
+
     this.services.set(name, {
       service,
       dependencies,
@@ -120,8 +120,8 @@ class Container {
    * @returns {boolean} Registration status
    */
   has(name) {
-    return this.services.has(name) || 
-           this.factories.has(name) || 
+    return this.services.has(name) ||
+           this.factories.has(name) ||
            this.singletons.has(name);
   }
 

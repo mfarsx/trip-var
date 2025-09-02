@@ -97,17 +97,19 @@ const userSchema = new mongoose.Schema({
     required: false,
     validate: {
       validator: function(v) {
-        if (!v) return true; // Allow empty value
+        if (!v) {
+          return true;
+        } // Allow empty value
         const today = new Date();
         const birthDate = new Date(v);
         const age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
-        
+
         // Calculate actual age considering month and day
-        const isOldEnough = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) 
-          ? age - 1 
+        const isOldEnough = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())
+          ? age - 1
           : age;
-          
+
         return isOldEnough >= 20; // Minimum age requirement updated to 20
       },
       message: 'User must be at least 20 years old'
@@ -119,7 +121,9 @@ const userSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(v) {
-        if (!v) return true; // Allow empty value
+        if (!v) {
+          return true;
+        } // Allow empty value
         return COUNTRIES.some(country => country.name === v);
       },
       message: props => `${props.value} is not a valid country name`
@@ -149,14 +153,14 @@ const userSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true,
-  toJSON: { 
+  toJSON: {
     virtuals: true,
     transform: function(doc, ret) {
       delete ret.password; // Always remove password
       return ret;
     }
   },
-  toObject: { 
+  toObject: {
     virtuals: true,
     transform: function(doc, ret) {
       delete ret.password; // Always remove password
@@ -167,7 +171,9 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password')) {
+    return next();
+  }
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
@@ -197,18 +203,20 @@ userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
 
 // Virtual field for age
 userSchema.virtual('age').get(function() {
-  if (!this.dateOfBirth) return null;
-  
+  if (!this.dateOfBirth) {
+    return null;
+  }
+
   const today = new Date();
   const birthDate = new Date(this.dateOfBirth);
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  
+
   // Adjust age if birthday hasn't occurred this year
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  
+
   return age;
 });
 

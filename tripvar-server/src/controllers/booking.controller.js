@@ -1,11 +1,11 @@
-const Booking = require("../models/booking.model");
-const Destination = require("../models/destination.model");
-const { ValidationError, NotFoundError, ConflictError } = require("../utils/errors");
-const { info, error } = require("../utils/logger");
-const NotificationService = require("../services/notification.service");
+const Booking = require('../models/booking.model');
+const Destination = require('../models/destination.model');
+const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
+const { info, error } = require('../utils/logger');
+const NotificationService = require('../services/notification.service');
 
 // Create a new booking
-const createBooking = async (req, res, next) => {
+const createBooking = async(req, res, next) => {
   try {
     const {
       destinationId,
@@ -22,7 +22,7 @@ const createBooking = async (req, res, next) => {
 
     // Validate required fields
     if (!destinationId || !checkInDate || !checkOutDate || !numberOfGuests) {
-      throw new ValidationError("Missing required booking information");
+      throw new ValidationError('Missing required booking information');
     }
 
     // Parse dates
@@ -31,23 +31,23 @@ const createBooking = async (req, res, next) => {
 
     // Validate dates
     if (checkIn <= new Date()) {
-      throw new ValidationError("Check-in date must be in the future");
+      throw new ValidationError('Check-in date must be in the future');
     }
 
     if (checkOut <= checkIn) {
-      throw new ValidationError("Check-out date must be after check-in date");
+      throw new ValidationError('Check-out date must be after check-in date');
     }
 
     // Get destination details
     const destination = await Destination.findById(destinationId);
     if (!destination) {
-      throw new NotFoundError("Destination not found");
+      throw new NotFoundError('Destination not found');
     }
 
     // Check availability
     const isAvailable = await Booking.checkAvailability(destinationId, checkIn, checkOut);
     if (!isAvailable) {
-      throw new ConflictError("Destination is not available for the selected dates");
+      throw new ConflictError('Destination is not available for the selected dates');
     }
 
     // Calculate pricing
@@ -74,11 +74,11 @@ const createBooking = async (req, res, next) => {
 
     // Populate the booking with destination and user details
     await booking.populate([
-      { path: "destination", select: "title location imageUrl" },
-      { path: "user", select: "name email" }
+      { path: 'destination', select: 'title location imageUrl' },
+      { path: 'user', select: 'name email' }
     ]);
 
-    info("New booking created", {
+    info('New booking created', {
       bookingId: booking._id,
       userId,
       destinationId,
@@ -90,7 +90,7 @@ const createBooking = async (req, res, next) => {
       await NotificationService.createBookingConfirmationNotification(userId, booking);
     } catch (notificationError) {
       // Log error but don't fail the booking creation
-      error("Failed to create booking confirmation notification", {
+      error('Failed to create booking confirmation notification', {
         error: notificationError.message,
         bookingId: booking._id,
         userId
@@ -99,20 +99,20 @@ const createBooking = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: "Booking created successfully",
+      message: 'Booking created successfully',
       data: {
         booking: booking
       }
     });
 
   } catch (err) {
-    error("Error creating booking", { error: err.message, userId: req.user?.id });
+    error('Error creating booking', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Get user's bookings
-const getUserBookings = async (req, res, next) => {
+const getUserBookings = async(req, res, next) => {
   try {
     const userId = req.user.id;
     const { status, page = 1, limit = 10 } = req.query;
@@ -128,7 +128,7 @@ const getUserBookings = async (req, res, next) => {
 
     // Get bookings with pagination
     const bookings = await Booking.find(query)
-      .populate("destination", "title location imageUrl rating")
+      .populate('destination', 'title location imageUrl rating')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -149,28 +149,28 @@ const getUserBookings = async (req, res, next) => {
     });
 
   } catch (err) {
-    error("Error fetching user bookings", { error: err.message, userId: req.user?.id });
+    error('Error fetching user bookings', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Get specific booking
-const getBookingById = async (req, res, next) => {
+const getBookingById = async(req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
     const booking = await Booking.findById(id)
-      .populate("destination", "title location imageUrl rating description")
-      .populate("user", "name email");
+      .populate('destination', 'title location imageUrl rating description')
+      .populate('user', 'name email');
 
     if (!booking) {
-      throw new NotFoundError("Booking not found");
+      throw new NotFoundError('Booking not found');
     }
 
     // Check if user owns this booking or is admin
-    if (booking.user._id.toString() !== userId && req.user.role !== "admin") {
-      throw new ValidationError("Access denied");
+    if (booking.user._id.toString() !== userId && req.user.role !== 'admin') {
+      throw new ValidationError('Access denied');
     }
 
     res.json({
@@ -181,55 +181,55 @@ const getBookingById = async (req, res, next) => {
     });
 
   } catch (err) {
-    error("Error fetching booking", { error: err.message, bookingId: req.params.id });
+    error('Error fetching booking', { error: err.message, bookingId: req.params.id });
     next(err);
   }
 };
 
 // Cancel booking
-const cancelBooking = async (req, res, next) => {
+const cancelBooking = async(req, res, next) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
     const userId = req.user.id;
 
-    const booking = await Booking.findById(id).populate("destination");
+    const booking = await Booking.findById(id).populate('destination');
 
     if (!booking) {
-      throw new NotFoundError("Booking not found");
+      throw new NotFoundError('Booking not found');
     }
 
     // Check if user owns this booking
     if (booking.user.toString() !== userId) {
-      throw new ValidationError("Access denied");
+      throw new ValidationError('Access denied');
     }
 
     // Check if booking can be cancelled
-    if (booking.status === "cancelled") {
-      throw new ConflictError("Booking is already cancelled");
+    if (booking.status === 'cancelled') {
+      throw new ConflictError('Booking is already cancelled');
     }
 
-    if (booking.status === "completed") {
-      throw new ConflictError("Cannot cancel completed booking");
+    if (booking.status === 'completed') {
+      throw new ConflictError('Cannot cancel completed booking');
     }
 
     // Calculate refund amount
     const refundAmount = booking.calculateRefund();
 
     // Update booking
-    booking.status = "cancelled";
+    booking.status = 'cancelled';
     booking.cancelledAt = new Date();
     booking.cancellationReason = reason;
     booking.refundAmount = refundAmount;
 
     if (refundAmount > 0) {
-      booking.paymentStatus = "refunded";
+      booking.paymentStatus = 'refunded';
       booking.refundedAt = new Date();
     }
 
     await booking.save();
 
-    info("Booking cancelled", {
+    info('Booking cancelled', {
       bookingId: id,
       userId,
       refundAmount
@@ -240,7 +240,7 @@ const cancelBooking = async (req, res, next) => {
       await NotificationService.createBookingCancellationNotification(userId, booking, refundAmount);
     } catch (notificationError) {
       // Log error but don't fail the cancellation
-      error("Failed to create booking cancellation notification", {
+      error('Failed to create booking cancellation notification', {
         error: notificationError.message,
         bookingId: id,
         userId
@@ -249,7 +249,7 @@ const cancelBooking = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: "Booking cancelled successfully",
+      message: 'Booking cancelled successfully',
       data: {
         booking,
         refundAmount
@@ -257,28 +257,32 @@ const cancelBooking = async (req, res, next) => {
     });
 
   } catch (err) {
-    error("Error cancelling booking", { error: err.message, bookingId: req.params.id });
+    error('Error cancelling booking', { error: err.message, bookingId: req.params.id });
     next(err);
   }
 };
 
 // Get all bookings (admin only)
-const getAllBookings = async (req, res, next) => {
+const getAllBookings = async(req, res, next) => {
   try {
     const { status, page = 1, limit = 20, destinationId } = req.query;
 
     // Build query
     const query = {};
-    if (status) query.status = status;
-    if (destinationId) query.destination = destinationId;
+    if (status) {
+      query.status = status;
+    }
+    if (destinationId) {
+      query.destination = destinationId;
+    }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Get bookings with pagination
     const bookings = await Booking.find(query)
-      .populate("destination", "title location")
-      .populate("user", "name email")
+      .populate('destination', 'title location')
+      .populate('user', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -299,31 +303,31 @@ const getAllBookings = async (req, res, next) => {
     });
 
   } catch (err) {
-    error("Error fetching all bookings", { error: err.message });
+    error('Error fetching all bookings', { error: err.message });
     next(err);
   }
 };
 
 // Update booking status (admin only)
-const updateBookingStatus = async (req, res, next) => {
+const updateBookingStatus = async(req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ["confirmed", "cancelled", "completed", "no-show"];
+    const validStatuses = ['confirmed', 'cancelled', 'completed', 'no-show'];
     if (!validStatuses.includes(status)) {
-      throw new ValidationError("Invalid booking status");
+      throw new ValidationError('Invalid booking status');
     }
 
     const booking = await Booking.findById(id);
     if (!booking) {
-      throw new NotFoundError("Booking not found");
+      throw new NotFoundError('Booking not found');
     }
 
     booking.status = status;
     await booking.save();
 
-    info("Booking status updated", {
+    info('Booking status updated', {
       bookingId: id,
       newStatus: status,
       adminId: req.user.id
@@ -331,25 +335,25 @@ const updateBookingStatus = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: "Booking status updated successfully",
+      message: 'Booking status updated successfully',
       data: {
         booking
       }
     });
 
   } catch (err) {
-    error("Error updating booking status", { error: err.message, bookingId: req.params.id });
+    error('Error updating booking status', { error: err.message, bookingId: req.params.id });
     next(err);
   }
 };
 
 // Check availability for a destination
-const checkAvailability = async (req, res, next) => {
+const checkAvailability = async(req, res, next) => {
   try {
     const { destinationId, checkInDate, checkOutDate } = req.query;
 
     if (!destinationId || !checkInDate || !checkOutDate) {
-      throw new ValidationError("Missing required parameters");
+      throw new ValidationError('Missing required parameters');
     }
 
     const checkIn = new Date(checkInDate);
@@ -367,7 +371,7 @@ const checkAvailability = async (req, res, next) => {
     });
 
   } catch (err) {
-    error("Error checking availability", { error: err.message });
+    error('Error checking availability', { error: err.message });
     next(err);
   }
 };

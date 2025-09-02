@@ -1,12 +1,12 @@
-const express = require("express");
-const { authenticate } = require("../middleware/auth");
-const { validateRequest, validationRules } = require("../config/security");
+const express = require('express');
+const { authenticate } = require('../middleware/auth');
+const { validateRequest, validationRules } = require('../config/security');
 const {
   processPayment,
   getPaymentStatus,
   processRefund,
   getPaymentHistory
-} = require("../controllers/payment.controller");
+} = require('../controllers/payment.controller');
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Payment processing routes
-router.post("/booking/:bookingId/process", 
+router.post('/booking/:bookingId/process',
   [
     validationRules.paymentMethod,
     validationRules.paymentDetails
@@ -23,9 +23,9 @@ router.post("/booking/:bookingId/process",
   processPayment
 );
 
-router.get("/booking/:bookingId/status", getPaymentStatus);
+router.get('/booking/:bookingId/status', getPaymentStatus);
 
-router.post("/booking/:bookingId/refund", 
+router.post('/booking/:bookingId/refund',
   [
     validationRules.refundReason
   ],
@@ -33,6 +33,6 @@ router.post("/booking/:bookingId/refund",
   processRefund
 );
 
-router.get("/history", getPaymentHistory);
+router.get('/history', getPaymentHistory);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const express = require("express");
+const express = require('express');
 const {
   createBooking,
   getUserBookings,
@@ -7,8 +7,8 @@ const {
   getAllBookings,
   updateBookingStatus,
   checkAvailability
-} = require("../controllers/booking.controller");
-const { authenticate, authorize } = require("../middleware/auth");
+} = require('../controllers/booking.controller');
+const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -16,17 +16,17 @@ const router = express.Router();
 router.use(authenticate);
 
 // User booking routes
-router.post("/", createBooking);
-router.get("/my-bookings", getUserBookings);
+router.post('/', createBooking);
+router.get('/my-bookings', getUserBookings);
 
 // Availability check (must come before /:id route)
-router.get("/check/availability", checkAvailability);
+router.get('/check/availability', checkAvailability);
 
-router.get("/:id", getBookingById);
-router.put("/:id/cancel", cancelBooking);
+router.get('/:id', getBookingById);
+router.put('/:id/cancel', cancelBooking);
 
 // Admin routes
-router.get("/admin/all", authorize("admin"), getAllBookings);
-router.put("/admin/:id/status", authorize("admin"), updateBookingStatus);
+router.get('/admin/all', authorize('admin'), getAllBookings);
+router.put('/admin/:id/status', authorize('admin'), updateBookingStatus);
 
 module.exports = router;

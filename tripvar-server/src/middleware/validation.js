@@ -7,14 +7,14 @@ const { ValidationError } = require('../utils/errors');
  * @returns {Function} Express middleware function
  */
 const validate = (validations) => {
-  return async (req, res, next) => {
+  return async(req, res, next) => {
     try {
       // Run all validations
       await Promise.all(validations.map(validation => validation.run(req)));
-      
+
       // Check for validation errors
       const errors = validationResult(req);
-      
+
       if (!errors.isEmpty()) {
         const errorMessages = errors.array().map(error => error.msg);
         const errorDetails = errors.array().map(error => ({
@@ -23,15 +23,15 @@ const validate = (validations) => {
           value: error.value,
           location: error.location
         }));
-        
+
         const validationError = new ValidationError(
           `Validation failed: ${errorMessages.join(', ')}`,
           errorDetails
         );
-        
+
         return next(validationError);
       }
-      
+
       next();
     } catch (err) {
       next(err);
@@ -52,23 +52,25 @@ const sanitize = (options = {}) => {
     allowedTags = [],
     maxLength = 1000
   } = options;
-  
+
   return (req, res, next) => {
     const sanitizeString = (str) => {
-      if (typeof str !== 'string') return str;
-      
+      if (typeof str !== 'string') {
+        return str;
+      }
+
       let sanitized = str;
-      
+
       // Trim whitespace
       if (trimStrings) {
         sanitized = sanitized.trim();
       }
-      
+
       // Remove HTML tags
       if (removeHtml) {
         sanitized = sanitized.replace(/<[^>]*>/g, '');
       }
-      
+
       // Remove script tags and javascript: protocols
       if (removeScripts) {
         sanitized = sanitized
@@ -76,28 +78,28 @@ const sanitize = (options = {}) => {
           .replace(/javascript:/gi, '')
           .replace(/on\w+\s*=/gi, '');
       }
-      
+
       // Limit length
       if (sanitized.length > maxLength) {
         sanitized = sanitized.substring(0, maxLength);
       }
-      
+
       return sanitized;
     };
-    
+
     // Sanitize request body
     if (req.body) {
       Object.keys(req.body).forEach(key => {
         if (typeof req.body[key] === 'string') {
           req.body[key] = sanitizeString(req.body[key]);
         } else if (Array.isArray(req.body[key])) {
-          req.body[key] = req.body[key].map(item => 
+          req.body[key] = req.body[key].map(item =>
             typeof item === 'string' ? sanitizeString(item) : item
           );
         }
       });
     }
-    
+
     // Sanitize query parameters
     if (req.query) {
       Object.keys(req.query).forEach(key => {
@@ -106,7 +108,7 @@ const sanitize = (options = {}) => {
         }
       });
     }
-    
+
     // Sanitize URL parameters
     if (req.params) {
       Object.keys(req.params).forEach(key => {
@@ -115,7 +117,7 @@ const sanitize = (options = {}) => {
         }
       });
     }
-    
+
     next();
   };
 };
@@ -133,14 +135,14 @@ const rateLimitValidation = (options = {}) => {
     skipSuccessfulRequests = false,
     skipFailedRequests = false
   } = options;
-  
+
   const requests = new Map();
-  
+
   return (req, res, next) => {
     const key = req.ip || req.connection.remoteAddress;
     const now = Date.now();
     const windowStart = now - windowMs;
-    
+
     // Clean up old entries
     if (requests.has(key)) {
       const userRequests = requests.get(key).filter(timestamp => timestamp > windowStart);
@@ -148,9 +150,9 @@ const rateLimitValidation = (options = {}) => {
     } else {
       requests.set(key, []);
     }
-    
+
     const userRequests = requests.get(key);
-    
+
     // Check if limit exceeded
     if (userRequests.length >= max) {
       return res.status(429).json({
@@ -159,11 +161,11 @@ const rateLimitValidation = (options = {}) => {
         retryAfter: Math.ceil(windowMs / 1000)
       });
     }
-    
+
     // Add current request
     userRequests.push(now);
     requests.set(key, userRequests);
-    
+
     next();
   };
 };
@@ -179,21 +181,21 @@ const fileValidation = (options = {}) => {
     allowedTypes = ['image/jpeg', 'image/png', 'image/gif'],
     maxFiles = 1
   } = options;
-  
+
   return (req, res, next) => {
     try {
       if (!req.files || req.files.length === 0) {
         return next();
       }
-      
+
       const files = Array.isArray(req.files) ? req.files : [req.files];
-      
+
       // Check number of files
       if (files.length > maxFiles) {
         const error = new ValidationError(`Maximum ${maxFiles} file(s) allowed`);
         return next(error);
       }
-      
+
       // Validate each file
       for (const file of files) {
         // Check file size
@@ -201,14 +203,14 @@ const fileValidation = (options = {}) => {
           const error = new ValidationError(`File ${file.name} is too large. Maximum size is ${maxSize / 1024 / 1024}MB`);
           return next(error);
         }
-        
+
         // Check file type
         if (!allowedTypes.includes(file.mimetype)) {
           const error = new ValidationError(`File type ${file.mimetype} is not allowed. Allowed types: ${allowedTypes.join(', ')}`);
           return next(error);
         }
       }
-      
+
       next();
     } catch (err) {
       next(err);
@@ -225,12 +227,12 @@ const validateObjectId = (paramName) => {
   return (req, res, next) => {
     try {
       const id = req.params[paramName];
-      
+
       if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
         const error = new ValidationError(`Invalid ${paramName} format`);
         return next(error);
       }
-      
+
       next();
     } catch (err) {
       next(err);
@@ -247,23 +249,23 @@ const validatePagination = () => {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
-      
+
       if (page < 1) {
         const error = new ValidationError('Page must be a positive integer');
         return next(error);
       }
-      
+
       if (limit < 1 || limit > 100) {
         const error = new ValidationError('Limit must be between 1 and 100');
         return next(error);
       }
-      
+
       req.pagination = {
         page,
         limit,
         skip: (page - 1) * limit
       };
-      
+
       next();
     } catch (err) {
       next(err);

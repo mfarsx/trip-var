@@ -24,7 +24,7 @@ class UserRepository extends BaseRepository {
    */
   async findByEmailWithPassword(email) {
     return this.findOne(
-      { email: email.toLowerCase() }, 
+      { email: email.toLowerCase() },
       { select: '+password' }
     );
   }
@@ -56,7 +56,7 @@ class UserRepository extends BaseRepository {
    * @returns {Promise<Object>} Updated user
    */
   async updatePassword(userId, newPassword) {
-    return this.updateById(userId, { 
+    return this.updateById(userId, {
       password: newPassword,
       passwordChangedAt: new Date()
     });
@@ -94,13 +94,13 @@ class UserRepository extends BaseRepository {
    */
   async toggleFavorite(userId, destinationId) {
     const user = await this.findById(userId);
-    
+
     if (!user) {
       throw new NotFoundError('User not found');
     }
 
     const isFavorite = user.favorites.includes(destinationId);
-    
+
     if (isFavorite) {
       await this.removeFavorite(userId, destinationId);
     } else {
@@ -109,7 +109,7 @@ class UserRepository extends BaseRepository {
 
     // Get updated user
     const updatedUser = await this.findById(userId);
-    
+
     return {
       user: updatedUser,
       isFavorite: !isFavorite
@@ -126,7 +126,7 @@ class UserRepository extends BaseRepository {
       populate: 'favorites',
       select: 'favorites'
     });
-    
+
     if (!user) {
       throw new NotFoundError('User not found');
     }
@@ -202,7 +202,7 @@ class UserRepository extends BaseRepository {
    */
   async updateRole(userId, role) {
     const allowedRoles = ['user', 'admin'];
-    
+
     if (!allowedRoles.includes(role)) {
       throw new ValidationError(`Invalid role. Allowed roles: ${allowedRoles.join(', ')}`);
     }

@@ -40,7 +40,7 @@ class HealthCheckResult {
 
   addComponent(component) {
     this.components.push(component);
-    
+
     // Update overall status based on component status
     if (component.status === HealthStatus.UNHEALTHY) {
       this.status = HealthStatus.UNHEALTHY;
@@ -66,7 +66,7 @@ class HealthCheckResult {
  */
 async function checkDatabase() {
   const startTime = Date.now();
-  
+
   try {
     // Check connection status
     if (mongoose.connection.readyState !== 1) {
@@ -112,10 +112,10 @@ async function checkDatabase() {
  */
 async function checkRedis() {
   const startTime = Date.now();
-  
+
   try {
     const client = getRedisClient();
-    
+
     if (!client) {
       return new ComponentHealth(
         'redis',
@@ -203,7 +203,7 @@ function checkMemory() {
 function checkCPU() {
   const cpuUsage = process.cpuUsage();
   const totalUsage = cpuUsage.user + cpuUsage.system;
-  
+
   // This is a simplified CPU check - in production, you might want to use a more sophisticated approach
   return new ComponentHealth(
     'cpu',
@@ -237,11 +237,11 @@ function checkDiskSpace() {
  */
 async function checkExternalDependencies() {
   const dependencies = [];
-  
+
   // Check if required environment variables are set
   const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
   const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-  
+
   if (missingEnvVars.length > 0) {
     dependencies.push(new ComponentHealth(
       'environment',
@@ -265,7 +265,7 @@ async function checkExternalDependencies() {
  */
 async function performHealthCheck() {
   const result = new HealthCheckResult();
-  
+
   try {
     // Check core components
     result.addComponent(await checkDatabase());
@@ -273,11 +273,11 @@ async function performHealthCheck() {
     result.addComponent(checkMemory());
     result.addComponent(checkCPU());
     result.addComponent(checkDiskSpace());
-    
+
     // Check external dependencies
     const externalDeps = await checkExternalDependencies();
     externalDeps.forEach(dep => result.addComponent(dep));
-    
+
     // Log health check result
     health('Health check completed', {
       status: result.status,
@@ -285,7 +285,7 @@ async function performHealthCheck() {
       unhealthy: result.components.filter(c => c.status === HealthStatus.UNHEALTHY).length,
       degraded: result.components.filter(c => c.status === HealthStatus.DEGRADED).length
     });
-    
+
     return result;
   } catch (error) {
     result.status = HealthStatus.UNHEALTHY;
@@ -295,7 +295,7 @@ async function performHealthCheck() {
       'Health check failed',
       { error: error.message }
     ));
-    
+
     return result;
   }
 }
@@ -303,14 +303,14 @@ async function performHealthCheck() {
 /**
  * Health check middleware
  */
-const healthCheckMiddleware = async (req, res, next) => {
+const healthCheckMiddleware = async(req, res, next) => {
   try {
     const healthResult = await performHealthCheck();
-    
+
     // Set appropriate HTTP status code
-    const statusCode = healthResult.status === HealthStatus.HEALTHY ? 200 : 
-                      healthResult.status === HealthStatus.DEGRADED ? 200 : 503;
-    
+    const statusCode = healthResult.status === HealthStatus.HEALTHY ? 200 :
+      healthResult.status === HealthStatus.DEGRADED ? 200 : 503;
+
     res.status(statusCode).json(healthResult.toJSON());
   } catch (error) {
     res.status(503).json({
@@ -336,11 +336,11 @@ const livenessProbe = (req, res) => {
 /**
  * Readiness probe - check if the application is ready to serve traffic
  */
-const readinessProbe = async (req, res) => {
+const readinessProbe = async(req, res) => {
   try {
     // Quick check of critical components
     const dbHealthy = mongoose.connection.readyState === 1;
-    
+
     if (dbHealthy) {
       res.status(200).json({
         status: 'ready',

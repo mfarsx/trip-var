@@ -1,93 +1,97 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { logout } from "../store/slices/authSlice";
-import { fetchDestinations } from "../store/slices/destinationSlice";
 import Header from "../components/header/Header";
 import HeroSection from "../components/hero/HeroSection";
 import SearchSection from "../components/search/SearchSection";
-import DestinationsGrid from "../components/destinations/DestinationsGrid";
+import DestinationsSection from "../components/sections/DestinationsSection";
 import FeaturesSection from "../components/sections/FeaturesSection";
 import CTASection from "../components/sections/CTASection";
 import Footer from "../components/layout/Footer";
-import { destinationApi } from "../services/api";
-import toast from "react-hot-toast";
+import { useDestinations } from "../hooks/useDestinations";
+import { useDestinationFilters } from "../hooks/useDestinationFilters";
+import { useSearch } from "../hooks/useSearch";
+import { useCarousel } from "../hooks/useCarousel";
+import { useDestinationActions } from "../hooks/useDestinationActions";
 
 export default function Home() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { destinations } = useSelector((state) => state.destinations);
-  const [searchParams, setSearchParams] = useState({
-    from: "",
-    to: "",
-    date: "",
-    guests: "1 Guest",
-  });
-  const [filteredDestinations, setFilteredDestinations] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    dispatch(fetchDestinations({ featured: true }));
-  }, [dispatch]);
-
-  useEffect(() => {
-    setFilteredDestinations(destinations);
-  }, [destinations]);
-
-  const handleSearch = async () => {
-    // Validate search parameters
-    if (!searchParams.to.trim()) {
-      toast.error("Please enter a destination");
-      return;
-    }
-    
-    try {
-      setIsSearching(true);
-      
-      // Use the backend search API
-      const response = await destinationApi.searchDestinations(searchParams);
-      
-      if (response.data.destinations.length === 0) {
-        toast.error("No destinations found matching your criteria");
-        return;
-      }
-      
-      setFilteredDestinations(response.data.destinations);
-      toast.success(`Found ${response.data.destinations.length} destinations`);
-    } catch (error) {
-      console.error("Search error:", error);
-      toast.error("Error searching for destinations");
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleDestinationClick = (destinationId) => {
-    navigate(`/destinations/${destinationId}`);
-  };
+  // Custom hooks
+  const {
+    destinations,
+    filteredDestinations,
+    setFilteredDestinations,
+    loading,
+  } = useDestinations();
+  const { activeFilter, setActiveFilter, sortBy, setSortBy } =
+    useDestinationFilters(destinations, setFilteredDestinations);
+  const { searchParams, setSearchParams, isSearching, handleSearch } =
+    useSearch();
+  const { itemsPerView, currentIndex, setCurrentIndex } = useCarousel();
+  const {
+    selectedDestinations,
+    setSelectedDestinations,
+    handleDestinationClick,
+    handleCompareToggle,
+    handleQuickBook,
+    handleFilterChange,
+    handleSortChange,
+  } = useDestinationActions();
 
   const handleLogout = () => {
     dispatch(logout());
   };
 
+  const handleSearchWithDestinations = () => {
+    handleSearch(setFilteredDestinations);
+  };
+
+  const handleFilterChangeWithToast = (filter) => {
+    setActiveFilter(filter);
+    handleFilterChange(filter);
+  };
+
+  const handleSortChangeWithToast = (sort) => {
+    setSortBy(sort);
+    handleSortChange(sort);
+  };
+
   return (
     <div className="min-h-screen bg-[#1a1f2d]">
       <Header onLogout={handleLogout} />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <HeroSection />
-        <SearchSection 
+        <SearchSection
           searchParams={searchParams}
           onSearchParamsChange={setSearchParams}
-          onSearch={handleSearch}
+          onSearch={handleSearchWithDestinations}
           isSearching={isSearching}
         />
-        <DestinationsGrid 
-          destinations={filteredDestinations}
+        <DestinationsSection
+          destinations={destinations}
+          filteredDestinations={filteredDestinations}
+          setFilteredDestinations={setFilteredDestinations}
+          loading={loading}
+          activeFilter={activeFilter}
+          sortBy={sortBy}
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          onFilterChange={handleFilterChangeWithToast}
+          onSortChange={handleSortChangeWithToast}
           onDestinationClick={handleDestinationClick}
+          onCompareToggle={handleCompareToggle}
+          onQuickBook={handleQuickBook}
+          selectedDestinations={selectedDestinations}
+          setSelectedDestinations={setSelectedDestinations}
+          itemsPerView={itemsPerView}
+          currentIndex={currentIndex}
+          setCurrentIndex={setCurrentIndex}
+          navigate={navigate}
         />
         <FeaturesSection />
         <CTASection />

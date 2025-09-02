@@ -2,7 +2,7 @@ module.exports = {
   env: {
     node: true,
     es2021: true,
-    jest: true,
+    jest: true
   },
   extends: [
     'eslint:recommended',
@@ -12,7 +12,7 @@ module.exports = {
   plugins: ['security', 'node'],
   parserOptions: {
     ecmaVersion: 12,
-    sourceType: 'module',
+    sourceType: 'module'
   },
   rules: {
     // Error prevention
@@ -24,7 +24,7 @@ module.exports = {
     'no-unsafe-negation': 'error',
     'use-isnan': 'error',
     'valid-typeof': 'error',
-    
+
     // Best practices
     'array-callback-return': 'error',
     'consistent-return': 'error',
@@ -65,14 +65,14 @@ module.exports = {
     'radix': 'error',
     'wrap-iife': 'error',
     'yoda': 'error',
-    
+
     // Variables
     'no-delete-var': 'error',
     'no-label-var': 'error',
     'no-shadow': 'error',
     'no-shadow-restricted-names': 'error',
     'no-use-before-define': 'error',
-    
+
     // Stylistic issues
     'array-bracket-spacing': ['error', 'never'],
     'block-spacing': 'error',
@@ -99,7 +99,7 @@ module.exports = {
     'space-in-parens': 'error',
     'space-infix-ops': 'error',
     'space-unary-ops': 'error',
-    
+
     // Node.js specific
     'node/no-unpublished-require': 'off',
     'node/no-missing-require': 'error',
@@ -109,7 +109,7 @@ module.exports = {
     'node/no-process-exit': 'error',
     'node/no-path-concat': 'error',
     'node/no-sync': 'warn',
-    
+
     // Security
     'security/detect-object-injection': 'warn',
     'security/detect-non-literal-regexp': 'warn',

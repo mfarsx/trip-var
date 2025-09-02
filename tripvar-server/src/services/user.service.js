@@ -16,7 +16,7 @@ class UserService extends BaseService {
     // Check if user already exists
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
-      throw new ValidationError("Email already registered");
+      throw new ValidationError('Email already registered');
     }
 
     // Format dateOfBirth to handle timezone issues
@@ -50,14 +50,14 @@ class UserService extends BaseService {
 
     // Check if email and password exist
     if (!email || !password) {
-      throw new ValidationError("Please provide email and password");
+      throw new ValidationError('Please provide email and password');
     }
 
     // Check if user exists && password is correct
     const user = await userRepository.findByEmailWithPassword(email);
 
     if (!user || !(await user.comparePassword(password))) {
-      throw new UnauthorizedError("Invalid credentials");
+      throw new UnauthorizedError('Invalid credentials');
     }
 
     // Generate token
@@ -75,13 +75,13 @@ class UserService extends BaseService {
    * @returns {Promise<Object>} User profile with computed fields
    */
   async getProfile(userId) {
-    const user = await userRepository.findById(userId, { 
+    const user = await userRepository.findById(userId, {
       select: '-password',
-      lean: true 
+      lean: true
     });
 
     if (!user) {
-      throw new NotFoundError("User not found");
+      throw new NotFoundError('User not found');
     }
 
     // Calculate age if dateOfBirth exists
@@ -110,12 +110,12 @@ class UserService extends BaseService {
     // Don't allow password updates here
     if (updateData.password) {
       throw new ValidationError(
-        "This route is not for password updates. Please use /auth/update-password"
+        'This route is not for password updates. Please use /auth/update-password'
       );
     }
 
     // Filter out unwanted fields that are not allowed to be updated
-    const filteredData = this.filterAllowedFields(updateData, "name", "email", "dateOfBirth", "nationality");
+    const filteredData = this.filterAllowedFields(updateData, 'name', 'email', 'dateOfBirth', 'nationality');
 
     const updatedUser = await userRepository.updateById(userId, filteredData, {
       select: '-password'
@@ -147,17 +147,17 @@ class UserService extends BaseService {
     const { currentPassword, newPassword } = passwordData;
 
     if (!currentPassword || !newPassword) {
-      throw new ValidationError("Please provide current and new password");
+      throw new ValidationError('Please provide current and new password');
     }
 
-    const user = await userRepository.findById(userId, { select: "+password" });
+    const user = await userRepository.findById(userId, { select: '+password' });
 
     if (!user) {
-      throw new NotFoundError("User not found");
+      throw new NotFoundError('User not found');
     }
 
     if (!(await user.comparePassword(currentPassword))) {
-      throw new UnauthorizedError("Current password is incorrect");
+      throw new UnauthorizedError('Current password is incorrect');
     }
 
     await userRepository.updatePassword(userId, newPassword);
@@ -176,7 +176,7 @@ class UserService extends BaseService {
    */
   async deleteAccount(userId) {
     await userRepository.softDelete(userId);
-    
+
     // Clear user-related cache
     await this.clearUserCache(userId);
   }
@@ -188,7 +188,7 @@ class UserService extends BaseService {
    */
   async getAllUsers(options = {}) {
     const { page = 1, limit = 10, active = true } = options;
-    
+
     const result = await userRepository.findActiveWithPagination({}, {
       page,
       limit,
@@ -206,14 +206,14 @@ class UserService extends BaseService {
    */
   async toggleFavorite(userId, destinationId) {
     if (!destinationId) {
-      throw new ValidationError("Destination ID is required");
+      throw new ValidationError('Destination ID is required');
     }
-    
+
     const result = await userRepository.toggleFavorite(userId, destinationId);
-    
+
     // Clear user cache
     await this.clearUserCache(userId);
-    
+
     return {
       isFavorite: result.isFavorite,
       favorites: result.user.favorites
@@ -239,11 +239,11 @@ class UserService extends BaseService {
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   }
 
@@ -256,7 +256,9 @@ class UserService extends BaseService {
   filterAllowedFields(obj, ...allowedFields) {
     const newObj = {};
     Object.keys(obj).forEach((el) => {
-      if (allowedFields.includes(el)) newObj[el] = obj[el];
+      if (allowedFields.includes(el)) {
+        newObj[el] = obj[el];
+      }
     });
     return newObj;
   }
@@ -273,7 +275,7 @@ class UserService extends BaseService {
         `user:profile:${userId}`,
         `user:favorites:${userId}`
       ];
-      
+
       await Promise.all(
         cacheKeys.map(key => this.deleteCachedData(key))
       );
@@ -290,29 +292,29 @@ class UserService extends BaseService {
    */
   async getUserById(userId) {
     const cacheKey = `user:${userId}`;
-    
+
     try {
       // Try to get from cache first
       let user = await this.getCachedData(cacheKey);
-      
+
       if (!user) {
-        user = await userRepository.findById(userId, { 
+        user = await userRepository.findById(userId, {
           select: '-password',
-          lean: true 
+          lean: true
         });
-        
+
         if (user) {
           // Cache for 15 minutes
           await this.cacheData(cacheKey, user, 900);
         }
       }
-      
+
       return user;
     } catch (error) {
       // If cache fails, fall back to database
-      return await userRepository.findById(userId, { 
+      return await userRepository.findById(userId, {
         select: '-password',
-        lean: true 
+        lean: true
       });
     }
   }

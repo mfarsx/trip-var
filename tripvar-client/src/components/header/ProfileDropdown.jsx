@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FiSettings, FiLogOut, FiCalendar } from "react-icons/fi";
+import { FiSettings, FiLogOut, FiCalendar, FiHeart } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import PropTypes from 'prop-types';
 
@@ -24,6 +24,13 @@ export default function ProfileDropdown({ onLogout, onClose }) {
         >
           <FiCalendar className="w-4 h-4" />
           My Bookings
+        </button>
+        <button
+          onClick={() => handleNavigation("/favorites")}
+          className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700/50 rounded-lg flex items-center gap-2"
+        >
+          <FiHeart className="w-4 h-4" />
+          My Favorites
         </button>
         <button
           onClick={() => handleNavigation("/settings")}

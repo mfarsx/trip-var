@@ -1,6 +1,6 @@
-const express = require("express");
-const { authenticate, authorize } = require("../middleware/auth");
-const { validateRequest, validationRules } = require("../config/security");
+const express = require('express');
+const { authenticate, authorize } = require('../middleware/auth');
+const { validateRequest, validationRules } = require('../config/security');
 const {
   getUserNotifications,
   markNotificationsAsRead,
@@ -9,7 +9,7 @@ const {
   getNotificationStats,
   createNotification,
   getAllNotifications
-} = require("../controllers/notification.controller");
+} = require('../controllers/notification.controller');
 
 const router = express.Router();
 
@@ -17,11 +17,11 @@ const router = express.Router();
 router.use(authenticate);
 
 // User notification routes
-router.get("/", getUserNotifications);
-router.get("/stats", getNotificationStats);
-router.get("/:notificationId", getNotificationById);
+router.get('/', getUserNotifications);
+router.get('/stats', getNotificationStats);
+router.get('/:notificationId', getNotificationById);
 
-router.put("/mark-read", 
+router.put('/mark-read',
   [
     validationRules.notificationIds.optional()
   ],
@@ -29,7 +29,7 @@ router.put("/mark-read",
   markNotificationsAsRead
 );
 
-router.delete("/", 
+router.delete('/',
   [
     validationRules.notificationIds
   ],
@@ -38,8 +38,8 @@ router.delete("/",
 );
 
 // Admin routes
-router.post("/admin/create", 
-  authorize("admin"),
+router.post('/admin/create',
+  authorize('admin'),
   [
     validationRules.notificationUserId,
     validationRules.notificationTitle,
@@ -51,6 +51,6 @@ router.post("/admin/create",
   createNotification
 );
 
-router.get("/admin/all", authorize("admin"), getAllNotifications);
+router.get('/admin/all', authorize('admin'), getAllNotifications);
 
 module.exports = router;

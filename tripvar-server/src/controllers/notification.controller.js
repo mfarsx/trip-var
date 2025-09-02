@@ -1,27 +1,33 @@
-const Notification = require("../models/notification.model");
-const { ValidationError, NotFoundError } = require("../utils/errors");
-const { successResponse } = require("../utils/response");
-const { info, error } = require("../utils/logger");
+const Notification = require('../models/notification.model');
+const { ValidationError, NotFoundError } = require('../utils/errors');
+const { successResponse } = require('../utils/response');
+const { info, error } = require('../utils/logger');
 
 // Get user's notifications
-const getUserNotifications = async (req, res, next) => {
+const getUserNotifications = async(req, res, next) => {
   try {
     const userId = req.user.id;
     const { page = 1, limit = 20, type, isRead, priority } = req.query;
 
     // Build query
     const query = { user: userId };
-    if (type) query.type = type;
-    if (isRead !== undefined) query.isRead = isRead === 'true';
-    if (priority) query.priority = priority;
+    if (type) {
+      query.type = type;
+    }
+    if (isRead !== undefined) {
+      query.isRead = isRead === 'true';
+    }
+    if (priority) {
+      query.priority = priority;
+    }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Get notifications with pagination
     const notifications = await Notification.find(query)
-      .populate("booking", "bookingReference checkInDate checkOutDate")
-      .populate("destination", "title location imageUrl")
+      .populate('booking', 'bookingReference checkInDate checkOutDate')
+      .populate('destination', 'title location imageUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -43,18 +49,18 @@ const getUserNotifications = async (req, res, next) => {
             total
           }
         },
-        "Notifications retrieved successfully"
+        'Notifications retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching notifications", { error: err.message, userId: req.user?.id });
+    error('Error fetching notifications', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Mark notifications as read
-const markNotificationsAsRead = async (req, res, next) => {
+const markNotificationsAsRead = async(req, res, next) => {
   try {
     const userId = req.user.id;
     const { notificationIds } = req.body;
@@ -62,7 +68,7 @@ const markNotificationsAsRead = async (req, res, next) => {
     // If no specific IDs provided, mark all as read
     const result = await Notification.markAsRead(userId, notificationIds);
 
-    info("Notifications marked as read", {
+    info('Notifications marked as read', {
       userId,
       notificationIds,
       modifiedCount: result.modifiedCount
@@ -73,24 +79,24 @@ const markNotificationsAsRead = async (req, res, next) => {
         {
           modifiedCount: result.modifiedCount
         },
-        "Notifications marked as read successfully"
+        'Notifications marked as read successfully'
       )
     );
 
   } catch (err) {
-    error("Error marking notifications as read", { error: err.message, userId: req.user?.id });
+    error('Error marking notifications as read', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Delete notifications
-const deleteNotifications = async (req, res, next) => {
+const deleteNotifications = async(req, res, next) => {
   try {
     const userId = req.user.id;
     const { notificationIds } = req.body;
 
     if (!notificationIds || notificationIds.length === 0) {
-      throw new ValidationError("Notification IDs are required");
+      throw new ValidationError('Notification IDs are required');
     }
 
     const result = await Notification.deleteMany({
@@ -98,7 +104,7 @@ const deleteNotifications = async (req, res, next) => {
       user: userId
     });
 
-    info("Notifications deleted", {
+    info('Notifications deleted', {
       userId,
       notificationIds,
       deletedCount: result.deletedCount
@@ -109,18 +115,18 @@ const deleteNotifications = async (req, res, next) => {
         {
           deletedCount: result.deletedCount
         },
-        "Notifications deleted successfully"
+        'Notifications deleted successfully'
       )
     );
 
   } catch (err) {
-    error("Error deleting notifications", { error: err.message, userId: req.user?.id });
+    error('Error deleting notifications', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Get notification by ID
-const getNotificationById = async (req, res, next) => {
+const getNotificationById = async(req, res, next) => {
   try {
     const { notificationId } = req.params;
     const userId = req.user.id;
@@ -129,11 +135,11 @@ const getNotificationById = async (req, res, next) => {
       _id: notificationId,
       user: userId
     })
-      .populate("booking", "bookingReference checkInDate checkOutDate totalAmount")
-      .populate("destination", "title location imageUrl");
+      .populate('booking', 'bookingReference checkInDate checkOutDate totalAmount')
+      .populate('destination', 'title location imageUrl');
 
     if (!notification) {
-      throw new NotFoundError("Notification not found");
+      throw new NotFoundError('Notification not found');
     }
 
     // Mark as read if not already read
@@ -146,18 +152,18 @@ const getNotificationById = async (req, res, next) => {
     res.json(
       successResponse(
         { notification },
-        "Notification retrieved successfully"
+        'Notification retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching notification", { error: err.message, notificationId: req.params.notificationId });
+    error('Error fetching notification', { error: err.message, notificationId: req.params.notificationId });
     next(err);
   }
 };
 
 // Get notification statistics
-const getNotificationStats = async (req, res, next) => {
+const getNotificationStats = async(req, res, next) => {
   try {
     const userId = req.user.id;
 
@@ -168,18 +174,18 @@ const getNotificationStats = async (req, res, next) => {
           _id: null,
           total: { $sum: 1 },
           unread: {
-            $sum: { $cond: [{ $eq: ["$isRead", false] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ['$isRead', false] }, 1, 0] }
           },
           byType: {
             $push: {
-              type: "$type",
-              isRead: "$isRead"
+              type: '$type',
+              isRead: '$isRead'
             }
           },
           byPriority: {
             $push: {
-              priority: "$priority",
-              isRead: "$isRead"
+              priority: '$priority',
+              isRead: '$isRead'
             }
           }
         }
@@ -224,25 +230,25 @@ const getNotificationStats = async (req, res, next) => {
     res.json(
       successResponse(
         { notificationStats },
-        "Notification statistics retrieved successfully"
+        'Notification statistics retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching notification stats", { error: err.message, userId: req.user?.id });
+    error('Error fetching notification stats', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Create notification (admin only)
-const createNotification = async (req, res, next) => {
+const createNotification = async(req, res, next) => {
   try {
     const {
       userId,
       title,
       message,
       type,
-      priority = "medium",
+      priority = 'medium',
       actionUrl,
       actionText,
       expiresAt
@@ -250,7 +256,7 @@ const createNotification = async (req, res, next) => {
 
     // Validate required fields
     if (!userId || !title || !message || !type) {
-      throw new ValidationError("Missing required notification information");
+      throw new ValidationError('Missing required notification information');
     }
 
     const notification = await Notification.createNotification({
@@ -264,7 +270,7 @@ const createNotification = async (req, res, next) => {
       expiresAt: expiresAt ? new Date(expiresAt) : undefined
     });
 
-    info("Notification created", {
+    info('Notification created', {
       notificationId: notification._id,
       userId,
       type,
@@ -274,36 +280,44 @@ const createNotification = async (req, res, next) => {
     res.status(201).json(
       successResponse(
         { notification },
-        "Notification created successfully"
+        'Notification created successfully'
       )
     );
 
   } catch (err) {
-    error("Error creating notification", { error: err.message });
+    error('Error creating notification', { error: err.message });
     next(err);
   }
 };
 
 // Get all notifications (admin only)
-const getAllNotifications = async (req, res, next) => {
+const getAllNotifications = async(req, res, next) => {
   try {
     const { page = 1, limit = 20, userId, type, isRead, priority } = req.query;
 
     // Build query
     const query = {};
-    if (userId) query.user = userId;
-    if (type) query.type = type;
-    if (isRead !== undefined) query.isRead = isRead === 'true';
-    if (priority) query.priority = priority;
+    if (userId) {
+      query.user = userId;
+    }
+    if (type) {
+      query.type = type;
+    }
+    if (isRead !== undefined) {
+      query.isRead = isRead === 'true';
+    }
+    if (priority) {
+      query.priority = priority;
+    }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Get notifications with pagination
     const notifications = await Notification.find(query)
-      .populate("user", "name email")
-      .populate("booking", "bookingReference")
-      .populate("destination", "title location")
+      .populate('user', 'name email')
+      .populate('booking', 'bookingReference')
+      .populate('destination', 'title location')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -321,31 +335,31 @@ const getAllNotifications = async (req, res, next) => {
             total
           }
         },
-        "All notifications retrieved successfully"
+        'All notifications retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching all notifications", { error: err.message });
+    error('Error fetching all notifications', { error: err.message });
     next(err);
   }
 };
 
 // Helper function to create system notifications
-const createSystemNotification = async (userId, type, title, message, options = {}) => {
+const createSystemNotification = async(userId, type, title, message, options = {}) => {
   try {
     const notification = await Notification.createNotification({
       user: userId,
       title,
       message,
       type,
-      priority: options.priority || "medium",
+      priority: options.priority || 'medium',
       actionUrl: options.actionUrl,
       actionText: options.actionText,
       expiresAt: options.expiresAt ? new Date(options.expiresAt) : undefined
     });
 
-    info("System notification created", {
+    info('System notification created', {
       notificationId: notification._id,
       userId,
       type
@@ -353,7 +367,7 @@ const createSystemNotification = async (userId, type, title, message, options = 
 
     return notification;
   } catch (err) {
-    error("Error creating system notification", { error: err.message, userId, type });
+    error('Error creating system notification', { error: err.message, userId, type });
     throw err;
   }
 };

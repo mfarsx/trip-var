@@ -1,12 +1,12 @@
-const Review = require("../models/review.model");
-const Destination = require("../models/destination.model");
-const Booking = require("../models/booking.model");
-const { ValidationError, NotFoundError, ConflictError } = require("../utils/errors");
-const { successResponse } = require("../utils/response");
-const { info, error } = require("../utils/logger");
+const Review = require('../models/review.model');
+const Destination = require('../models/destination.model');
+const Booking = require('../models/booking.model');
+const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
+const { successResponse } = require('../utils/response');
+const { info, error } = require('../utils/logger');
 
 // Create a new review
-const createReview = async (req, res, next) => {
+const createReview = async(req, res, next) => {
   try {
     const {
       destinationId,
@@ -21,13 +21,13 @@ const createReview = async (req, res, next) => {
 
     // Validate required fields
     if (!destinationId || !title || !content || !rating) {
-      throw new ValidationError("Missing required review information");
+      throw new ValidationError('Missing required review information');
     }
 
     // Check if destination exists
     const destination = await Destination.findById(destinationId);
     if (!destination) {
-      throw new NotFoundError("Destination not found");
+      throw new NotFoundError('Destination not found');
     }
 
     // Check if user already reviewed this destination
@@ -37,7 +37,7 @@ const createReview = async (req, res, next) => {
     });
 
     if (existingReview) {
-      throw new ConflictError("You have already reviewed this destination");
+      throw new ConflictError('You have already reviewed this destination');
     }
 
     // If bookingId is provided, verify the booking belongs to the user
@@ -49,7 +49,7 @@ const createReview = async (req, res, next) => {
       });
 
       if (!booking) {
-        throw new ValidationError("Invalid booking reference");
+        throw new ValidationError('Invalid booking reference');
       }
     }
 
@@ -67,9 +67,9 @@ const createReview = async (req, res, next) => {
     await review.save();
 
     // Populate the review with user details
-    await review.populate("user", "name email");
+    await review.populate('user', 'name email');
 
-    info("New review created", {
+    info('New review created', {
       reviewId: review._id,
       userId,
       destinationId,
@@ -79,48 +79,48 @@ const createReview = async (req, res, next) => {
     res.status(201).json(
       successResponse(
         { review },
-        "Review created successfully"
+        'Review created successfully'
       )
     );
 
   } catch (err) {
-    error("Error creating review", { error: err.message, userId: req.user?.id });
+    error('Error creating review', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Get reviews for a destination
-const getDestinationReviews = async (req, res, next) => {
+const getDestinationReviews = async(req, res, next) => {
   try {
     const { destinationId } = req.params;
-    const { page = 1, limit = 10, sort = "newest" } = req.query;
+    const { page = 1, limit = 10, sort = 'newest' } = req.query;
 
     // Check if destination exists
     const destination = await Destination.findById(destinationId);
     if (!destination) {
-      throw new NotFoundError("Destination not found");
+      throw new NotFoundError('Destination not found');
     }
 
     // Build sort object
     let sortObj = {};
     switch (sort) {
-      case "newest":
-        sortObj = { createdAt: -1 };
-        break;
-      case "oldest":
-        sortObj = { createdAt: 1 };
-        break;
-      case "highest":
-        sortObj = { rating: -1 };
-        break;
-      case "lowest":
-        sortObj = { rating: 1 };
-        break;
-      case "most_helpful":
-        sortObj = { helpfulVotes: -1 };
-        break;
-      default:
-        sortObj = { createdAt: -1 };
+    case 'newest':
+      sortObj = { createdAt: -1 };
+      break;
+    case 'oldest':
+      sortObj = { createdAt: 1 };
+      break;
+    case 'highest':
+      sortObj = { rating: -1 };
+      break;
+    case 'lowest':
+      sortObj = { rating: 1 };
+      break;
+    case 'most_helpful':
+      sortObj = { helpfulVotes: -1 };
+      break;
+    default:
+      sortObj = { createdAt: -1 };
     }
 
     // Calculate pagination
@@ -129,9 +129,9 @@ const getDestinationReviews = async (req, res, next) => {
     // Get reviews with pagination
     const reviews = await Review.find({
       destination: destinationId,
-      status: "approved"
+      status: 'approved'
     })
-      .populate("user", "name email")
+      .populate('user', 'name email')
       .sort(sortObj)
       .skip(skip)
       .limit(parseInt(limit));
@@ -139,7 +139,7 @@ const getDestinationReviews = async (req, res, next) => {
     // Get total count
     const total = await Review.countDocuments({
       destination: destinationId,
-      status: "approved"
+      status: 'approved'
     });
 
     // Get rating statistics
@@ -147,16 +147,16 @@ const getDestinationReviews = async (req, res, next) => {
       {
         $match: {
           destination: destinationId,
-          status: "approved"
+          status: 'approved'
         }
       },
       {
         $group: {
           _id: null,
-          averageRating: { $avg: "$rating" },
+          averageRating: { $avg: '$rating' },
           totalReviews: { $sum: 1 },
           ratingDistribution: {
-            $push: "$rating"
+            $push: '$rating'
           }
         }
       }
@@ -172,7 +172,7 @@ const getDestinationReviews = async (req, res, next) => {
       const stat = stats[0];
       ratingStats.averageRating = Math.round(stat.averageRating * 10) / 10;
       ratingStats.totalReviews = stat.totalReviews;
-      
+
       // Calculate distribution
       stat.ratingDistribution.forEach(rating => {
         ratingStats.distribution[rating]++;
@@ -190,18 +190,18 @@ const getDestinationReviews = async (req, res, next) => {
             total
           }
         },
-        "Reviews retrieved successfully"
+        'Reviews retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching reviews", { error: err.message, destinationId: req.params.destinationId });
+    error('Error fetching reviews', { error: err.message, destinationId: req.params.destinationId });
     next(err);
   }
 };
 
 // Get user's reviews
-const getUserReviews = async (req, res, next) => {
+const getUserReviews = async(req, res, next) => {
   try {
     const userId = req.user.id;
     const { page = 1, limit = 10 } = req.query;
@@ -211,7 +211,7 @@ const getUserReviews = async (req, res, next) => {
 
     // Get user's reviews
     const reviews = await Review.find({ user: userId })
-      .populate("destination", "title location imageUrl")
+      .populate('destination', 'title location imageUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -229,18 +229,18 @@ const getUserReviews = async (req, res, next) => {
             total
           }
         },
-        "User reviews retrieved successfully"
+        'User reviews retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching user reviews", { error: err.message, userId: req.user?.id });
+    error('Error fetching user reviews', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Update a review
-const updateReview = async (req, res, next) => {
+const updateReview = async(req, res, next) => {
   try {
     const { reviewId } = req.params;
     const { title, content, rating, ratings } = req.body;
@@ -249,12 +249,12 @@ const updateReview = async (req, res, next) => {
     const review = await Review.findById(reviewId);
 
     if (!review) {
-      throw new NotFoundError("Review not found");
+      throw new NotFoundError('Review not found');
     }
 
     // Check if user owns this review
     if (review.user.toString() !== userId) {
-      throw new ValidationError("Access denied");
+      throw new ValidationError('Access denied');
     }
 
     // Update review
@@ -262,9 +262,9 @@ const updateReview = async (req, res, next) => {
       reviewId,
       { title, content, rating, ratings },
       { new: true, runValidators: true }
-    ).populate("user", "name email");
+    ).populate('user', 'name email');
 
-    info("Review updated", {
+    info('Review updated', {
       reviewId,
       userId
     });
@@ -272,18 +272,18 @@ const updateReview = async (req, res, next) => {
     res.json(
       successResponse(
         { review: updatedReview },
-        "Review updated successfully"
+        'Review updated successfully'
       )
     );
 
   } catch (err) {
-    error("Error updating review", { error: err.message, reviewId: req.params.reviewId });
+    error('Error updating review', { error: err.message, reviewId: req.params.reviewId });
     next(err);
   }
 };
 
 // Delete a review
-const deleteReview = async (req, res, next) => {
+const deleteReview = async(req, res, next) => {
   try {
     const { reviewId } = req.params;
     const userId = req.user.id;
@@ -291,17 +291,17 @@ const deleteReview = async (req, res, next) => {
     const review = await Review.findById(reviewId);
 
     if (!review) {
-      throw new NotFoundError("Review not found");
+      throw new NotFoundError('Review not found');
     }
 
     // Check if user owns this review or is admin
-    if (review.user.toString() !== userId && req.user.role !== "admin") {
-      throw new ValidationError("Access denied");
+    if (review.user.toString() !== userId && req.user.role !== 'admin') {
+      throw new ValidationError('Access denied');
     }
 
     await Review.findByIdAndDelete(reviewId);
 
-    info("Review deleted", {
+    info('Review deleted', {
       reviewId,
       userId,
       deletedBy: req.user.role
@@ -310,18 +310,18 @@ const deleteReview = async (req, res, next) => {
     res.json(
       successResponse(
         null,
-        "Review deleted successfully"
+        'Review deleted successfully'
       )
     );
 
   } catch (err) {
-    error("Error deleting review", { error: err.message, reviewId: req.params.reviewId });
+    error('Error deleting review', { error: err.message, reviewId: req.params.reviewId });
     next(err);
   }
 };
 
 // Mark review as helpful
-const markReviewHelpful = async (req, res, next) => {
+const markReviewHelpful = async(req, res, next) => {
   try {
     const { reviewId } = req.params;
     const userId = req.user.id;
@@ -329,7 +329,7 @@ const markReviewHelpful = async (req, res, next) => {
     const review = await Review.findById(reviewId);
 
     if (!review) {
-      throw new NotFoundError("Review not found");
+      throw new NotFoundError('Review not found');
     }
 
     // Check if user already marked this review as helpful
@@ -358,28 +358,32 @@ const markReviewHelpful = async (req, res, next) => {
     );
 
   } catch (err) {
-    error("Error marking review helpful", { error: err.message, reviewId: req.params.reviewId });
+    error('Error marking review helpful', { error: err.message, reviewId: req.params.reviewId });
     next(err);
   }
 };
 
 // Get all reviews (admin only)
-const getAllReviews = async (req, res, next) => {
+const getAllReviews = async(req, res, next) => {
   try {
     const { status, page = 1, limit = 20, destinationId } = req.query;
 
     // Build query
     const query = {};
-    if (status) query.status = status;
-    if (destinationId) query.destination = destinationId;
+    if (status) {
+      query.status = status;
+    }
+    if (destinationId) {
+      query.destination = destinationId;
+    }
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Get reviews with pagination
     const reviews = await Review.find(query)
-      .populate("destination", "title location")
-      .populate("user", "name email")
+      .populate('destination', 'title location')
+      .populate('user', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -397,35 +401,35 @@ const getAllReviews = async (req, res, next) => {
             total
           }
         },
-        "All reviews retrieved successfully"
+        'All reviews retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching all reviews", { error: err.message });
+    error('Error fetching all reviews', { error: err.message });
     next(err);
   }
 };
 
 // Update review status (admin only)
-const updateReviewStatus = async (req, res, next) => {
+const updateReviewStatus = async(req, res, next) => {
   try {
     const { reviewId } = req.params;
     const { status, adminResponse } = req.body;
 
-    const validStatuses = ["pending", "approved", "rejected"];
+    const validStatuses = ['pending', 'approved', 'rejected'];
     if (!validStatuses.includes(status)) {
-      throw new ValidationError("Invalid review status");
+      throw new ValidationError('Invalid review status');
     }
 
     const review = await Review.findById(reviewId);
     if (!review) {
-      throw new NotFoundError("Review not found");
+      throw new NotFoundError('Review not found');
     }
 
     // Update review status
     review.status = status;
-    
+
     // Add admin response if provided
     if (adminResponse) {
       review.adminResponse = {
@@ -439,11 +443,11 @@ const updateReviewStatus = async (req, res, next) => {
 
     // Populate the review
     await review.populate([
-      { path: "user", select: "name email" },
-      { path: "destination", select: "title location" }
+      { path: 'user', select: 'name email' },
+      { path: 'destination', select: 'title location' }
     ]);
 
-    info("Review status updated", {
+    info('Review status updated', {
       reviewId,
       newStatus: status,
       adminId: req.user.id
@@ -452,12 +456,12 @@ const updateReviewStatus = async (req, res, next) => {
     res.json(
       successResponse(
         { review },
-        "Review status updated successfully"
+        'Review status updated successfully'
       )
     );
 
   } catch (err) {
-    error("Error updating review status", { error: err.message, reviewId: req.params.reviewId });
+    error('Error updating review status', { error: err.message, reviewId: req.params.reviewId });
     next(err);
   }
 };

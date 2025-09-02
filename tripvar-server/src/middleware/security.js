@@ -20,16 +20,16 @@ class SecurityMiddleware {
     this.helmet = helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-          fontSrc: ["'self'", "https://fonts.gstatic.com"],
-          imgSrc: ["'self'", "data:", "https:"],
-          scriptSrc: ["'self'"],
-          connectSrc: ["'self'"],
-          frameSrc: ["'none'"],
-          objectSrc: ["'none'"],
-          upgradeInsecureRequests: [],
-        },
+          defaultSrc: ['\'self\''],
+          styleSrc: ['\'self\'', '\'unsafe-inline\'', 'https://fonts.googleapis.com'],
+          fontSrc: ['\'self\'', 'https://fonts.gstatic.com'],
+          imgSrc: ['\'self\'', 'data:', 'https:'],
+          scriptSrc: ['\'self\''],
+          connectSrc: ['\'self\''],
+          frameSrc: ['\'none\''],
+          objectSrc: ['\'none\''],
+          upgradeInsecureRequests: []
+        }
       },
       crossOriginEmbedderPolicy: false,
       hsts: {
@@ -64,7 +64,7 @@ class SecurityMiddleware {
           path: req.path,
           method: req.method
         });
-        
+
         res.status(429).json({
           error: 'Too many requests from this IP, please try again later.',
           retryAfter: '15 minutes'
@@ -90,7 +90,7 @@ class SecurityMiddleware {
           path: req.path,
           method: req.method
         });
-        
+
         res.status(429).json({
           error: 'Too many authentication attempts, please try again later.',
           retryAfter: '15 minutes'
@@ -115,7 +115,7 @@ class SecurityMiddleware {
           path: req.path,
           method: req.method
         });
-        
+
         res.status(429).json({
           error: 'Too many password reset attempts, please try again later.',
           retryAfter: '1 hour'
@@ -140,7 +140,7 @@ class SecurityMiddleware {
           path: req.path,
           method: req.method
         });
-        
+
         res.status(429).json({
           error: 'Too many file uploads, please try again later.',
           retryAfter: '1 hour'
@@ -176,7 +176,7 @@ class SecurityMiddleware {
     return (req, res, next) => {
       const contentLength = parseInt(req.get('content-length') || '0', 10);
       const maxSizeBytes = this.parseSize(maxSize);
-      
+
       if (contentLength > maxSizeBytes) {
         security('Request size limit exceeded', {
           ip: req.ip,
@@ -185,13 +185,13 @@ class SecurityMiddleware {
           path: req.path,
           method: req.method
         });
-        
+
         return res.status(413).json({
           error: 'Request entity too large',
           message: `Request size exceeds the limit of ${maxSize}`
         });
       }
-      
+
       next();
     };
   }
@@ -206,15 +206,15 @@ class SecurityMiddleware {
       mb: 1024 * 1024,
       gb: 1024 * 1024 * 1024
     };
-    
+
     const match = size.toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?$/);
     if (!match) {
       return 10 * 1024 * 1024; // default 10MB
     }
-    
+
     const value = parseFloat(match[1]);
     const unit = match[2] || 'b';
-    
+
     return Math.floor(value * units[unit]);
   }
 
@@ -224,7 +224,7 @@ class SecurityMiddleware {
   ipWhitelist(allowedIPs = []) {
     return (req, res, next) => {
       const clientIP = req.ip || req.connection.remoteAddress;
-      
+
       if (allowedIPs.length > 0 && !allowedIPs.includes(clientIP)) {
         security('IP not in whitelist', {
           ip: clientIP,
@@ -232,13 +232,13 @@ class SecurityMiddleware {
           path: req.path,
           method: req.method
         });
-        
+
         return res.status(403).json({
           error: 'Access forbidden',
           message: 'Your IP address is not authorized to access this resource'
         });
       }
-      
+
       next();
     };
   }
@@ -249,12 +249,12 @@ class SecurityMiddleware {
   userAgentValidator(allowedUserAgents = []) {
     return (req, res, next) => {
       const userAgent = req.get('User-Agent');
-      
+
       if (allowedUserAgents.length > 0) {
-        const isAllowed = allowedUserAgents.some(allowed => 
+        const isAllowed = allowedUserAgents.some(allowed =>
           userAgent && userAgent.toLowerCase().includes(allowed.toLowerCase())
         );
-        
+
         if (!isAllowed) {
           security('User agent not allowed', {
             ip: req.ip,
@@ -262,14 +262,14 @@ class SecurityMiddleware {
             path: req.path,
             method: req.method
           });
-          
+
           return res.status(403).json({
             error: 'Access forbidden',
             message: 'User agent not allowed'
           });
         }
       }
-      
+
       next();
     };
   }
@@ -287,7 +287,7 @@ class SecurityMiddleware {
           method: req.method,
           timeout: timeoutMs
         });
-        
+
         if (!res.headersSent) {
           res.status(408).json({
             error: 'Request timeout',
@@ -295,7 +295,7 @@ class SecurityMiddleware {
           });
         }
       });
-      
+
       next();
     };
   }
@@ -307,14 +307,14 @@ class SecurityMiddleware {
     return (req, res, next) => {
       // Remove server header
       res.removeHeader('X-Powered-By');
-      
+
       // Add custom security headers
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('X-Frame-Options', 'DENY');
       res.setHeader('X-XSS-Protection', '1; mode=block');
       res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
       res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-      
+
       next();
     };
   }
@@ -328,11 +328,11 @@ class SecurityMiddleware {
       if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
         return next();
       }
-      
+
       // Check for CSRF token
       const token = req.get('X-CSRF-Token') || req.body._csrf;
       const sessionToken = req.session?.csrfToken;
-      
+
       if (!token || !sessionToken || token !== sessionToken) {
         security('CSRF token validation failed', {
           ip: req.ip,
@@ -340,13 +340,13 @@ class SecurityMiddleware {
           path: req.path,
           method: req.method
         });
-        
+
         return res.status(403).json({
           error: 'CSRF token validation failed',
           message: 'Invalid or missing CSRF token'
         });
       }
-      
+
       next();
     };
   }

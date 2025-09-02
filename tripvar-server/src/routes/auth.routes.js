@@ -1,28 +1,28 @@
-const express = require("express");
-const authController = require("../controllers/auth.controller");
-const { protect } = require("../middleware/auth");
-const { securityConfig } = require("../config/security");
-const { validate, sanitize } = require("../middleware/validation");
-const { 
-  registerSchema, 
-  loginSchema, 
-  updateProfileSchema, 
-  updatePasswordSchema, 
+const express = require('express');
+const authController = require('../controllers/auth.controller');
+const { protect } = require('../middleware/auth');
+const { securityConfig } = require('../config/security');
+const { validate, sanitize } = require('../middleware/validation');
+const {
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+  updatePasswordSchema,
   toggleFavoriteSchema,
-  paginationSchema 
-} = require("../validation/auth.validation");
+  paginationSchema
+} = require('../validation/auth.validation');
 
 const router = express.Router();
 
 // Public routes with strict rate limiting and validation
-router.post("/register", 
+router.post('/register',
   securityConfig.authLimiter,
   sanitize(),
   validate(registerSchema),
   authController.register
 );
 
-router.post("/login", 
+router.post('/login',
   securityConfig.authLimiter,
   sanitize(),
   validate(loginSchema),
@@ -33,10 +33,10 @@ router.post("/login",
 router.use(protect);
 
 // Logout route
-router.post("/logout", authController.logout);
+router.post('/logout', authController.logout);
 
 // Get all users
-router.get("/users", 
+router.get('/users',
   sanitize(),
   validate(paginationSchema),
   authController.getAllUsers
@@ -44,7 +44,7 @@ router.get("/users",
 
 // Profile routes
 router
-  .route("/profile")
+  .route('/profile')
   .get(authController.getProfile)
   .patch(
     sanitize(),
@@ -54,15 +54,15 @@ router
   .delete(authController.deleteAccount);
 
 // Password update
-router.patch("/update-password", 
+router.patch('/update-password',
   sanitize(),
   validate(updatePasswordSchema),
   authController.updatePassword
 );
 
 // Favorites routes
-router.get("/favorites", authController.getFavorites);
-router.post("/favorites/:destinationId", 
+router.get('/favorites', authController.getFavorites);
+router.post('/favorites/:destinationId',
   sanitize(),
   validate(toggleFavoriteSchema),
   authController.toggleFavorite

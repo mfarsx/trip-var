@@ -21,8 +21,8 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: config.server.isDevelopment 
-        ? `http://localhost:${config.server.port}` 
+      url: config.server.isDevelopment
+        ? `http://localhost:${config.server.port}`
         : 'https://api.tripvar.com',
       description: config.server.isDevelopment ? 'Development server' : 'Production server'
     }

@@ -7,6 +7,7 @@ import Button from "../components/ui/Button";
 import { FiUser, FiMail, FiLock } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 const backgroundImages = [
   "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
@@ -55,37 +56,51 @@ export default function Register() {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Image slider */}
-      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         {backgroundImages.map((img, index) => (
-          <div
+          <motion.div
             key={img}
             className="absolute inset-0"
-            style={{
-              opacity: index === currentImageIndex ? 1 : 0,
-              transition: "opacity 1s ease-in-out",
-            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: index === currentImageIndex ? 1 : 0 }}
+            transition={{ duration: 1 }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-purple-900/50 to-indigo-900/50" />
             <img src={img} alt="Travel" className="object-cover w-full h-full" />
-          </div>
+          </motion.div>
         ))}
         <div className="absolute inset-0 flex items-center justify-center text-white z-10">
           <div className="max-w-md text-center px-8">
-            <h1 className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-200 to-pink-100">
+            <motion.h1
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+              className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-200 to-pink-100"
+            >
               Start Your Journey
               <br />
               Today
-            </h1>
-            <p className="text-xl text-gray-200">
+            </motion.h1>
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-xl text-gray-200"
+            >
               Join our community of adventurers and explore the world
-            </p>
+            </motion.p>
           </div>
         </div>
       </div>
 
       {/* Right side - Register form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center bg-[#1a1f2d] p-6 md:p-12">
-        <div className="w-full max-w-[400px] space-y-8">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-[400px] space-y-8"
+        >
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-3">
               Create Account
@@ -198,7 +213,7 @@ export default function Register() {
               </Link>
             </p>
           </form>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

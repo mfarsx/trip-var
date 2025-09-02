@@ -31,11 +31,11 @@ const dateOfBirthRule = body('dateOfBirth')
       const today = new Date();
       const age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      
-      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) 
-        ? age - 1 
+
+      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())
+        ? age - 1
         : age;
-        
+
       if (actualAge < 20) {
         throw new Error('User must be at least 20 years old');
       }
@@ -131,12 +131,12 @@ const paginationSchema = [
 // Custom validation middleware
 const validateRequest = (req, res, next) => {
   const errors = [];
-  
+
   // Check for validation errors
   if (req.validationErrors) {
     errors.push(...req.validationErrors);
   }
-  
+
   if (errors.length > 0) {
     const errorMessages = errors.map(error => error.msg);
     const errorDetails = errors.map(error => ({
@@ -144,13 +144,13 @@ const validateRequest = (req, res, next) => {
       message: error.msg,
       value: error.value
     }));
-    
+
     throw new ValidationError(
       `Validation failed: ${errorMessages.join(', ')}`,
       errorDetails
     );
   }
-  
+
   next();
 };
 
@@ -158,14 +158,16 @@ const validateRequest = (req, res, next) => {
 const sanitizeInput = (req, res, next) => {
   // Remove any potential XSS attempts
   const sanitizeString = (str) => {
-    if (typeof str !== 'string') return str;
+    if (typeof str !== 'string') {
+      return str;
+    }
     return str
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/javascript:/gi, '')
       .replace(/on\w+\s*=/gi, '')
       .trim();
   };
-  
+
   // Sanitize body
   if (req.body) {
     Object.keys(req.body).forEach(key => {
@@ -174,7 +176,7 @@ const sanitizeInput = (req, res, next) => {
       }
     });
   }
-  
+
   // Sanitize query parameters
   if (req.query) {
     Object.keys(req.query).forEach(key => {
@@ -183,7 +185,7 @@ const sanitizeInput = (req, res, next) => {
       }
     });
   }
-  
+
   next();
 };
 

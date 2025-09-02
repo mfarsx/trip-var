@@ -98,7 +98,7 @@ export default function Login() {
       </div>
 
       {/* Right side - Login form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-[#1a1f2d] p-8">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -135,7 +135,7 @@ export default function Login() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-500 text-gray-200"
+                  className="block w-full pl-10 pr-3 py-3.5 bg-gray-800/50 border border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-500 text-gray-200"
                   placeholder="Enter your email"
                 />
               </div>
@@ -151,7 +151,7 @@ export default function Login() {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-500 text-gray-200"
+                  className="block w-full pl-10 pr-3 py-3.5 bg-gray-800/50 border border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-gray-500 text-gray-200"
                   placeholder="Enter your password"
                 />
               </div>
@@ -186,7 +186,7 @@ export default function Login() {
               type="submit"
               variant="solid"
               color="primary"
-              className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg font-medium transition-all duration-300 transform hover:-translate-y-0.5"
+              className="w-full py-3.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-medium transition-all duration-300 transform hover:-translate-y-0.5"
               disabled={loading}
             >
               {loading ? "Signing in..." : "Sign in"}
@@ -197,7 +197,7 @@ export default function Login() {
                 <div className="w-full border-t border-gray-700" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-900 text-gray-400">
+                <span className="px-4 bg-[#1a1f2d] text-gray-400">
                   Or continue with
                 </span>
               </div>
@@ -206,14 +206,14 @@ export default function Login() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                className="flex items-center justify-center px-4 py-2 border border-gray-700 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors duration-300"
+                className="flex items-center justify-center px-4 py-3 border border-gray-700 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors duration-300"
               >
                 <FcGoogle className="w-5 h-5 mr-2" />
                 <span className="text-gray-300">Google</span>
               </button>
               <button
                 type="button"
-                className="flex items-center justify-center px-4 py-2 border border-gray-700 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors duration-300"
+                className="flex items-center justify-center px-4 py-3 border border-gray-700 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-colors duration-300"
               >
                 <FiGithub className="w-5 h-5 mr-2 text-gray-300" />
                 <span className="text-gray-300">GitHub</span>

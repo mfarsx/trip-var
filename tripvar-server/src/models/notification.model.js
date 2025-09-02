@@ -1,98 +1,98 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(
   {
     // User who will receive the notification
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "Notification must belong to a user"],
+      ref: 'User',
+      required: [true, 'Notification must belong to a user']
     },
-    
+
     // Related entities (optional)
     booking: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Booking",
+      ref: 'Booking',
       required: false
     },
-    
+
     destination: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Destination",
+      ref: 'Destination',
       required: false
     },
-    
+
     // Notification content
     title: {
       type: String,
-      required: [true, "Notification title is required"],
+      required: [true, 'Notification title is required'],
       trim: true,
-      maxlength: [100, "Title cannot exceed 100 characters"]
+      maxlength: [100, 'Title cannot exceed 100 characters']
     },
-    
+
     message: {
       type: String,
-      required: [true, "Notification message is required"],
+      required: [true, 'Notification message is required'],
       trim: true,
-      maxlength: [500, "Message cannot exceed 500 characters"]
+      maxlength: [500, 'Message cannot exceed 500 characters']
     },
-    
+
     // Notification type
     type: {
       type: String,
-      required: [true, "Notification type is required"],
+      required: [true, 'Notification type is required'],
       enum: {
         values: [
-          "booking_confirmed",
-          "booking_cancelled", 
-          "booking_reminder",
-          "payment_success",
-          "payment_failed",
-          "review_request",
-          "destination_update",
-          "promotion",
-          "system"
+          'booking_confirmed',
+          'booking_cancelled',
+          'booking_reminder',
+          'payment_success',
+          'payment_failed',
+          'review_request',
+          'destination_update',
+          'promotion',
+          'system'
         ],
-        message: "Invalid notification type"
+        message: 'Invalid notification type'
       }
     },
-    
+
     // Notification priority
     priority: {
       type: String,
       enum: {
-        values: ["low", "medium", "high", "urgent"],
-        message: "Priority must be low, medium, high, or urgent"
+        values: ['low', 'medium', 'high', 'urgent'],
+        message: 'Priority must be low, medium, high, or urgent'
       },
-      default: "medium"
+      default: 'medium'
     },
-    
+
     // Read status
     isRead: {
       type: Boolean,
       default: false
     },
-    
+
     // Read timestamp
     readAt: {
       type: Date,
       required: false
     },
-    
+
     // Action URL (optional)
     actionUrl: {
       type: String,
       required: false,
-      maxlength: [200, "Action URL cannot exceed 200 characters"]
+      maxlength: [200, 'Action URL cannot exceed 200 characters']
     },
-    
+
     // Action text (optional)
     actionText: {
       type: String,
       required: false,
-      maxlength: [50, "Action text cannot exceed 50 characters"]
+      maxlength: [50, 'Action text cannot exceed 50 characters']
     },
-    
+
     // Expiration date (optional)
     expiresAt: {
       type: Date,
@@ -113,18 +113,26 @@ notificationSchema.index({ type: 1 });
 notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index
 
 // Virtual field for notification age
-notificationSchema.virtual("age").get(function() {
+notificationSchema.virtual('age').get(function() {
   const now = new Date();
   const created = new Date(this.createdAt);
   const diffTime = Math.abs(now - created);
   const diffMinutes = Math.floor(diffTime / (1000 * 60));
   const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffMinutes < 1) return "Just now";
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+
+  if (diffMinutes < 1) {
+    return 'Just now';
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes}m ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
   return created.toLocaleDateString();
 });
 
@@ -141,7 +149,7 @@ notificationSchema.statics.markAsRead = async function(userId, notificationIds) 
     isRead: true,
     readAt: new Date()
   };
-  
+
   if (notificationIds && notificationIds.length > 0) {
     return await this.updateMany(
       { _id: { $in: notificationIds }, user: userId },
@@ -167,6 +175,6 @@ notificationSchema.statics.cleanupExpired = async function() {
   });
 };
 
-const Notification = mongoose.model("Notification", notificationSchema);
+const Notification = mongoose.model('Notification', notificationSchema);
 
 module.exports = Notification;

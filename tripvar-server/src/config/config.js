@@ -3,10 +3,10 @@ const path = require('path');
 const { validateEnvironment } = require('../utils/envValidator');
 
 // Load environment variables based on NODE_ENV
-const envFile = process.env.NODE_ENV === 'production' 
-  ? '.env.prod' 
-  : process.env.NODE_ENV === 'test' 
-    ? '.env.test' 
+const envFile = process.env.NODE_ENV === 'production'
+  ? '.env.prod'
+  : process.env.NODE_ENV === 'test'
+    ? '.env.test'
     : '.env';
 
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
@@ -58,7 +58,7 @@ const config = {
 
   // Security configuration
   security: {
-    allowedOrigins: process.env.ALLOWED_ORIGINS 
+    allowedOrigins: process.env.ALLOWED_ORIGINS
       ? process.env.ALLOWED_ORIGINS.split(',')
       : ['http://localhost:5173', 'http://localhost:3000'],
     corsCredentials: process.env.CORS_CREDENTIALS === 'true',
@@ -95,7 +95,7 @@ const config = {
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 10485760, // 10MB
     uploadPath: process.env.UPLOAD_PATH || './uploads',
-    allowedMimeTypes: process.env.ALLOWED_MIME_TYPES 
+    allowedMimeTypes: process.env.ALLOWED_MIME_TYPES
       ? process.env.ALLOWED_MIME_TYPES.split(',')
       : ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
   },

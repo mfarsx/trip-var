@@ -37,10 +37,10 @@ class BaseController {
    * @throws {ValidationError} If validation fails
    */
   validateRequestBody(body, requiredFields) {
-    const missingFields = requiredFields.filter(field => 
+    const missingFields = requiredFields.filter(field =>
       body[field] === undefined || body[field] === null || body[field] === ''
     );
-    
+
     if (missingFields.length > 0) {
       throw new ValidationError(
         `Missing required fields: ${missingFields.join(', ')}`,
@@ -56,10 +56,10 @@ class BaseController {
    * @throws {ValidationError} If validation fails
    */
   validateRequestParams(params, requiredParams) {
-    const missingParams = requiredParams.filter(param => 
+    const missingParams = requiredParams.filter(param =>
       !params[param] || params[param] === ''
     );
-    
+
     if (missingParams.length > 0) {
       throw new ValidationError(
         `Missing required parameters: ${missingParams.join(', ')}`,
@@ -76,7 +76,7 @@ class BaseController {
    */
   sanitizeRequestBody(body, allowedFields) {
     const sanitized = {};
-    
+
     Object.keys(body).forEach(key => {
       if (allowedFields.includes(key)) {
         // Basic sanitization
@@ -87,7 +87,7 @@ class BaseController {
         }
       }
     });
-    
+
     return sanitized;
   }
 
@@ -100,7 +100,7 @@ class BaseController {
     const page = Math.max(1, parseInt(query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10));
     const skip = (page - 1) * limit;
-    
+
     return { page, limit, skip };
   }
 
@@ -114,7 +114,7 @@ class BaseController {
   getSortParams(query, allowedFields = [], defaultSort = 'createdAt') {
     const sortBy = query.sortBy || defaultSort;
     const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
-    
+
     // Validate sort field
     if (allowedFields.length > 0 && !allowedFields.includes(sortBy)) {
       throw new ValidationError(
@@ -122,7 +122,7 @@ class BaseController {
         { allowedFields, providedField: sortBy }
       );
     }
-    
+
     return { sortBy, sortOrder };
   }
 
@@ -134,13 +134,13 @@ class BaseController {
    */
   getFilterParams(query, allowedFilters = []) {
     const filters = {};
-    
+
     allowedFilters.forEach(field => {
       if (query[field] !== undefined && query[field] !== '') {
         filters[field] = query[field];
       }
     });
-    
+
     return filters;
   }
 
@@ -151,7 +151,7 @@ class BaseController {
    * @returns {Function} Express middleware function
    */
   handleService(serviceMethod, ...args) {
-    return asyncHandler(async (req, res, next) => {
+    return asyncHandler(async(req, res, next) => {
       try {
         const result = await serviceMethod(...args);
         this.sendSuccess(res, result);
@@ -169,7 +169,7 @@ class BaseController {
    * @returns {Function} Express middleware function
    */
   handleServiceWithResponse(serviceMethod, responseHandler, ...args) {
-    return asyncHandler(async (req, res, next) => {
+    return asyncHandler(async(req, res, next) => {
       try {
         const result = await serviceMethod(...args);
         responseHandler(res, result);
@@ -188,12 +188,12 @@ class BaseController {
   createCRUDOperations(service, resourceName) {
     return {
       // Get all resources
-      getAll: asyncHandler(async (req, res, next) => {
+      getAll: asyncHandler(async(req, res, next) => {
         try {
           const { page, limit, skip } = this.getPaginationParams(req.query);
           const filters = this.getFilterParams(req.query, service.getAllowedFilters?.() || []);
           const { sortBy, sortOrder } = this.getSortParams(req.query, service.getAllowedSortFields?.() || []);
-          
+
           const result = await service.getAll({
             page,
             limit,
@@ -201,7 +201,7 @@ class BaseController {
             filters,
             sort: { [sortBy]: sortOrder }
           });
-          
+
           this.sendPaginated(res, result.data, page, limit, result.total);
         } catch (error) {
           next(error);
@@ -209,7 +209,7 @@ class BaseController {
       }),
 
       // Get resource by ID
-      getById: asyncHandler(async (req, res, next) => {
+      getById: asyncHandler(async(req, res, next) => {
         try {
           this.validateRequestParams(req.params, ['id']);
           const result = await service.getById(req.params.id);
@@ -220,7 +220,7 @@ class BaseController {
       }),
 
       // Create new resource
-      create: asyncHandler(async (req, res, next) => {
+      create: asyncHandler(async(req, res, next) => {
         try {
           const sanitizedBody = this.sanitizeRequestBody(req.body, service.getAllowedFields?.() || []);
           const result = await service.create(sanitizedBody);
@@ -231,7 +231,7 @@ class BaseController {
       }),
 
       // Update resource
-      update: asyncHandler(async (req, res, next) => {
+      update: asyncHandler(async(req, res, next) => {
         try {
           this.validateRequestParams(req.params, ['id']);
           const sanitizedBody = this.sanitizeRequestBody(req.body, service.getAllowedFields?.() || []);
@@ -243,7 +243,7 @@ class BaseController {
       }),
 
       // Delete resource
-      delete: asyncHandler(async (req, res, next) => {
+      delete: asyncHandler(async(req, res, next) => {
         try {
           this.validateRequestParams(req.params, ['id']);
           await service.delete(req.params.id);

@@ -92,7 +92,7 @@ class NotificationService {
    */
   static async createBookingCancellationNotification(userId, booking, refundAmount) {
     try {
-      const refundMessage = refundAmount > 0 
+      const refundMessage = refundAmount > 0
         ? `A refund of $${refundAmount} will be processed within 5-7 business days.`
         : 'No refund is available for this cancellation.';
 
@@ -178,7 +178,7 @@ class NotificationService {
   static async createDestinationUpdateNotification(userIds, destination, updateType) {
     try {
       const notifications = await Promise.all(
-        userIds.map(async (userId) => {
+        userIds.map(async(userId) => {
           return await createSystemNotification(
             userId,
             'destination_update',
@@ -219,7 +219,7 @@ class NotificationService {
   static async createPromotionNotification(userIds, promotion) {
     try {
       const notifications = await Promise.all(
-        userIds.map(async (userId) => {
+        userIds.map(async(userId) => {
           return await createSystemNotification(
             userId,
             'promotion',
@@ -261,7 +261,7 @@ class NotificationService {
   static async createSystemNotification(userIds, title, message, options = {}) {
     try {
       const notifications = await Promise.all(
-        userIds.map(async (userId) => {
+        userIds.map(async(userId) => {
           return await createSystemNotification(
             userId,
             'system',
@@ -299,7 +299,7 @@ class NotificationService {
   static async cleanupExpiredNotifications() {
     try {
       const result = await Notification.cleanupExpired();
-      
+
       info('Expired notifications cleaned up', {
         deletedCount: result.deletedCount
       });
@@ -327,18 +327,18 @@ class NotificationService {
             _id: null,
             total: { $sum: 1 },
             unread: {
-              $sum: { $cond: [{ $eq: ["$isRead", false] }, 1, 0] }
+              $sum: { $cond: [{ $eq: ['$isRead', false] }, 1, 0] }
             },
             byType: {
               $push: {
-                type: "$type",
-                isRead: "$isRead"
+                type: '$type',
+                isRead: '$isRead'
               }
             },
             byPriority: {
               $push: {
-                priority: "$priority",
-                isRead: "$isRead"
+                priority: '$priority',
+                isRead: '$isRead'
               }
             }
           }

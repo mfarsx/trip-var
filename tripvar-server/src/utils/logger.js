@@ -10,11 +10,11 @@ const logFormat = winston.format.combine(
   winston.format.json(),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let log = `${timestamp} [${level.toUpperCase()}]: ${message}`;
-    
+
     if (Object.keys(meta).length > 0) {
       log += ` ${JSON.stringify(meta)}`;
     }
-    
+
     return log;
   })
 );
@@ -36,7 +36,7 @@ const logger = winston.createLogger({
         winston.format.simple()
       )
     }),
-    
+
     // Error log file
     new DailyRotateFile({
       filename: path.join(logsDir, 'error-%DATE%.log'),
@@ -46,7 +46,7 @@ const logger = winston.createLogger({
       maxFiles: '14d',
       zippedArchive: true
     }),
-    
+
     // Combined log file
     new DailyRotateFile({
       filename: path.join(logsDir, 'combined-%DATE%.log'),
@@ -55,7 +55,7 @@ const logger = winston.createLogger({
       maxFiles: '14d',
       zippedArchive: true
     }),
-    
+
     // Access log file
     new DailyRotateFile({
       filename: path.join(logsDir, 'access-%DATE%.log'),
@@ -66,18 +66,18 @@ const logger = winston.createLogger({
       zippedArchive: true
     })
   ],
-  
+
   // Handle uncaught exceptions
   exceptionHandlers: [
-    new winston.transports.File({ 
-      filename: path.join(logsDir, 'exceptions.log') 
+    new winston.transports.File({
+      filename: path.join(logsDir, 'exceptions.log')
     })
   ],
-  
+
   // Handle unhandled promise rejections
   rejectionHandlers: [
-    new winston.transports.File({ 
-      filename: path.join(logsDir, 'rejections.log') 
+    new winston.transports.File({
+      filename: path.join(logsDir, 'rejections.log')
     })
   ]
 });
@@ -87,7 +87,7 @@ const logger = winston.createLogger({
 // Request logging middleware
 const requestLogger = (req, res, next) => {
   const start = Date.now();
-  
+
   // Log request
   logger.http('Incoming request', {
     method: req.method,
@@ -96,12 +96,12 @@ const requestLogger = (req, res, next) => {
     ip: req.ip,
     requestId: req.requestId
   });
-  
+
   // Override res.end to log response
   const originalEnd = res.end;
   res.end = function(chunk, encoding) {
     const duration = Date.now() - start;
-    
+
     logger.http('Request completed', {
       method: req.method,
       url: req.url,
@@ -109,19 +109,19 @@ const requestLogger = (req, res, next) => {
       duration: `${duration}ms`,
       requestId: req.requestId
     });
-    
+
     originalEnd.call(this, chunk, encoding);
   };
-  
+
   next();
 };
 
 // Add request ID middleware
 const addRequestId = (req, res, next) => {
-  req.requestId = req.headers['x-request-id'] || 
-                  req.headers['x-correlation-id'] || 
+  req.requestId = req.headers['x-request-id'] ||
+                  req.headers['x-correlation-id'] ||
                   `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   res.setHeader('X-Request-ID', req.requestId);
   next();
 };
@@ -222,13 +222,6 @@ const health = (component, status, meta = {}) => {
   });
 };
 
-// Custom stream for Morgan HTTP logging
-const morganStream = {
-  write: (message) => {
-    logger.http(message.trim());
-  }
-};
-
 module.exports = {
   logger,
   requestLogger,
@@ -245,6 +238,5 @@ module.exports = {
   api,
   logError,
   audit,
-  health,
-  morganStream
+  health
 };

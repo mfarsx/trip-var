@@ -1,19 +1,19 @@
 module.exports = {
   // Test environment
   testEnvironment: 'node',
-  
+
   // Test file patterns
   testMatch: [
     '**/__tests__/**/*.js',
     '**/?(*.)+(spec|test).js'
   ],
-  
+
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.js'],
-  
+
   // Load environment variables for tests
   setupFiles: ['<rootDir>/src/tests/envSetup.js'],
-  
+
   // Coverage configuration
   collectCoverage: true,
   coverageDirectory: 'coverage',
@@ -25,7 +25,7 @@ module.exports = {
     '!src/index.js',
     '!**/node_modules/**'
   ],
-  
+
   // Coverage thresholds
   coverageThreshold: {
     global: {
@@ -35,43 +35,43 @@ module.exports = {
       statements: 70
     }
   },
-  
+
   // Test timeout
   testTimeout: 30000,
-  
+
   // Clear mocks between tests
   clearMocks: true,
-  
+
   // Restore mocks between tests
   restoreMocks: true,
-  
+
   // Verbose output
   verbose: true,
-  
+
   // Force exit after tests complete
   forceExit: true,
-  
+
   // Detect open handles
   detectOpenHandles: true,
-  
+
   // Module name mapping for absolute imports
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
   },
-  
+
   // Transform files
   transform: {
     '^.+\\.js$': 'babel-jest'
   },
-  
+
   // Ignore patterns
   testPathIgnorePatterns: [
     '/node_modules/',
     '/coverage/',
     '/dist/',
     '/build/'
-  ],
-  
+  ]
+
   // Global setup and teardown (files don't exist, so commented out)
   // globalSetup: '<rootDir>/src/tests/globalSetup.js',
   // globalTeardown: '<rootDir>/src/tests/globalTeardown.js'

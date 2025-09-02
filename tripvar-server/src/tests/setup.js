@@ -8,7 +8,7 @@ let mongoServer;
 /**
  * Setup test environment
  */
-const setupTestEnvironment = async () => {
+const setupTestEnvironment = async() => {
   // Create in-memory MongoDB instance
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
@@ -16,7 +16,7 @@ const setupTestEnvironment = async () => {
   // Connect to test database
   await mongoose.connect(mongoUri, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
+    useUnifiedTopology: true
   });
 
   // Set test environment variables
@@ -29,10 +29,10 @@ const setupTestEnvironment = async () => {
 /**
  * Cleanup test environment
  */
-const cleanupTestEnvironment = async () => {
+const cleanupTestEnvironment = async() => {
   // Close database connection
   await mongoose.connection.close();
-  
+
   // Stop in-memory MongoDB
   if (mongoServer) {
     await mongoServer.stop();
@@ -42,9 +42,9 @@ const cleanupTestEnvironment = async () => {
 /**
  * Clear all collections
  */
-const clearDatabase = async () => {
+const clearDatabase = async() => {
   const collections = mongoose.connection.collections;
-  
+
   for (const key in collections) {
     const collection = collections[key];
     await collection.deleteMany({});
@@ -54,9 +54,9 @@ const clearDatabase = async () => {
 /**
  * Create test user
  */
-const createTestUser = async (userData = {}) => {
+const createTestUser = async(userData = {}) => {
   const User = require('../models/user.model');
-  
+
   const defaultUser = {
     email: 'test@example.com',
     password: 'TestPassword123!',
@@ -73,7 +73,7 @@ const createTestUser = async (userData = {}) => {
 /**
  * Create test admin user
  */
-const createTestAdmin = async (adminData = {}) => {
+const createTestAdmin = async(adminData = {}) => {
   return await createTestUser({
     email: 'admin@example.com',
     name: 'Test Admin',
@@ -85,9 +85,9 @@ const createTestAdmin = async (adminData = {}) => {
 /**
  * Create test destination
  */
-const createTestDestination = async (destinationData = {}) => {
+const createTestDestination = async(destinationData = {}) => {
   const Destination = require('../models/destination.model');
-  
+
   const defaultDestination = {
     title: 'Test Destination',
     description: 'A beautiful test destination for testing purposes',
@@ -107,9 +107,9 @@ const createTestDestination = async (destinationData = {}) => {
 /**
  * Create test booking
  */
-const createTestBooking = async (bookingData = {}) => {
+const createTestBooking = async(bookingData = {}) => {
   const Booking = require('../models/booking.model');
-  
+
   const defaultBooking = {
     userId: bookingData.userId || (await createTestUser())._id,
     destinationId: bookingData.destinationId || (await createTestDestination())._id,
@@ -128,9 +128,9 @@ const createTestBooking = async (bookingData = {}) => {
 /**
  * Create test review
  */
-const createTestReview = async (reviewData = {}) => {
+const createTestReview = async(reviewData = {}) => {
   const Review = require('../models/review.model');
-  
+
   const defaultReview = {
     userId: reviewData.userId || (await createTestUser())._id,
     destinationId: reviewData.destinationId || (await createTestDestination())._id,
@@ -226,7 +226,7 @@ const expectValidationError = (res, expectedStatus = 400, expectedFields = []) =
       status: 'fail',
       code: 'VALIDATION_ERROR',
       details: expect.arrayContaining(
-        expectedFields.map(field => 
+        expectedFields.map(field =>
           expect.objectContaining({ path: field })
         )
       )
@@ -289,7 +289,7 @@ const waitFor = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 /**
  * Test database connection
  */
-const testDatabaseConnection = async () => {
+const testDatabaseConnection = async() => {
   try {
     await mongoose.connection.db.admin().ping();
     return true;

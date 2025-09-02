@@ -1,35 +1,35 @@
-const Booking = require("../models/booking.model");
-const { ValidationError, NotFoundError, ConflictError } = require("../utils/errors");
-const { successResponse } = require("../utils/response");
-const { info, error } = require("../utils/logger");
+const Booking = require('../models/booking.model');
+const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
+const { successResponse } = require('../utils/response');
+const { info, error } = require('../utils/logger');
 
 // Process payment for a booking
-const processPayment = async (req, res, next) => {
+const processPayment = async(req, res, next) => {
   try {
     const { bookingId } = req.params;
     const { paymentMethod, paymentDetails } = req.body;
     const userId = req.user.id;
 
     // Find the booking
-    const booking = await Booking.findById(bookingId).populate("destination");
+    const booking = await Booking.findById(bookingId).populate('destination');
 
     if (!booking) {
-      throw new NotFoundError("Booking not found");
+      throw new NotFoundError('Booking not found');
     }
 
     // Check if user owns this booking
     if (booking.user.toString() !== userId) {
-      throw new ValidationError("Access denied");
+      throw new ValidationError('Access denied');
     }
 
     // Check if booking is already paid
-    if (booking.paymentStatus === "paid") {
-      throw new ConflictError("Booking is already paid");
+    if (booking.paymentStatus === 'paid') {
+      throw new ConflictError('Booking is already paid');
     }
 
     // Check if booking is cancelled
-    if (booking.status === "cancelled") {
-      throw new ConflictError("Cannot process payment for cancelled booking");
+    if (booking.status === 'cancelled') {
+      throw new ConflictError('Cannot process payment for cancelled booking');
     }
 
     // Simulate payment processing
@@ -43,13 +43,13 @@ const processPayment = async (req, res, next) => {
 
     if (paymentResult.success) {
       // Update booking with payment information
-      booking.paymentStatus = "paid";
+      booking.paymentStatus = 'paid';
       booking.paymentIntentId = paymentResult.paymentIntentId;
       booking.paymentMethod = paymentMethod;
-      
+
       await booking.save();
 
-      info("Payment processed successfully", {
+      info('Payment processed successfully', {
         bookingId,
         userId,
         amount: booking.totalAmount,
@@ -62,40 +62,40 @@ const processPayment = async (req, res, next) => {
             booking,
             paymentResult
           },
-          "Payment processed successfully"
+          'Payment processed successfully'
         )
       );
     } else {
       // Payment failed
-      booking.paymentStatus = "failed";
+      booking.paymentStatus = 'failed';
       await booking.save();
 
-      throw new ValidationError(paymentResult.error || "Payment processing failed");
+      throw new ValidationError(paymentResult.error || 'Payment processing failed');
     }
 
   } catch (err) {
-    error("Error processing payment", { error: err.message, bookingId: req.params.bookingId });
+    error('Error processing payment', { error: err.message, bookingId: req.params.bookingId });
     next(err);
   }
 };
 
 // Get payment status for a booking
-const getPaymentStatus = async (req, res, next) => {
+const getPaymentStatus = async(req, res, next) => {
   try {
     const { bookingId } = req.params;
     const userId = req.user.id;
 
     const booking = await Booking.findById(bookingId)
-      .select("paymentStatus paymentMethod totalAmount paymentIntentId createdAt")
-      .populate("destination", "title");
+      .select('paymentStatus paymentMethod totalAmount paymentIntentId createdAt')
+      .populate('destination', 'title');
 
     if (!booking) {
-      throw new NotFoundError("Booking not found");
+      throw new NotFoundError('Booking not found');
     }
 
     // Check if user owns this booking
     if (booking.user.toString() !== userId) {
-      throw new ValidationError("Access denied");
+      throw new ValidationError('Access denied');
     }
 
     res.json(
@@ -111,18 +111,18 @@ const getPaymentStatus = async (req, res, next) => {
             createdAt: booking.createdAt
           }
         },
-        "Payment status retrieved successfully"
+        'Payment status retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching payment status", { error: err.message, bookingId: req.params.bookingId });
+    error('Error fetching payment status', { error: err.message, bookingId: req.params.bookingId });
     next(err);
   }
 };
 
 // Refund a booking
-const processRefund = async (req, res, next) => {
+const processRefund = async(req, res, next) => {
   try {
     const { bookingId } = req.params;
     const { reason } = req.body;
@@ -131,29 +131,29 @@ const processRefund = async (req, res, next) => {
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
-      throw new NotFoundError("Booking not found");
+      throw new NotFoundError('Booking not found');
     }
 
     // Check if user owns this booking or is admin
-    if (booking.user.toString() !== userId && req.user.role !== "admin") {
-      throw new ValidationError("Access denied");
+    if (booking.user.toString() !== userId && req.user.role !== 'admin') {
+      throw new ValidationError('Access denied');
     }
 
     // Check if booking is paid
-    if (booking.paymentStatus !== "paid") {
-      throw new ConflictError("Cannot refund unpaid booking");
+    if (booking.paymentStatus !== 'paid') {
+      throw new ConflictError('Cannot refund unpaid booking');
     }
 
     // Check if booking is already refunded
-    if (booking.paymentStatus === "refunded") {
-      throw new ConflictError("Booking is already refunded");
+    if (booking.paymentStatus === 'refunded') {
+      throw new ConflictError('Booking is already refunded');
     }
 
     // Calculate refund amount
     const refundAmount = booking.calculateRefund();
 
     if (refundAmount === 0) {
-      throw new ValidationError("No refund available for this booking");
+      throw new ValidationError('No refund available for this booking');
     }
 
     // Simulate refund processing
@@ -165,14 +165,14 @@ const processRefund = async (req, res, next) => {
 
     if (refundResult.success) {
       // Update booking with refund information
-      booking.paymentStatus = "refunded";
+      booking.paymentStatus = 'refunded';
       booking.refundAmount = refundAmount;
       booking.refundedAt = new Date();
       booking.cancellationReason = reason;
 
       await booking.save();
 
-      info("Refund processed successfully", {
+      info('Refund processed successfully', {
         bookingId,
         userId,
         refundAmount,
@@ -185,21 +185,21 @@ const processRefund = async (req, res, next) => {
             booking,
             refundResult
           },
-          "Refund processed successfully"
+          'Refund processed successfully'
         )
       );
     } else {
-      throw new ValidationError(refundResult.error || "Refund processing failed");
+      throw new ValidationError(refundResult.error || 'Refund processing failed');
     }
 
   } catch (err) {
-    error("Error processing refund", { error: err.message, bookingId: req.params.bookingId });
+    error('Error processing refund', { error: err.message, bookingId: req.params.bookingId });
     next(err);
   }
 };
 
 // Get payment history for a user
-const getPaymentHistory = async (req, res, next) => {
+const getPaymentHistory = async(req, res, next) => {
   try {
     const userId = req.user.id;
     const { page = 1, limit = 10, status } = req.query;
@@ -215,8 +215,8 @@ const getPaymentHistory = async (req, res, next) => {
 
     // Get bookings with payment information
     const bookings = await Booking.find(query)
-      .select("paymentStatus paymentMethod totalAmount paymentIntentId createdAt refundAmount refundedAt")
-      .populate("destination", "title location imageUrl")
+      .select('paymentStatus paymentMethod totalAmount paymentIntentId createdAt refundAmount refundedAt')
+      .populate('destination', 'title location imageUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -230,13 +230,13 @@ const getPaymentHistory = async (req, res, next) => {
       {
         $group: {
           _id: null,
-          totalSpent: { $sum: "$totalAmount" },
-          totalRefunded: { $sum: { $ifNull: ["$refundAmount", 0] } },
+          totalSpent: { $sum: '$totalAmount' },
+          totalRefunded: { $sum: { $ifNull: ['$refundAmount', 0] } },
           paidBookings: {
-            $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, 1, 0] }
           },
           refundedBookings: {
-            $sum: { $cond: [{ $eq: ["$paymentStatus", "refunded"] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ['$paymentStatus', 'refunded'] }, 1, 0] }
           }
         }
       }
@@ -260,18 +260,18 @@ const getPaymentHistory = async (req, res, next) => {
             total
           }
         },
-        "Payment history retrieved successfully"
+        'Payment history retrieved successfully'
       )
     );
 
   } catch (err) {
-    error("Error fetching payment history", { error: err.message, userId: req.user?.id });
+    error('Error fetching payment history', { error: err.message, userId: req.user?.id });
     next(err);
   }
 };
 
 // Simulate payment processing (replace with real payment provider integration)
-const simulatePaymentProcessing = async (paymentData) => {
+const simulatePaymentProcessing = async(paymentData) => {
   // Simulate processing delay
   await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -284,19 +284,19 @@ const simulatePaymentProcessing = async (paymentData) => {
       paymentIntentId: `pi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       amount: paymentData.amount,
-      currency: "USD",
-      status: "succeeded"
+      currency: 'USD',
+      status: 'succeeded'
     };
   } else {
     return {
       success: false,
-      error: "Payment processing failed. Please try again."
+      error: 'Payment processing failed. Please try again.'
     };
   }
 };
 
 // Simulate refund processing (replace with real payment provider integration)
-const simulateRefundProcessing = async (refundData) => {
+const simulateRefundProcessing = async(refundData) => {
   // Simulate processing delay
   await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -308,13 +308,13 @@ const simulateRefundProcessing = async (refundData) => {
       success: true,
       refundId: `re_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       amount: refundData.amount,
-      currency: "USD",
-      status: "succeeded"
+      currency: 'USD',
+      status: 'succeeded'
     };
   } else {
     return {
       success: false,
-      error: "Refund processing failed. Please contact support."
+      error: 'Refund processing failed. Please contact support.'
     };
   }
 };

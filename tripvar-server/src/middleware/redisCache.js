@@ -12,7 +12,7 @@ const { info, error } = require('../utils/logger');
 const redisCache = (options = {}) => {
   const { key, ttl = 3600, skipCache = false } = options;
 
-  return async (req, res, next) => {
+  return async(req, res, next) => {
     // Skip caching if requested
     if (skipCache || req.query.skipCache === 'true') {
       return next();
@@ -32,7 +32,7 @@ const redisCache = (options = {}) => {
 
       // Try to get from cache
       const cachedData = await redisUtils.getCache(cacheKey);
-      
+
       if (cachedData) {
         info('Cache hit', { key: cacheKey, path: req.path });
         return res.json({
@@ -44,7 +44,7 @@ const redisCache = (options = {}) => {
 
       // Cache miss - continue to route handler
       info('Cache miss', { key: cacheKey, path: req.path });
-      
+
       // Store original res.json to intercept response
       const originalJson = res.json;
       res.json = function(data) {
@@ -52,7 +52,7 @@ const redisCache = (options = {}) => {
         redisUtils.setCache(cacheKey, data, ttl).catch(err => {
           error('Failed to cache response', { error: err.message, cacheKey });
         });
-        
+
         // Call original json method
         return originalJson.call(this, data);
       };
@@ -70,12 +70,12 @@ const redisCache = (options = {}) => {
  * Invalidate cache by key pattern
  * @param {string} pattern - Key pattern to invalidate
  */
-const invalidateCache = async (pattern) => {
+const invalidateCache = async(pattern) => {
   try {
     const { getRedisClient } = require('../config/redis');
     const client = getRedisClient();
     const keys = await client.keys(pattern);
-    
+
     if (keys.length > 0) {
       await client.del(...keys);
       info('Cache invalidated', { pattern, keysCount: keys.length });
@@ -91,11 +91,11 @@ const invalidateCache = async (pattern) => {
 const redisSession = (options = {}) => {
   const { ttl = 86400 } = options; // 24 hours default
 
-  return async (req, res, next) => {
+  return async(req, res, next) => {
     try {
       // Get session ID from cookie or header
       const sessionId = req.cookies?.sessionId || req.headers['x-session-id'];
-      
+
       if (sessionId) {
         const sessionData = await redisUtils.getSession(sessionId);
         if (sessionData) {
@@ -104,19 +104,19 @@ const redisSession = (options = {}) => {
       }
 
       // Add session methods to response
-      res.setSession = async (data) => {
+      res.setSession = async(data) => {
         const newSessionId = sessionId || require('crypto').randomUUID();
         await redisUtils.setSession(newSessionId, data, ttl);
-        res.cookie('sessionId', newSessionId, { 
-          httpOnly: true, 
+        res.cookie('sessionId', newSessionId, {
+          httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          maxAge: ttl * 1000 
+          maxAge: ttl * 1000
         });
         req.session = data;
         return newSessionId;
       };
 
-      res.clearSession = async () => {
+      res.clearSession = async() => {
         if (sessionId) {
           await redisUtils.deleteSession(sessionId);
           res.clearCookie('sessionId');

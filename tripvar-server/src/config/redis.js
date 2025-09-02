@@ -4,23 +4,23 @@ const config = require('./config');
 
 let redisClient = null;
 
-const connectRedis = async () => {
+const connectRedis = async() => {
   try {
     const redisConfig = {
       ...config.redis,
       host: process.env.REDIS_HOST || 'redis',
       port: process.env.REDIS_PORT || 6379,
       password: process.env.REDIS_PASSWORD || config.redis.password,
-      db: process.env.REDIS_DB || 0,
+      db: process.env.REDIS_DB || 0
     };
 
     redisClient = new Redis(redisConfig);
 
     redisClient.on('connect', () => {
-      info('Redis connected successfully', { 
-        host: redisConfig.host, 
+      info('Redis connected successfully', {
+        host: redisConfig.host,
         port: redisConfig.port,
-        db: redisConfig.db 
+        db: redisConfig.db
       });
     });
 
@@ -42,7 +42,7 @@ const connectRedis = async () => {
 
     // Test the connection
     await redisClient.ping();
-    
+
     return redisClient;
   } catch (err) {
     error('Failed to connect to Redis', { error: err.stack });
@@ -57,7 +57,7 @@ const getRedisClient = () => {
   return redisClient;
 };
 
-const disconnectRedis = async () => {
+const disconnectRedis = async() => {
   if (redisClient) {
     await redisClient.quit();
     redisClient = null;
@@ -91,11 +91,11 @@ const redisUtils = {
   async getOrSet(key, fallbackFn, ttlSeconds = 3600) {
     const client = getRedisClient();
     const cached = await client.get(key);
-    
+
     if (cached) {
       return JSON.parse(cached);
     }
-    
+
     const result = await fallbackFn();
     await client.setex(key, ttlSeconds, JSON.stringify(result));
     return result;
@@ -111,13 +111,13 @@ const redisUtils = {
   async mset(keyValuePairs, ttlSeconds = 3600) {
     const client = getRedisClient();
     const serializedPairs = {};
-    
+
     for (const [key, value] of Object.entries(keyValuePairs)) {
       serializedPairs[key] = JSON.stringify(value);
     }
-    
+
     await client.mset(serializedPairs);
-    
+
     // Set TTL for all keys
     const pipeline = client.pipeline();
     for (const key of Object.keys(serializedPairs)) {
@@ -150,11 +150,11 @@ const redisUtils = {
   async checkRateLimit(key, limit, windowSeconds) {
     const client = getRedisClient();
     const current = await client.incr(key);
-    
+
     if (current === 1) {
       await client.expire(key, windowSeconds);
     }
-    
+
     return {
       allowed: current <= limit,
       current,
@@ -168,7 +168,7 @@ const redisUtils = {
     const client = getRedisClient();
     const lockKey = `lock:${key}`;
     const lockValue = `${Date.now()}-${Math.random()}`;
-    
+
     const result = await client.set(lockKey, lockValue, 'PX', ttlSeconds * 1000, 'NX');
     return result === 'OK' ? lockValue : null;
   },
@@ -208,11 +208,11 @@ const redisUtils = {
   async incr(key, ttlSeconds = null) {
     const client = getRedisClient();
     const result = await client.incr(key);
-    
+
     if (ttlSeconds && result === 1) {
       await client.expire(key, ttlSeconds);
     }
-    
+
     return result;
   },
 
@@ -220,7 +220,7 @@ const redisUtils = {
   async hset(key, field, value, ttlSeconds = null) {
     const client = getRedisClient();
     await client.hset(key, field, JSON.stringify(value));
-    
+
     if (ttlSeconds) {
       await client.expire(key, ttlSeconds);
     }
@@ -236,11 +236,11 @@ const redisUtils = {
     const client = getRedisClient();
     const hash = await client.hgetall(key);
     const result = {};
-    
+
     for (const [field, value] of Object.entries(hash)) {
       result[field] = JSON.parse(value);
     }
-    
+
     return result;
   },
 

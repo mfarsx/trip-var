@@ -1,18 +1,18 @@
-const express = require("express");
-const { authenticate, authorize } = require("../middleware/auth");
-const { validateRequest, validationRules } = require("../config/security");
-const destinationController = require("../controllers/destination.controller");
+const express = require('express');
+const { authenticate, authorize } = require('../middleware/auth');
+const { validateRequest, validationRules } = require('../config/security');
+const destinationController = require('../controllers/destination.controller');
 
 const router = express.Router();
 
 // Public routes
-router.get("/", destinationController.getAllDestinations);
-router.get("/:id", destinationController.getDestinationById);
+router.get('/', destinationController.getAllDestinations);
+router.get('/:id', destinationController.getDestinationById);
 
 // Admin only routes
-router.post("/", 
-  authenticate, 
-  authorize("admin"), 
+router.post('/',
+  authenticate,
+  authorize('admin'),
   [
     validationRules.destinationTitle,
     validationRules.destinationDescription,
@@ -26,9 +26,9 @@ router.post("/",
   destinationController.createDestination
 );
 
-router.put("/:id", 
-  authenticate, 
-  authorize("admin"), 
+router.put('/:id',
+  authenticate,
+  authorize('admin'),
   [
     validationRules.destinationTitle.optional(),
     validationRules.destinationDescription.optional(),
@@ -42,6 +42,6 @@ router.put("/:id",
   destinationController.updateDestination
 );
 
-router.delete("/:id", authenticate, authorize("admin"), destinationController.deleteDestination);
+router.delete('/:id', authenticate, authorize('admin'), destinationController.deleteDestination);
 
 module.exports = router;

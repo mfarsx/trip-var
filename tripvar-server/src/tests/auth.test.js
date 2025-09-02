@@ -13,20 +13,20 @@ const {
 } = require('./setup');
 
 describe('Authentication API', () => {
-  beforeAll(async () => {
+  beforeAll(async() => {
     await setupTestEnvironment();
   });
 
-  afterAll(async () => {
+  afterAll(async() => {
     await cleanupTestEnvironment();
   });
 
-  beforeEach(async () => {
+  beforeEach(async() => {
     await clearDatabase();
   });
 
   describe('POST /api/v1/auth/register', () => {
-    it('should register a new user successfully', async () => {
+    it('should register a new user successfully', async() => {
       const userData = {
         email: 'newuser@example.com',
         password: 'NewPassword123!',
@@ -48,7 +48,7 @@ describe('Authentication API', () => {
       expect(response.body.data.user).not.toHaveProperty('password');
     });
 
-    it('should fail to register with invalid email', async () => {
+    it('should fail to register with invalid email', async() => {
       const userData = {
         email: 'invalid-email',
         password: 'ValidPassword123!',
@@ -63,7 +63,7 @@ describe('Authentication API', () => {
       expectValidationError(response, 400, ['email']);
     });
 
-    it('should fail to register with weak password', async () => {
+    it('should fail to register with weak password', async() => {
       const userData = {
         email: 'test@example.com',
         password: 'weak',
@@ -78,7 +78,7 @@ describe('Authentication API', () => {
       expectValidationError(response, 400, ['password']);
     });
 
-    it('should fail to register with duplicate email', async () => {
+    it('should fail to register with duplicate email', async() => {
       const userData = {
         email: 'duplicate@example.com',
         password: 'ValidPassword123!',
@@ -99,7 +99,7 @@ describe('Authentication API', () => {
       expect(response.body.message).toContain('Email');
     });
 
-    it('should fail to register with missing required fields', async () => {
+    it('should fail to register with missing required fields', async() => {
       const userData = {
         email: 'test@example.com'
         // Missing password and name
@@ -115,14 +115,14 @@ describe('Authentication API', () => {
   });
 
   describe('POST /api/v1/auth/login', () => {
-    beforeEach(async () => {
+    beforeEach(async() => {
       await createTestUser({
         email: 'login@example.com',
         password: 'LoginPassword123!'
       });
     });
 
-    it('should login successfully with valid credentials', async () => {
+    it('should login successfully with valid credentials', async() => {
       const loginData = {
         email: 'login@example.com',
         password: 'LoginPassword123!'
@@ -139,7 +139,7 @@ describe('Authentication API', () => {
       expect(response.body.data.user.email).toBe(loginData.email);
     });
 
-    it('should fail to login with invalid email', async () => {
+    it('should fail to login with invalid email', async() => {
       const loginData = {
         email: 'nonexistent@example.com',
         password: 'LoginPassword123!'
@@ -153,7 +153,7 @@ describe('Authentication API', () => {
       expectAuthError(response, 401);
     });
 
-    it('should fail to login with invalid password', async () => {
+    it('should fail to login with invalid password', async() => {
       const loginData = {
         email: 'login@example.com',
         password: 'WrongPassword123!'
@@ -167,7 +167,7 @@ describe('Authentication API', () => {
       expectAuthError(response, 401);
     });
 
-    it('should fail to login with missing credentials', async () => {
+    it('should fail to login with missing credentials', async() => {
       const response = await request(app)
         .post('/api/v1/auth/login')
         .send({})
@@ -180,12 +180,12 @@ describe('Authentication API', () => {
   describe('GET /api/v1/auth/profile', () => {
     let user, token;
 
-    beforeEach(async () => {
+    beforeEach(async() => {
       user = await createTestUser();
       token = generateTestToken(user);
     });
 
-    it('should get user profile successfully', async () => {
+    it('should get user profile successfully', async() => {
       const response = await request(app)
         .get('/api/v1/auth/profile')
         .set('Authorization', `Bearer ${token}`)
@@ -197,7 +197,7 @@ describe('Authentication API', () => {
       expect(response.body.data.user).not.toHaveProperty('password');
     });
 
-    it('should fail to get profile without token', async () => {
+    it('should fail to get profile without token', async() => {
       const response = await request(app)
         .get('/api/v1/auth/profile')
         .expect(401);
@@ -205,7 +205,7 @@ describe('Authentication API', () => {
       expectAuthError(response, 401);
     });
 
-    it('should fail to get profile with invalid token', async () => {
+    it('should fail to get profile with invalid token', async() => {
       const response = await request(app)
         .get('/api/v1/auth/profile')
         .set('Authorization', 'Bearer invalid-token')
@@ -218,12 +218,12 @@ describe('Authentication API', () => {
   describe('PATCH /api/v1/auth/profile', () => {
     let user, token;
 
-    beforeEach(async () => {
+    beforeEach(async() => {
       user = await createTestUser();
       token = generateTestToken(user);
     });
 
-    it('should update user profile successfully', async () => {
+    it('should update user profile successfully', async() => {
       const updateData = {
         name: 'Updated Name',
         nationality: 'Canada'
@@ -240,7 +240,7 @@ describe('Authentication API', () => {
       expect(response.body.data.user.nationality).toBe(updateData.nationality);
     });
 
-    it('should fail to update profile with invalid data', async () => {
+    it('should fail to update profile with invalid data', async() => {
       const updateData = {
         name: 'A', // Too short
         email: 'invalid-email'
@@ -255,7 +255,7 @@ describe('Authentication API', () => {
       expectValidationError(response, 400, ['name', 'email']);
     });
 
-    it('should fail to update profile without authentication', async () => {
+    it('should fail to update profile without authentication', async() => {
       const updateData = {
         name: 'Updated Name'
       };
@@ -272,14 +272,14 @@ describe('Authentication API', () => {
   describe('PATCH /api/v1/auth/update-password', () => {
     let user, token;
 
-    beforeEach(async () => {
+    beforeEach(async() => {
       user = await createTestUser({
         password: 'CurrentPassword123!'
       });
       token = generateTestToken(user);
     });
 
-    it('should update password successfully', async () => {
+    it('should update password successfully', async() => {
       const passwordData = {
         currentPassword: 'CurrentPassword123!',
         newPassword: 'NewPassword123!'
@@ -295,7 +295,7 @@ describe('Authentication API', () => {
       expect(response.body.data).toHaveProperty('token');
     });
 
-    it('should fail to update password with wrong current password', async () => {
+    it('should fail to update password with wrong current password', async() => {
       const passwordData = {
         currentPassword: 'WrongPassword123!',
         newPassword: 'NewPassword123!'
@@ -310,7 +310,7 @@ describe('Authentication API', () => {
       expectAuthError(response, 401);
     });
 
-    it('should fail to update password with weak new password', async () => {
+    it('should fail to update password with weak new password', async() => {
       const passwordData = {
         currentPassword: 'CurrentPassword123!',
         newPassword: 'weak'
@@ -329,12 +329,12 @@ describe('Authentication API', () => {
   describe('DELETE /api/v1/auth/profile', () => {
     let user, token;
 
-    beforeEach(async () => {
+    beforeEach(async() => {
       user = await createTestUser();
       token = generateTestToken(user);
     });
 
-    it('should delete user account successfully', async () => {
+    it('should delete user account successfully', async() => {
       const response = await request(app)
         .delete('/api/v1/auth/profile')
         .set('Authorization', `Bearer ${token}`)
@@ -343,7 +343,7 @@ describe('Authentication API', () => {
       expect(response.body).toEqual({});
     });
 
-    it('should fail to delete account without authentication', async () => {
+    it('should fail to delete account without authentication', async() => {
       const response = await request(app)
         .delete('/api/v1/auth/profile')
         .expect(401);
@@ -353,7 +353,7 @@ describe('Authentication API', () => {
   });
 
   describe('Rate Limiting', () => {
-    it('should apply rate limiting to auth endpoints', async () => {
+    it('should apply rate limiting to auth endpoints', async() => {
       const userData = {
         email: 'ratelimit@example.com',
         password: 'RateLimitPassword123!',
@@ -368,7 +368,7 @@ describe('Authentication API', () => {
       );
 
       const responses = await Promise.allSettled(promises);
-      
+
       // Some requests should be rate limited
       const rateLimitedResponses = responses.filter(
         response => response.status === 'fulfilled' && response.value.status === 429

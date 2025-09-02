@@ -98,15 +98,15 @@ class BaseRepository {
    */
   async find(criteria = {}, options = {}) {
     try {
-      const { 
-        select, 
-        populate, 
-        lean = false, 
-        sort = { createdAt: -1 }, 
-        limit, 
-        skip 
+      const {
+        select,
+        populate,
+        lean = false,
+        sort = { createdAt: -1 },
+        limit,
+        skip
       } = options;
-      
+
       let query = this.model.find(criteria);
 
       if (select) {
@@ -152,17 +152,17 @@ class BaseRepository {
    */
   async findWithPagination(criteria = {}, options = {}) {
     try {
-      const { 
-        page = 1, 
-        limit = 10, 
-        select, 
-        populate, 
-        lean = false, 
-        sort = { createdAt: -1 } 
+      const {
+        page = 1,
+        limit = 10,
+        select,
+        populate,
+        lean = false,
+        sort = { createdAt: -1 }
       } = options;
-      
+
       const skip = (page - 1) * limit;
-      
+
       const [documents, total] = await Promise.all([
         this.find(criteria, { select, populate, lean, sort, limit, skip }),
         this.count(criteria)
@@ -193,13 +193,13 @@ class BaseRepository {
    */
   async updateById(id, data, options = {}) {
     try {
-      const { 
-        new: returnNew = true, 
-        runValidators = true, 
-        select, 
-        populate 
+      const {
+        new: returnNew = true,
+        runValidators = true,
+        select,
+        populate
       } = options;
-      
+
       let query = this.model.findByIdAndUpdate(id, data, {
         new: returnNew,
         runValidators
@@ -218,7 +218,7 @@ class BaseRepository {
       }
 
       const document = await query;
-      
+
       if (!document) {
         throw new NotFoundError(`${this.model.modelName} not found`);
       }
@@ -238,13 +238,13 @@ class BaseRepository {
    */
   async updateOne(criteria, data, options = {}) {
     try {
-      const { 
-        new: returnNew = true, 
-        runValidators = true, 
-        select, 
-        populate 
+      const {
+        new: returnNew = true,
+        runValidators = true,
+        select,
+        populate
       } = options;
-      
+
       let query = this.model.findOneAndUpdate(criteria, data, {
         new: returnNew,
         runValidators
@@ -279,7 +279,7 @@ class BaseRepository {
   async updateMany(criteria, data, options = {}) {
     try {
       const { runValidators = true } = options;
-      
+
       const result = await this.model.updateMany(criteria, data, {
         runValidators
       });
@@ -299,7 +299,7 @@ class BaseRepository {
   async deleteById(id, options = {}) {
     try {
       const { select, populate } = options;
-      
+
       let query = this.model.findByIdAndDelete(id);
 
       if (select) {
@@ -315,7 +315,7 @@ class BaseRepository {
       }
 
       const document = await query;
-      
+
       if (!document) {
         throw new NotFoundError(`${this.model.modelName} not found`);
       }
@@ -335,7 +335,7 @@ class BaseRepository {
   async deleteOne(criteria, options = {}) {
     try {
       const { select, populate } = options;
-      
+
       let query = this.model.findOneAndDelete(criteria);
 
       if (select) {
@@ -422,7 +422,7 @@ class BaseRepository {
     if (error.name === 'CastError') {
       throw new ValidationError(`Invalid ${error.path}: ${error.value}`);
     }
-    
+
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(el => ({
         field: el.path,
@@ -434,13 +434,13 @@ class BaseRepository {
         errors
       );
     }
-    
+
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
       const value = error.keyValue[field];
       throw new ValidationError(`${field} '${value}' already exists`);
     }
-    
+
     // Re-throw other errors
     throw error;
   }

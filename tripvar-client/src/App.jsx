@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Home from "./pages/Home";
 import Destinations from "./pages/Destinations";
 import Bookings from "./pages/Bookings";
+import Favorites from "./pages/Favorites";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Settings from "./pages/Settings";
@@ -52,6 +53,7 @@ function App() {
               <Route path="destinations" element={<Destinations />} />
               <Route path="destinations/:id" element={<Destinations />} />
               <Route path="bookings" element={<Bookings />} />
+              <Route path="favorites" element={<Favorites />} />
               <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -51,7 +51,7 @@ class EnvironmentValidator {
 
     for (const [key, rules] of this.validations) {
       const value = process.env[key];
-      
+
       // Check if required
       if (rules.required && (value === undefined || value === null || value === '')) {
         this.errors.push(`Required environment variable '${key}' is missing`);
@@ -116,37 +116,37 @@ class EnvironmentValidator {
    */
   validateType(value, type, key) {
     switch (type) {
-      case 'string':
-        return typeof value === 'string';
-      case 'number':
-        if (isNaN(Number(value))) {
-          this.errors.push(`Environment variable '${key}' must be a valid number`);
-          return false;
-        }
+    case 'string':
+      return typeof value === 'string';
+    case 'number':
+      if (isNaN(Number(value))) {
+        this.errors.push(`Environment variable '${key}' must be a valid number`);
+        return false;
+      }
+      return true;
+    case 'boolean':
+      if (!['true', 'false', '1', '0'].includes(value.toLowerCase())) {
+        this.errors.push(`Environment variable '${key}' must be a boolean (true/false)`);
+        return false;
+      }
+      return true;
+    case 'url':
+      try {
+        new URL(value);
         return true;
-      case 'boolean':
-        if (!['true', 'false', '1', '0'].includes(value.toLowerCase())) {
-          this.errors.push(`Environment variable '${key}' must be a boolean (true/false)`);
-          return false;
-        }
-        return true;
-      case 'url':
-        try {
-          new URL(value);
-          return true;
-        } catch {
-          this.errors.push(`Environment variable '${key}' must be a valid URL`);
-          return false;
-        }
-      case 'email':
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailPattern.test(value)) {
-          this.errors.push(`Environment variable '${key}' must be a valid email address`);
-          return false;
-        }
-        return true;
-      default:
-        return true;
+      } catch {
+        this.errors.push(`Environment variable '${key}' must be a valid URL`);
+        return false;
+      }
+    case 'email':
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(value)) {
+        this.errors.push(`Environment variable '${key}' must be a valid email address`);
+        return false;
+      }
+      return true;
+    default:
+      return true;
     }
   }
 
@@ -184,13 +184,13 @@ class EnvironmentValidator {
       doc += `**Description:** ${rules.description || 'No description provided'}\n\n`;
       doc += `**Required:** ${rules.required ? 'Yes' : 'No'}\n\n`;
       doc += `**Type:** ${rules.type}\n\n`;
-      
+
       if (rules.allowedValues) {
         doc += `**Allowed Values:** ${rules.allowedValues.join(', ')}\n\n`;
       }
-      
+
       if (rules.minLength !== null || rules.maxLength !== null) {
-        doc += `**Length:** `;
+        doc += '**Length:** ';
         if (rules.minLength !== null && rules.maxLength !== null) {
           doc += `${rules.minLength}-${rules.maxLength} characters\n\n`;
         } else if (rules.minLength !== null) {
@@ -199,11 +199,11 @@ class EnvironmentValidator {
           doc += `maximum ${rules.maxLength} characters\n\n`;
         }
       }
-      
+
       if (rules.pattern) {
         doc += `**Pattern:** \`${rules.pattern.source}\`\n\n`;
       }
-      
+
       doc += '---\n\n';
     }
 
@@ -367,10 +367,10 @@ envValidator.addValidation('SENTRY_DSN', {
  */
 function validateEnvironment() {
   const isValid = envValidator.validate();
-  
+
   if (!isValid) {
     const summary = envValidator.getSummary();
-    
+
     // Use console.error instead of logger to avoid circular dependency
     console.error('Environment validation failed', {
       total: summary.total,
@@ -378,14 +378,14 @@ function validateEnvironment() {
       failed: summary.failed,
       errors: summary.errors
     });
-    
+
     console.error('\n❌ Environment validation failed:');
     summary.errors.forEach(err => console.error(`  - ${err}`));
     console.error('\nPlease check your environment variables and try again.\n');
-    
+
     process.exit(1);
   }
-  
+
   console.log('✅ Environment validation passed');
 }
 

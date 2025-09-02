@@ -1,44 +1,44 @@
-const app = require("./app");
-const { info, error, warn } = require("./utils/logger");
-const config = require("./config/config");
+const app = require('./app');
+const { info, error, warn } = require('./utils/logger');
+const config = require('./config/config');
 
 // Global error handlers
-process.on("uncaughtException", (err) => {
-  error("Uncaught Exception", { 
+process.on('uncaughtException', (err) => {
+  error('Uncaught Exception', {
     error: err.message,
     stack: config.server.isDevelopment ? err.stack : undefined
   });
   process.exit(1);
 });
 
-process.on("unhandledRejection", (err) => {
-  error("Unhandled Rejection", { 
+process.on('unhandledRejection', (err) => {
+  error('Unhandled Rejection', {
     error: err.message,
     stack: config.server.isDevelopment ? err.stack : undefined
   });
-  
+
   // Don't exit for validation errors - they should be handled by middleware
   if (err.name === 'ValidationError' || err.message.includes('Validation failed')) {
-    warn("Validation error caught as unhandled rejection - this should be handled by middleware", {
+    warn('Validation error caught as unhandled rejection - this should be handled by middleware', {
       error: err.message
     });
     return;
   }
-  
+
   // For other unhandled rejections, still exit in production
   if (config.server.isProduction) {
     process.exit(1);
   } else {
-    warn("Unhandled rejection in development - server continues running", {
+    warn('Unhandled rejection in development - server continues running', {
       error: err.message
     });
   }
 });
 
 // Graceful shutdown handler
-const gracefulShutdown = async (signal) => {
+const gracefulShutdown = async(signal) => {
   info(`${signal} received, shutting down gracefully`);
-  
+
   try {
     // Close server
     if (server) {
@@ -78,14 +78,14 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
 const server = app.listen(config.server.port, config.server.host, () => {
-  info(`🚀 Tripvar Server is running`, {
+  info('🚀 Tripvar Server is running', {
     port: config.server.port,
     host: config.server.host,
     nodeEnv: config.server.nodeEnv,
     timestamp: new Date().toISOString(),
     pid: process.pid
   });
-  
+
   // Display startup information
   console.log('\n' + '='.repeat(50));
   console.log('🚀 Tripvar Server Started Successfully!');

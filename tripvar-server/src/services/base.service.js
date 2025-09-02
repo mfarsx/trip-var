@@ -56,12 +56,12 @@ class BaseService {
       const { getRedisClient } = require('../config/redis');
       const client = getRedisClient();
       const keys = await client.keys(pattern);
-      
+
       if (keys.length > 0) {
         await client.del(...keys);
         return keys.length;
       }
-      
+
       return 0;
     } catch (error) {
       console.warn(`Failed to clear cache by pattern ${pattern}:`, error.message);
@@ -76,10 +76,10 @@ class BaseService {
    * @throws {ValidationError} If validation fails
    */
   validateRequiredFields(data, requiredFields) {
-    const missingFields = requiredFields.filter(field => 
+    const missingFields = requiredFields.filter(field =>
       data[field] === undefined || data[field] === null || data[field] === ''
     );
-    
+
     if (missingFields.length > 0) {
       const { ValidationError } = require('../utils/errors');
       throw new ValidationError(
@@ -97,7 +97,7 @@ class BaseService {
    */
   sanitizeInput(data, allowedFields) {
     const sanitized = {};
-    
+
     Object.keys(data).forEach(key => {
       if (allowedFields.includes(key)) {
         // Basic sanitization
@@ -108,7 +108,7 @@ class BaseService {
         }
       }
     });
-    
+
     return sanitized;
   }
 
@@ -138,28 +138,28 @@ class BaseService {
    */
   async withRetry(operation, maxRetries = 3) {
     let lastError;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error;
-        
+
         // Don't retry on validation errors or authentication errors
         if (error.statusCode && error.statusCode < 500) {
           throw error;
         }
-        
+
         if (attempt === maxRetries) {
           throw error;
         }
-        
+
         // Exponential backoff
         const delay = Math.pow(2, attempt) * 1000;
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-    
+
     throw lastError;
   }
 }

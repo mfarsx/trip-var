@@ -28,12 +28,12 @@ router.get('/', (req, res) => {
     environment: config.server.nodeEnv,
     uptime: process.uptime()
   };
-  
+
   res.json(health);
 });
 
 // Database health check
-router.get('/db', async (req, res) => {
+router.get('/db', async(req, res) => {
   try {
     const dbState = mongoose.connection.readyState;
     if (dbState === 1) {
@@ -47,23 +47,23 @@ router.get('/db', async (req, res) => {
 });
 
 // Redis health check
-router.get('/redis', async (req, res) => {
+router.get('/redis', async(req, res) => {
   try {
     const redisClient = getRedisClient();
     const startTime = Date.now();
     await redisClient.ping();
     const responseTime = Date.now() - startTime;
-    
-    res.json({ 
-      status: 'ok', 
+
+    res.json({
+      status: 'ok',
       redis: 'connected',
       responseTime: `${responseTime}ms`
     });
   } catch (error) {
-    res.status(503).json({ 
-      status: 'error', 
+    res.status(503).json({
+      status: 'error',
       redis: 'disconnected',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -100,7 +100,7 @@ router.get('/metrics', (req, res) => {
 });
 
 // Complete health check (all services)
-router.get('/all', async (req, res) => {
+router.get('/all', async(req, res) => {
   const startTime = Date.now();
   const health = {
     status: 'ok',
@@ -118,15 +118,15 @@ router.get('/all', async (req, res) => {
     const dbStartTime = Date.now();
     const dbState = mongoose.connection.readyState;
     const dbResponseTime = Date.now() - dbStartTime;
-    
+
     health.services.mongodb = {
       status: dbState === 1 ? 'connected' : 'disconnected',
       responseTime: `${dbResponseTime}ms`,
       readyState: dbState
     };
-    
+
     health.checks.mongodb = dbState === 1 ? 'pass' : 'fail';
-    
+
     if (dbState !== 1) {
       health.status = 'degraded';
     }
@@ -145,12 +145,12 @@ router.get('/all', async (req, res) => {
     const redisClient = getRedisClient();
     await redisClient.ping();
     const redisResponseTime = Date.now() - redisStartTime;
-    
+
     health.services.redis = {
       status: 'connected',
       responseTime: `${redisResponseTime}ms`
     };
-    
+
     health.checks.redis = 'pass';
   } catch (error) {
     health.services.redis = {
@@ -164,7 +164,7 @@ router.get('/all', async (req, res) => {
   // System health
   const memoryUsage = process.memoryUsage();
   const memoryUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
-  
+
   health.system = {
     memory: {
       used: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
@@ -190,11 +190,11 @@ router.get('/all', async (req, res) => {
 });
 
 // Readiness probe (for Kubernetes)
-router.get('/ready', async (req, res) => {
+router.get('/ready', async(req, res) => {
   try {
     // Check if all critical services are ready
     const dbState = mongoose.connection.readyState;
-    
+
     // Check Redis if available
     let redisReady = true;
     try {
@@ -205,9 +205,9 @@ router.get('/ready', async (req, res) => {
       // Redis is not critical for readiness, just log the warning
       console.warn('Redis not ready:', redisError.message);
     }
-    
+
     if (dbState === 1) {
-      res.status(200).json({ 
+      res.status(200).json({
         status: 'ready',
         services: {
           database: 'ready',

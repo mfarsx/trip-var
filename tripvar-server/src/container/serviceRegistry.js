@@ -5,7 +5,7 @@ const User = require('../models/user.model');
 const Destination = require('../models/destination.model');
 const Booking = require('../models/booking.model');
 const Review = require('../models/review.model');
-const Payment = require('../models/payment.model');
+// const Payment = require('../models/payment.model'); // Payment model not implemented yet
 const Notification = require('../models/notification.model');
 
 // Repositories
@@ -32,7 +32,7 @@ function registerServices() {
   container.registerInstance('Destination', Destination);
   container.registerInstance('Booking', Booking);
   container.registerInstance('Review', Review);
-  container.registerInstance('Payment', Payment);
+  // container.registerInstance('Payment', Payment); // Payment model not implemented yet
   container.registerInstance('Notification', Notification);
 
   // Register repositories
@@ -54,10 +54,10 @@ function registerServices() {
     return new ReviewRepository(Review);
   }, ['Review']);
 
-  container.registerFactory('PaymentRepository', (Payment) => {
-    const PaymentRepository = require('../repositories/payment.repository');
-    return new PaymentRepository(Payment);
-  }, ['Payment']);
+  // container.registerFactory('PaymentRepository', (Payment) => {
+  //   const PaymentRepository = require('../repositories/payment.repository');
+  //   return new PaymentRepository(Payment);
+  // }, ['Payment']); // Payment repository not implemented yet
 
   container.registerFactory('NotificationRepository', (Notification) => {
     const NotificationRepository = require('../repositories/notification.repository');
@@ -83,10 +83,10 @@ function registerServices() {
     return new ReviewService(ReviewRepository);
   }, ['ReviewRepository']);
 
-  container.registerFactory('PaymentService', (PaymentRepository) => {
-    const PaymentService = require('../services/payment.service');
-    return new PaymentService(PaymentRepository);
-  }, ['PaymentRepository']);
+  // container.registerFactory('PaymentService', (PaymentRepository) => {
+  //   const PaymentService = require('../services/payment.service');
+  //   return new PaymentService(PaymentRepository);
+  // }, ['PaymentRepository']); // Payment service not implemented yet
 
   container.registerFactory('NotificationService', (NotificationRepository) => {
     const NotificationService = require('../services/notification.service');
@@ -112,10 +112,10 @@ function registerServices() {
     return new ReviewController(ReviewService);
   }, ['ReviewService']);
 
-  container.registerFactory('PaymentController', (PaymentService) => {
-    const PaymentController = require('../controllers/payment.controller');
-    return new PaymentController(PaymentService);
-  }, ['PaymentService']);
+  // container.registerFactory('PaymentController', (PaymentService) => {
+  //   const PaymentController = require('../controllers/payment.controller');
+  //   return new PaymentController(PaymentService);
+  // }, ['PaymentService']); // Payment controller not implemented yet
 
   container.registerFactory('NotificationController', (NotificationService) => {
     const NotificationController = require('../controllers/notification.controller');

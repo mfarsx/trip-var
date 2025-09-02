@@ -24,12 +24,13 @@ const logsDir = path.join(__dirname, '../../logs');
 
 // Create logger instance
 const logger = winston.createLogger({
-  level: config.server.isDevelopment ? 'debug' : 'info',
+  level: process.env.LOG_LEVEL || (config.server.isDevelopment ? 'warn' : 'info'),
   format: logFormat,
   defaultMeta: { service: 'tripvar-server' },
   transports: [
-    // Console transport
+    // Console transport - only show warnings and errors in development
     new winston.transports.Console({
+      level: process.env.LOG_LEVEL || (config.server.isDevelopment ? 'warn' : 'info'),
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.simple()
@@ -81,14 +82,7 @@ const logger = winston.createLogger({
   ]
 });
 
-// Add custom log levels
-logger.add(new winston.transports.Console({
-  level: 'http',
-  format: winston.format.combine(
-    winston.format.colorize(),
-    winston.format.simple()
-  )
-}));
+// Remove duplicate console transport - already configured above
 
 // Request logging middleware
 const requestLogger = (req, res, next) => {

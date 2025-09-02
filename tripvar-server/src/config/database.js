@@ -6,6 +6,11 @@ const connectDB = async () => {
   try {
     const { database } = config;
     
+    // Validate MongoDB URI
+    if (!database.uri) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
+    
     // Connection event handlers
     mongoose.connection.on('connected', () => {
       info('MongoDB connected successfully', { 
@@ -15,7 +20,11 @@ const connectDB = async () => {
     });
 
     mongoose.connection.on('error', (err) => {
-      error('MongoDB connection error', { error: err.message });
+      error('MongoDB connection error', { 
+        error: err.message,
+        code: err.code,
+        name: err.name
+      });
     });
 
     mongoose.connection.on('disconnected', () => {
@@ -29,8 +38,21 @@ const connectDB = async () => {
     // Set mongoose options
     mongoose.set('strictQuery', false);
     
+    // Enhanced connection options
+    const connectionOptions = {
+      ...database.options,
+      authSource: 'tripvar', // Specify authentication database
+      retryWrites: true,
+      w: 'majority'
+    };
+    
+    info('Attempting to connect to MongoDB', {
+      uri: database.uri.replace(/\/\/.*@/, '//***:***@'),
+      options: connectionOptions
+    });
+    
     // Connect with configuration
-    await mongoose.connect(database.uri, database.options);
+    await mongoose.connect(database.uri, connectionOptions);
     
     // Graceful shutdown
     process.on('SIGINT', async () => {

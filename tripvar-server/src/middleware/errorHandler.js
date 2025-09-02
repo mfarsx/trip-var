@@ -146,6 +146,19 @@ module.exports = (err, req, res, next) => {
       userAgent: req.get('User-Agent'),
       ip: req.ip
     });
+    
+    // Alert for critical server errors
+    if (err.statusCode >= 500) {
+      security('CRITICAL SERVER ERROR', {
+        error: err.message,
+        requestId: req.requestId,
+        url: req.url,
+        method: req.method,
+        statusCode: err.statusCode,
+        ip: req.ip,
+        timestamp: new Date().toISOString()
+      });
+    }
   } else if (err.statusCode >= 400) {
     warn('Client error', {
       error: err.message,

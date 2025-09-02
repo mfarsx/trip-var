@@ -117,7 +117,7 @@ export default function DestinationsGrid({ destinations, onDestinationClick }) {
               <FiStar className="w-4 h-4 text-yellow-500" />
               <span>{destination.rating}</span>
               <span className="text-gray-500 text-sm">
-                ({destination.reviews} reviews)
+                ({destination.ratingCount} reviews)
               </span>
             </div>
             <p className="text-gray-400 line-clamp-2 text-sm">
@@ -144,7 +144,7 @@ DestinationsGrid.propTypes = {
       title: PropTypes.string.isRequired,
       location: PropTypes.string.isRequired,
       rating: PropTypes.number.isRequired,
-      reviews: PropTypes.number.isRequired,
+      ratingCount: PropTypes.number.isRequired,
       description: PropTypes.string.isRequired,
       price: PropTypes.number.isRequired,
     })

@@ -1,4 +1,4 @@
-const { error } = require('./logger');
+// Removed logger dependency to avoid circular dependency
 
 /**
  * Environment variable validation utility
@@ -371,7 +371,8 @@ function validateEnvironment() {
   if (!isValid) {
     const summary = envValidator.getSummary();
     
-    error('Environment validation failed', {
+    // Use console.error instead of logger to avoid circular dependency
+    console.error('Environment validation failed', {
       total: summary.total,
       passed: summary.passed,
       failed: summary.failed,

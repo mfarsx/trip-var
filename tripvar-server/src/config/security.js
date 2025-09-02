@@ -30,7 +30,7 @@ const securityConfig = {
   // Rate limiting configuration
   generalLimiter: rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: process.env.NODE_ENV === 'development' ? 10000 : 100, // Much higher limit for development
     message: {
       error: 'Too many requests from this IP, please try again later.',
       retryAfter: '15 minutes'
@@ -48,7 +48,7 @@ const securityConfig = {
   // Strict rate limiting for auth endpoints
   authLimiter: rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // limit each IP to 5 requests per windowMs
+    max: process.env.NODE_ENV === 'development' ? 100 : 5, // Higher limit for development
     message: {
       error: 'Too many authentication attempts, please try again later.',
       retryAfter: '15 minutes'

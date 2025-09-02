@@ -3,6 +3,7 @@ import authReducer from './slices/authSlice'
 import destinationReducer from "./slices/destinationSlice";
 import bookingReducer from "./slices/bookingSlice";
 import reviewReducer from "./slices/reviewSlice";
+import notificationReducer from "./slices/notificationSlice";
 import logger from '../utils/logger'
 import loggerMiddleware from './middleware/loggerMiddleware'
 
@@ -12,6 +13,7 @@ export const store = configureStore({
     destinations: destinationReducer,
     bookings: bookingReducer,
     reviews: reviewReducer,
+    notifications: notificationReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -8,28 +8,34 @@ const { ValidationError } = require('../utils/errors');
  */
 const validate = (validations) => {
   return async (req, res, next) => {
-    // Run all validations
-    await Promise.all(validations.map(validation => validation.run(req)));
-    
-    // Check for validation errors
-    const errors = validationResult(req);
-    
-    if (!errors.isEmpty()) {
-      const errorMessages = errors.array().map(error => error.msg);
-      const errorDetails = errors.array().map(error => ({
-        field: error.param,
-        message: error.msg,
-        value: error.value,
-        location: error.location
-      }));
+    try {
+      // Run all validations
+      await Promise.all(validations.map(validation => validation.run(req)));
       
-      throw new ValidationError(
-        `Validation failed: ${errorMessages.join(', ')}`,
-        errorDetails
-      );
+      // Check for validation errors
+      const errors = validationResult(req);
+      
+      if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map(error => error.msg);
+        const errorDetails = errors.array().map(error => ({
+          field: error.param,
+          message: error.msg,
+          value: error.value,
+          location: error.location
+        }));
+        
+        const validationError = new ValidationError(
+          `Validation failed: ${errorMessages.join(', ')}`,
+          errorDetails
+        );
+        
+        return next(validationError);
+      }
+      
+      next();
+    } catch (err) {
+      next(err);
     }
-    
-    next();
   };
 };
 
@@ -175,31 +181,38 @@ const fileValidation = (options = {}) => {
   } = options;
   
   return (req, res, next) => {
-    if (!req.files || req.files.length === 0) {
-      return next();
-    }
-    
-    const files = Array.isArray(req.files) ? req.files : [req.files];
-    
-    // Check number of files
-    if (files.length > maxFiles) {
-      throw new ValidationError(`Maximum ${maxFiles} file(s) allowed`);
-    }
-    
-    // Validate each file
-    files.forEach(file => {
-      // Check file size
-      if (file.size > maxSize) {
-        throw new ValidationError(`File ${file.name} is too large. Maximum size is ${maxSize / 1024 / 1024}MB`);
+    try {
+      if (!req.files || req.files.length === 0) {
+        return next();
       }
       
-      // Check file type
-      if (!allowedTypes.includes(file.mimetype)) {
-        throw new ValidationError(`File type ${file.mimetype} is not allowed. Allowed types: ${allowedTypes.join(', ')}`);
+      const files = Array.isArray(req.files) ? req.files : [req.files];
+      
+      // Check number of files
+      if (files.length > maxFiles) {
+        const error = new ValidationError(`Maximum ${maxFiles} file(s) allowed`);
+        return next(error);
       }
-    });
-    
-    next();
+      
+      // Validate each file
+      for (const file of files) {
+        // Check file size
+        if (file.size > maxSize) {
+          const error = new ValidationError(`File ${file.name} is too large. Maximum size is ${maxSize / 1024 / 1024}MB`);
+          return next(error);
+        }
+        
+        // Check file type
+        if (!allowedTypes.includes(file.mimetype)) {
+          const error = new ValidationError(`File type ${file.mimetype} is not allowed. Allowed types: ${allowedTypes.join(', ')}`);
+          return next(error);
+        }
+      }
+      
+      next();
+    } catch (err) {
+      next(err);
+    }
   };
 };
 
@@ -210,13 +223,18 @@ const fileValidation = (options = {}) => {
  */
 const validateObjectId = (paramName) => {
   return (req, res, next) => {
-    const id = req.params[paramName];
-    
-    if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
-      throw new ValidationError(`Invalid ${paramName} format`);
+    try {
+      const id = req.params[paramName];
+      
+      if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+        const error = new ValidationError(`Invalid ${paramName} format`);
+        return next(error);
+      }
+      
+      next();
+    } catch (err) {
+      next(err);
     }
-    
-    next();
   };
 };
 
@@ -226,24 +244,30 @@ const validateObjectId = (paramName) => {
  */
 const validatePagination = () => {
   return (req, res, next) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    
-    if (page < 1) {
-      throw new ValidationError('Page must be a positive integer');
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      
+      if (page < 1) {
+        const error = new ValidationError('Page must be a positive integer');
+        return next(error);
+      }
+      
+      if (limit < 1 || limit > 100) {
+        const error = new ValidationError('Limit must be between 1 and 100');
+        return next(error);
+      }
+      
+      req.pagination = {
+        page,
+        limit,
+        skip: (page - 1) * limit
+      };
+      
+      next();
+    } catch (err) {
+      next(err);
     }
-    
-    if (limit < 1 || limit > 100) {
-      throw new ValidationError('Limit must be between 1 and 100');
-    }
-    
-    req.pagination = {
-      page,
-      limit,
-      skip: (page - 1) * limit
-    };
-    
-    next();
   };
 };
 

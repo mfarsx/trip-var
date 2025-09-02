@@ -77,9 +77,18 @@ A full-stack travel planning application built with modern web technologies, fea
    docker-compose up --build
    ```
 
-3. **Access the application**
+3. **Check service status and URLs**
+
+   ```bash
+   # After docker compose up, run this to see all service URLs
+   ./scripts/show-status.sh
+   ```
+
+4. **Access the application**
    - Frontend: http://localhost:5173
    - Backend API: http://localhost:8000
+   - API Documentation: http://localhost:8000/api-docs
+   - Health Check: http://localhost:8000/health
    - MongoDB: localhost:27017
    - Redis: localhost:6379
 
@@ -179,6 +188,15 @@ docker-compose down
 
 # Rebuild and start
 docker-compose up --build
+
+# Check service status and URLs
+./scripts/show-status.sh
+
+# View specific service logs
+./scripts/logs.sh logs server
+./scripts/logs.sh logs client
+./scripts/logs.sh logs mongodb
+./scripts/logs.sh logs redis
 ```
 
 ## 📚 API Endpoints

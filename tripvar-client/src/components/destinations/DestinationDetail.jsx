@@ -1,4 +1,4 @@
-import { FiHeart, FiMapPin, FiStar, FiInfo, FiDollarSign } from "react-icons/fi";
+import { FiHeart, FiMapPin, FiStar, FiInfo, FiDollarSign, FiCalendar, FiUsers } from "react-icons/fi";
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,6 +6,7 @@ import { createBooking, checkAvailability } from '../../store/slices/bookingSlic
 import { fetchProfile } from '../../store/slices/authSlice';
 import { toggleFavorite } from '../../services/userService';
 import ReviewsSection from '../reviews/ReviewsSection';
+import BookingConfirmationModal from '../bookings/BookingConfirmationModal';
 import toast from 'react-hot-toast';
 
 export default function DestinationDetail({ destination, onBack }) {
@@ -22,6 +23,7 @@ export default function DestinationDetail({ destination, onBack }) {
   });
 
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const isFavorite = user?.favorites?.some(fav => fav._id === destination._id);
 
@@ -63,20 +65,25 @@ export default function DestinationDetail({ destination, onBack }) {
     e.preventDefault();
     
     if (!bookingData.startDate || !bookingData.endDate) {
-      alert('Please select both check-in and check-out dates');
+      toast.error('Please select both check-in and check-out dates');
       return;
     }
 
     if (!bookingData.agreeTerms) {
-      alert('Please agree to the terms and conditions');
+      toast.error('Please agree to the terms and conditions');
       return;
     }
 
     if (!availabilityChecked || !availability?.available) {
-      alert('Please check availability first');
+      toast.error('Please check availability first');
       return;
     }
 
+    // Show booking confirmation modal
+    setShowBookingModal(true);
+  };
+
+  const handleConfirmBooking = async () => {
     try {
       const bookingPayload = {
         destinationId: destination._id,
@@ -85,14 +92,14 @@ export default function DestinationDetail({ destination, onBack }) {
         numberOfGuests: parseInt(bookingData.guests),
         paymentMethod: bookingData.paymentMethod,
         specialRequests: '',
-        contactEmail: '',
+        contactEmail: user?.email || '',
         contactPhone: ''
       };
 
       await dispatch(createBooking(bookingPayload)).unwrap();
       
       // Show success message
-      alert('Booking created successfully! You can view it in your bookings.');
+      toast.success('Booking created successfully! You can view it in your bookings.');
       
       // Reset form
       setBookingData({
@@ -103,10 +110,12 @@ export default function DestinationDetail({ destination, onBack }) {
         agreeTerms: false
       });
       setAvailabilityChecked(false);
+      setShowBookingModal(false);
       
     } catch (error) {
       console.error('Booking failed:', error);
-      alert('Failed to create booking. Please try again.');
+      toast.error('Failed to create booking. Please try again.');
+      throw error; // Re-throw to handle in modal
     }
   };
 
@@ -188,51 +197,69 @@ export default function DestinationDetail({ destination, onBack }) {
 
               {/* Booking Form */}
               <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-700/50">
-                <h2 className="text-2xl font-semibold mb-4">Book Your Stay</h2>
+                <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                  <FiCalendar className="w-6 h-6 text-purple-400" />
+                  Book Your Stay
+                </h2>
                 <form onSubmit={handleBookingSubmit}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col">
-                      <label className="text-gray-300 mb-2" htmlFor="startDate">Start Date</label>
+                      <label className="text-gray-300 mb-2 flex items-center gap-2" htmlFor="startDate">
+                        <FiCalendar className="w-4 h-4" />
+                        Check-in Date
+                      </label>
                       <input
                         type="date"
                         id="startDate"
                         value={bookingData.startDate}
                         onChange={(e) => handleDateChange('startDate', e.target.value)}
-                        className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50"
+                        className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                         min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-gray-300 mb-2" htmlFor="endDate">End Date</label>
+                      <label className="text-gray-300 mb-2 flex items-center gap-2" htmlFor="endDate">
+                        <FiCalendar className="w-4 h-4" />
+                        Check-out Date
+                      </label>
                       <input
                         type="date"
                         id="endDate"
                         value={bookingData.endDate}
                         onChange={(e) => handleDateChange('endDate', e.target.value)}
-                        className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50"
+                        className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                         min={bookingData.startDate || new Date().toISOString().split('T')[0]}
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-gray-300 mb-2" htmlFor="guests">Number of Guests</label>
+                      <label className="text-gray-300 mb-2 flex items-center gap-2" htmlFor="guests">
+                        <FiUsers className="w-4 h-4" />
+                        Number of Guests
+                      </label>
                       <input
                         type="number"
                         id="guests"
+                        min="1"
+                        max="10"
                         value={bookingData.guests}
                         onChange={(e) => setBookingData({ ...bookingData, guests: e.target.value })}
-                        className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50"
+                        className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                       />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-gray-300 mb-2" htmlFor="paymentMethod">Payment Method</label>
+                      <label className="text-gray-300 mb-2 flex items-center gap-2" htmlFor="paymentMethod">
+                        <FiDollarSign className="w-4 h-4" />
+                        Payment Method
+                      </label>
                       <select
                         id="paymentMethod"
                         value={bookingData.paymentMethod}
                         onChange={(e) => setBookingData({ ...bookingData, paymentMethod: e.target.value })}
-                        className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50"
+                        className="bg-gray-700/50 p-3 rounded-lg border border-gray-600/50 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                       >
                         <option value="credit-card">Credit Card</option>
                         <option value="paypal">PayPal</option>
+                        <option value="bank-transfer">Bank Transfer</option>
                       </select>
                     </div>
                   </div>
@@ -291,6 +318,15 @@ export default function DestinationDetail({ destination, onBack }) {
           <ReviewsSection destinationId={destination._id} destination={destination} />
         </div>
       </div>
+
+      {/* Booking Confirmation Modal */}
+      <BookingConfirmationModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        booking={bookingData}
+        destination={destination}
+        onConfirm={handleConfirmBooking}
+      />
     </div>
   );
 }

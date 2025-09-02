@@ -2,6 +2,7 @@ const Booking = require("../models/booking.model");
 const Destination = require("../models/destination.model");
 const { ValidationError, NotFoundError, ConflictError } = require("../utils/errors");
 const { info, error } = require("../utils/logger");
+const NotificationService = require("../services/notification.service");
 
 // Create a new booking
 const createBooking = async (req, res, next) => {
@@ -83,6 +84,18 @@ const createBooking = async (req, res, next) => {
       destinationId,
       totalAmount
     });
+
+    // Create booking confirmation notification
+    try {
+      await NotificationService.createBookingConfirmationNotification(userId, booking);
+    } catch (notificationError) {
+      // Log error but don't fail the booking creation
+      error("Failed to create booking confirmation notification", {
+        error: notificationError.message,
+        bookingId: booking._id,
+        userId
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -221,6 +234,18 @@ const cancelBooking = async (req, res, next) => {
       userId,
       refundAmount
     });
+
+    // Create booking cancellation notification
+    try {
+      await NotificationService.createBookingCancellationNotification(userId, booking, refundAmount);
+    } catch (notificationError) {
+      // Log error but don't fail the cancellation
+      error("Failed to create booking cancellation notification", {
+        error: notificationError.message,
+        bookingId: id,
+        userId
+      });
+    }
 
     res.json({
       success: true,

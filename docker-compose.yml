@@ -1,142 +1,97 @@
 services:
   mongodb:
-    image: mongo:6.0
+    image: mongo:7.0
+    container_name: tripvar-mongodb
+    restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=adminpassword123
       - MONGO_INITDB_DATABASE=tripvar
-    command: mongod --quiet --logLevel 1
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    command: ${MONGO_COMMAND:-mongod --quiet --logpath /dev/null}
     logging:
       driver: "json-file"
       options:
-        max-size: "1m"
+        max-size: "10m"
         max-file: "1"
     networks:
       - app-network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
 
   redis:
     image: redis:7.2-alpine
+    container_name: tripvar-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --loglevel warning
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    logging:
-      driver: "local"
-      options:
-        mode: "non-blocking"
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - app-network
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.25'
-        reservations:
-          memory: 128M
-          cpus: '0.1'
-
-  server:
-    build: ./tripvar-server
-    ports:
-      - "8000:8000"
-    env_file:
-      - ./tripvar-server/.env
-    volumes:
-      - ./tripvar-server:/usr/src/app
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      - DEBUG=false
-      - LOG_LEVEL=info
-      - LLM_HOST=host.docker.internal
-      - LLM_PORT=1234
-      - LLM_PROTOCOL=http
-      - HOST=0.0.0.0
-      - NODE_ENV=development
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    command: ${REDIS_COMMAND:-redis-server --appendonly yes --loglevel warning}
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+        max-file: "1"
     networks:
       - app-network
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
+
+  server:
+    build:
+      context: ./tripvar-server
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-development}
+    container_name: tripvar-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./tripvar-server/.env${ENV_SUFFIX:-}
+    volumes:
+      - ${VOLUME_MOUNT:-./tripvar-server:/usr/src/app}
+    depends_on:
+      - mongodb
+      - redis
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-warn}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+    networks:
+      - app-network
 
   client:
     build:
       context: ./tripvar-client
       dockerfile: Dockerfile.dev
+    container_name: tripvar-client
+    restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "${CLIENT_PORT:-5173}:${CLIENT_PORT:-5173}"
     env_file:
-      - ./tripvar-client/.env
+      - ./tripvar-client/.env${ENV_SUFFIX:-}
     volumes:
-      - ./tripvar-client:/app
-      - /app/node_modules
+      - ${VOLUME_MOUNT:-./tripvar-client:/app}
+      - /app/node_modules  # Prevent node_modules from being overwritten
     depends_on:
-      server:
-        condition: service_healthy
+      - server
     environment:
-      - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8000
-      - VITE_API_PATH=/api/v1
-      - VITE_HOST=0.0.0.0
+      - NODE_ENV=${NODE_ENV:-development}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - VITE_ENABLE_DEBUG_LOGGING=true
+      - VITE_ENABLE_ERROR_REPORTING=true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
     networks:
       - app-network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
 
 networks:
   app-network:
@@ -144,6 +99,4 @@ networks:
 
 volumes:
   mongodb_data:
-    name: mongodb_data
   redis_data:
-    name: redis_data

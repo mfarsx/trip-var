@@ -1,5 +1,5 @@
 const app = require("./app");
-const { info, error } = require("./utils/logger");
+const { info, error, warn } = require("./utils/logger");
 const config = require("./config/config");
 
 // Global error handlers
@@ -16,29 +16,86 @@ process.on("unhandledRejection", (err) => {
     error: err.message,
     stack: config.server.isDevelopment ? err.stack : undefined
   });
-  process.exit(1);
+  
+  // Don't exit for validation errors - they should be handled by middleware
+  if (err.name === 'ValidationError' || err.message.includes('Validation failed')) {
+    warn("Validation error caught as unhandled rejection - this should be handled by middleware", {
+      error: err.message
+    });
+    return;
+  }
+  
+  // For other unhandled rejections, still exit in production
+  if (config.server.isProduction) {
+    process.exit(1);
+  } else {
+    warn("Unhandled rejection in development - server continues running", {
+      error: err.message
+    });
+  }
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  info('SIGTERM received, shutting down gracefully');
-  process.exit(0);
-});
+// Graceful shutdown handler
+const gracefulShutdown = async (signal) => {
+  info(`${signal} received, shutting down gracefully`);
+  
+  try {
+    // Close server
+    if (server) {
+      await new Promise((resolve) => {
+        server.close(() => {
+          info('HTTP server closed');
+          resolve();
+        });
+      });
+    }
 
-process.on('SIGINT', () => {
-  info('SIGINT received, shutting down gracefully');
-  process.exit(0);
-});
+    // Close database connections
+    const mongoose = require('mongoose');
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.close();
+      info('Database connection closed');
+    }
+
+    // Close Redis connection
+    const redis = require('./config/redis');
+    if (redis && redis.disconnect) {
+      await redis.disconnect();
+      info('Redis connection closed');
+    }
+
+    info('Graceful shutdown completed');
+    process.exit(0);
+  } catch (err) {
+    error('Error during graceful shutdown', { error: err.message });
+    process.exit(1);
+  }
+};
+
+// Graceful shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start server
 const server = app.listen(config.server.port, config.server.host, () => {
-  info(`Server is running`, {
+  info(`🚀 Tripvar Server is running`, {
     port: config.server.port,
     host: config.server.host,
     nodeEnv: config.server.nodeEnv,
     timestamp: new Date().toISOString(),
     pid: process.pid
   });
+  
+  // Display startup information
+  console.log('\n' + '='.repeat(50));
+  console.log('🚀 Tripvar Server Started Successfully!');
+  console.log('='.repeat(50));
+  console.log(`📡 Server: http://${config.server.host}:${config.server.port}`);
+  console.log(`📚 API Docs: http://${config.server.host}:${config.server.port}/api-docs`);
+  console.log(`❤️  Health: http://${config.server.host}:${config.server.port}/health`);
+  console.log(`🌍 Environment: ${config.server.nodeEnv}`);
+  console.log(`🆔 Process ID: ${process.pid}`);
+  console.log('='.repeat(50) + '\n');
 });
 
 // Handle server errors

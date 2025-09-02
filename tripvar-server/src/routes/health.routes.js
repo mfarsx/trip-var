@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const { getRedisClient } = require('../config/redis');
-const { HealthChecker, createHealthCheckMiddleware, createReadinessMiddleware, createLivenessMiddleware, createMetricsMiddleware } = require('../middleware/healthCheck');
+// const { HealthChecker, createHealthCheckMiddleware, createReadinessMiddleware, createLivenessMiddleware, createMetricsMiddleware } = require('../middleware/healthCheck');
 
 const config = require('../config/config');
 const os = require('os');
@@ -13,10 +13,10 @@ let healthChecker;
 let redisClient;
 
 // Initialize health checker without Redis initially
-healthChecker = new HealthChecker(null);
+// healthChecker = new HealthChecker(null); // HealthChecker not implemented yet
 
 // Metrics middleware
-const metricsMiddleware = createMetricsMiddleware();
+// const metricsMiddleware = createMetricsMiddleware(); // Metrics middleware not implemented yet
 
 // Basic health check
 router.get('/', (req, res) => {

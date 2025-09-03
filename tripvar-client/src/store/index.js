@@ -4,6 +4,8 @@ import destinationReducer from "./slices/destinationSlice";
 import bookingReducer from "./slices/bookingSlice";
 import reviewReducer from "./slices/reviewSlice";
 import notificationReducer from "./slices/notificationSlice";
+import paymentReducer from "./slices/paymentSlice";
+import favoritesReducer from "./slices/favoritesSlice";
 import logger from '../utils/logger'
 import loggerMiddleware from './middleware/loggerMiddleware'
 
@@ -14,6 +16,8 @@ export const store = configureStore({
     bookings: bookingReducer,
     reviews: reviewReducer,
     notifications: notificationReducer,
+    payments: paymentReducer,
+    favorites: favoritesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

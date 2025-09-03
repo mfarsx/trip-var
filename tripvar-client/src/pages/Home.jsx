@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useDispatch } from "react-redux";
 import { logout } from "../store/slices/authSlice";
@@ -7,6 +6,7 @@ import Header from "../components/header/Header";
 import HeroSection from "../components/hero/HeroSection";
 import SearchSection from "../components/search/SearchSection";
 import DestinationsSection from "../components/sections/DestinationsSection";
+import DestinationsErrorBoundary from "../components/common/DestinationsErrorBoundary";
 import FeaturesSection from "../components/sections/FeaturesSection";
 import CTASection from "../components/sections/CTASection";
 import Footer from "../components/layout/Footer";
@@ -18,7 +18,6 @@ import { useDestinationActions } from "../hooks/useDestinationActions";
 
 export default function Home() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
 
   // Custom hooks
@@ -72,27 +71,28 @@ export default function Home() {
           onSearch={handleSearchWithDestinations}
           isSearching={isSearching}
         />
-        <DestinationsSection
-          destinations={destinations}
-          filteredDestinations={filteredDestinations}
-          setFilteredDestinations={setFilteredDestinations}
-          loading={loading}
-          activeFilter={activeFilter}
-          sortBy={sortBy}
-          showFilters={showFilters}
-          setShowFilters={setShowFilters}
-          onFilterChange={handleFilterChangeWithToast}
-          onSortChange={handleSortChangeWithToast}
-          onDestinationClick={handleDestinationClick}
-          onCompareToggle={handleCompareToggle}
-          onQuickBook={handleQuickBook}
-          selectedDestinations={selectedDestinations}
-          setSelectedDestinations={setSelectedDestinations}
-          itemsPerView={itemsPerView}
-          currentIndex={currentIndex}
-          setCurrentIndex={setCurrentIndex}
-          navigate={navigate}
-        />
+        <DestinationsErrorBoundary>
+          <DestinationsSection
+            destinations={destinations}
+            filteredDestinations={filteredDestinations}
+            setFilteredDestinations={setFilteredDestinations}
+            loading={loading}
+            activeFilter={activeFilter}
+            sortBy={sortBy}
+            showFilters={showFilters}
+            setShowFilters={setShowFilters}
+            onFilterChange={handleFilterChangeWithToast}
+            onSortChange={handleSortChangeWithToast}
+            onDestinationClick={handleDestinationClick}
+            onCompareToggle={handleCompareToggle}
+            onQuickBook={handleQuickBook}
+            selectedDestinations={selectedDestinations}
+            setSelectedDestinations={setSelectedDestinations}
+            itemsPerView={itemsPerView}
+            currentIndex={currentIndex}
+            setCurrentIndex={setCurrentIndex}
+          />
+        </DestinationsErrorBoundary>
         <FeaturesSection />
         <CTASection />
         <Footer />

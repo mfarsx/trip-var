@@ -182,13 +182,14 @@ class EnvironmentValidator {
           this.errors.push(`Environment variable '${key}' must be a valid URL`);
           return false;
         }
-      case 'email':
+      case 'email': {
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailPattern.test(value)) {
           this.errors.push(`Environment variable '${key}' must be a valid email address`);
           return false;
         }
         return true;
+      }
       default:
         return true;
     }
@@ -341,6 +342,13 @@ envValidator.addValidation('VITE_STRIPE_PUBLISHABLE_KEY', {
   pattern: /^pk_(test_|live_)/,
   description: 'Stripe publishable key',
   warning: true
+});
+
+envValidator.addValidation('VITE_WS_URL', {
+  required: false,
+  type: 'string',
+  description: 'WebSocket server URL',
+  defaultValue: 'ws://localhost:8000'
 });
 
 envValidator.addValidation('VITE_SENTRY_DSN', {

@@ -77,7 +77,13 @@ api.interceptors.response.use(
             setTimeout(() => {
               isRefreshing = false;
             }, 1000);
+          }).catch((error) => {
+            logger.error('Failed to import auth slice', error);
+            isRefreshing = false;
           });
+        }).catch((error) => {
+          logger.error('Failed to import store', error);
+          isRefreshing = false;
         });
       }
     }

@@ -17,48 +17,53 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Settings from "./pages/Settings";
 import ErrorBoundary from "./components/ErrorBoundary";
+import RealTimeNotifications from "./components/notifications/RealTimeNotifications";
+import WebSocketProvider from "./components/providers/WebSocketProvider";
 import "./App.css";
 
 function App() {
   return (
     <ErrorBoundary>
       <Provider store={store}>
-        <Router>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: "#242937",
-                color: "#fff",
-              },
-              success: {
-                iconTheme: {
-                  primary: "#8B5CF6",
-                  secondary: "#fff",
+        <WebSocketProvider>
+          <Router>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: "#242937",
+                  color: "#fff",
                 },
-              },
-            }}
-          />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <Outlet />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Home />} />
-              <Route path="destinations" element={<Destinations />} />
-              <Route path="destinations/:id" element={<Destinations />} />
-              <Route path="bookings" element={<Bookings />} />
-              <Route path="favorites" element={<Favorites />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
+                success: {
+                  iconTheme: {
+                    primary: "#8B5CF6",
+                    secondary: "#fff",
+                  },
+                },
+              }}
+            />
+            <RealTimeNotifications />
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <Outlet />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Home />} />
+                <Route path="destinations" element={<Destinations />} />
+                <Route path="destinations/:id" element={<Destinations />} />
+                <Route path="bookings" element={<Bookings />} />
+                <Route path="favorites" element={<Favorites />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </WebSocketProvider>
       </Provider>
     </ErrorBoundary>
   );

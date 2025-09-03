@@ -1,6 +1,7 @@
 const app = require('./app');
 const { info, error, warn } = require('./utils/logger');
 const config = require('./config/config');
+const websocketService = require('./services/websocketService');
 
 // Global error handlers
 process.on('uncaughtException', (err) => {
@@ -64,6 +65,9 @@ const gracefulShutdown = async(signal) => {
       info('Redis connection closed');
     }
 
+    // Close WebSocket server
+    websocketService.close();
+
     info('Graceful shutdown completed');
     process.exit(0);
   } catch (err) {
@@ -86,11 +90,15 @@ const server = app.listen(config.server.port, config.server.host, () => {
     pid: process.pid
   });
 
+  // Initialize WebSocket server
+  websocketService.initialize(server);
+
   // Display startup information
   console.log('\n' + '='.repeat(50));
   console.log('🚀 Tripvar Server Started Successfully!');
   console.log('='.repeat(50));
   console.log(`📡 Server: http://${config.server.host}:${config.server.port}`);
+  console.log(`🔌 WebSocket: ws://${config.server.host}:${config.server.port}/ws`);
   console.log(`📚 API Docs: http://${config.server.host}:${config.server.port}/api-docs`);
   console.log(`❤️  Health: http://${config.server.host}:${config.server.port}/health`);
   console.log(`🌍 Environment: ${config.server.nodeEnv}`);

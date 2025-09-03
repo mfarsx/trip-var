@@ -27,13 +27,13 @@ class FormValidator {
 
     // Phone number validation
     this.addRule('phone', {
-      pattern: /^[\+]?[1-9][\d]{0,15}$/,
+      pattern: /^[+]?[1-9][\d]{0,15}$/,
       message: 'Please enter a valid phone number'
     });
 
     // URL validation
     this.addRule('url', {
-      pattern: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
+      pattern: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/,
       message: 'Please enter a valid URL'
     });
 

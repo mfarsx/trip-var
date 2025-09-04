@@ -7,6 +7,7 @@ export function useDestinationActions() {
   const [selectedDestinations, setSelectedDestinations] = useState([]);
 
   const handleDestinationClick = (destinationId) => {
+    toast.success("Loading destination details...");
     navigate(`/destinations/${destinationId}`);
   };
 
@@ -24,6 +25,7 @@ export function useDestinationActions() {
   };
 
   const handleQuickBook = (destinationId) => {
+    toast.success("Opening quick booking...");
     navigate(`/destinations/${destinationId}?action=book`);
   };
 

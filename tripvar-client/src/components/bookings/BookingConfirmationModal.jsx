@@ -33,6 +33,7 @@ export default function BookingConfirmationModal({
   };
 
   const calculateTotalNights = (checkIn, checkOut) => {
+    if (!checkIn || !checkOut) return 0;
     const start = new Date(checkIn);
     const end = new Date(checkOut);
     const diffTime = Math.abs(end - start);
@@ -40,8 +41,13 @@ export default function BookingConfirmationModal({
   };
 
   const calculateTotalAmount = () => {
-    const nights = calculateTotalNights(booking.checkInDate, booking.checkOutDate);
-    return nights * destination.price * booking.numberOfGuests;
+    // Handle both booking data formats (from DestinationDetail and from API)
+    const checkInDate = booking.checkInDate || booking.startDate;
+    const checkOutDate = booking.checkOutDate || booking.endDate;
+    const numberOfGuests = booking.numberOfGuests || parseInt(booking.guests) || 1;
+    
+    const nights = calculateTotalNights(checkInDate, checkOutDate);
+    return nights * destination.price * numberOfGuests;
   };
 
   if (!isOpen || !booking || !destination) return null;
@@ -68,6 +74,11 @@ export default function BookingConfirmationModal({
             <div>
               <h2 className="text-2xl font-bold text-white">Confirm Your Booking</h2>
               <p className="text-gray-400 mt-1">Please review your booking details before confirming</p>
+              {booking.bookingReference && (
+                <p className="text-sm text-purple-400 mt-1 font-mono">
+                  Reference: {booking.bookingReference}
+                </p>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -110,7 +121,7 @@ export default function BookingConfirmationModal({
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Check-in</p>
-                  <p className="font-semibold text-white">{formatDate(booking.checkInDate)}</p>
+                  <p className="font-semibold text-white">{formatDate(booking.checkInDate || booking.startDate)}</p>
                 </div>
               </div>
 
@@ -120,7 +131,7 @@ export default function BookingConfirmationModal({
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Check-out</p>
-                  <p className="font-semibold text-white">{formatDate(booking.checkOutDate)}</p>
+                  <p className="font-semibold text-white">{formatDate(booking.checkOutDate || booking.endDate)}</p>
                 </div>
               </div>
             </div>
@@ -132,7 +143,7 @@ export default function BookingConfirmationModal({
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Guests</p>
-                  <p className="font-semibold text-white">{booking.numberOfGuests} guest{booking.numberOfGuests > 1 ? 's' : ''}</p>
+                  <p className="font-semibold text-white">{booking.numberOfGuests || parseInt(booking.guests) || 1} guest{(booking.numberOfGuests || parseInt(booking.guests) || 1) > 1 ? 's' : ''}</p>
                 </div>
               </div>
 
@@ -143,7 +154,7 @@ export default function BookingConfirmationModal({
                 <div>
                   <p className="text-sm text-gray-400">Payment Method</p>
                   <p className="font-semibold text-white capitalize">
-                    {booking.paymentMethod.replace('-', ' ')}
+                    {booking.paymentMethod ? booking.paymentMethod.replace('-', ' ') : 'Not specified'}
                   </p>
                 </div>
               </div>
@@ -151,16 +162,32 @@ export default function BookingConfirmationModal({
           </div>
 
           {/* Pricing Breakdown */}
-          <div className="bg-gray-700/50 rounded-xl p-4 mb-6">
-            <h4 className="font-semibold text-white mb-3">Pricing Breakdown</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between text-gray-300">
-                <span>${destination.price} × {calculateTotalNights(booking.checkInDate, booking.checkOutDate)} nights × {booking.numberOfGuests} guest{booking.numberOfGuests > 1 ? 's' : ''}</span>
-                <span>${destination.price * calculateTotalNights(booking.checkInDate, booking.checkOutDate) * booking.numberOfGuests}</span>
+          <div className="bg-gradient-to-br from-gray-700/50 to-gray-800/50 rounded-xl p-6 mb-6 border border-gray-600/30">
+            <h4 className="font-semibold text-white mb-4 flex items-center gap-2">
+              <FiDollarSign className="w-5 h-5 text-green-400" />
+              Pricing Breakdown
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
+                <div className="text-gray-300">
+                  <div className="font-medium">Base Rate</div>
+                  <div className="text-sm text-gray-400">
+                    ${destination.price} × {calculateTotalNights(booking.checkInDate || booking.startDate, booking.checkOutDate || booking.endDate)} nights × {booking.numberOfGuests || parseInt(booking.guests) || 1} guest{(booking.numberOfGuests || parseInt(booking.guests) || 1) > 1 ? 's' : ''}
+                  </div>
+                </div>
+                <span className="font-semibold text-white">
+                  ${destination.price * calculateTotalNights(booking.checkInDate || booking.startDate, booking.checkOutDate || booking.endDate) * (booking.numberOfGuests || parseInt(booking.guests) || 1)}
+                </span>
               </div>
-              <div className="border-t border-gray-600 pt-2 flex justify-between">
-                <span className="font-semibold text-white">Total Amount</span>
-                <span className="font-bold text-green-400 text-lg">${calculateTotalAmount()}</span>
+              
+              <div className="border-t border-gray-600/50 pt-3">
+                <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
+                  <span className="font-semibold text-white text-lg">Total Amount</span>
+                  <span className="font-bold text-green-400 text-2xl">${calculateTotalAmount()}</span>
+                </div>
+                <div className="text-xs text-gray-400 mt-2 text-center">
+                  All prices include taxes and fees
+                </div>
               </div>
             </div>
           </div>
@@ -180,14 +207,14 @@ export default function BookingConfirmationModal({
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
               disabled={isConfirming}
-              className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-purple-600/50 disabled:to-pink-600/50 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
             >
               {isConfirming ? (
                 <>
@@ -212,10 +239,14 @@ BookingConfirmationModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   booking: PropTypes.shape({
-    checkInDate: PropTypes.string.isRequired,
-    checkOutDate: PropTypes.string.isRequired,
-    numberOfGuests: PropTypes.number.isRequired,
-    paymentMethod: PropTypes.string.isRequired
+    checkInDate: PropTypes.string,
+    checkOutDate: PropTypes.string,
+    startDate: PropTypes.string,
+    endDate: PropTypes.string,
+    numberOfGuests: PropTypes.number,
+    guests: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    paymentMethod: PropTypes.string.isRequired,
+    bookingReference: PropTypes.string
   }),
   destination: PropTypes.shape({
     title: PropTypes.string.isRequired,

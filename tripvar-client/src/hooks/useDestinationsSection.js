@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 /**
  * Custom hook for DestinationsSection component
@@ -51,6 +52,7 @@ export function useDestinationsSection({
   }, [setSelectedDestinations]);
 
   const handleNavigateToDestinations = useCallback(() => {
+    toast.success("Exploring all destinations...");
     navigate("/destinations");
   }, [navigate]);
 

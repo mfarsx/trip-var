@@ -25,23 +25,23 @@ import { useDestinationsSection } from "../../hooks/useDestinationsSection";
  * - Enhanced accessibility and error handling
  */
 const DestinationsSection = memo(function DestinationsSection({
-  destinations,
-  filteredDestinations,
+  destinations = [],
+  filteredDestinations = [],
   setFilteredDestinations,
-  loading,
-  activeFilter,
-  sortBy,
-  showFilters,
+  loading = false,
+  activeFilter = "all",
+  sortBy = "featured",
+  showFilters = false,
   setShowFilters,
   onFilterChange,
   onSortChange,
   onDestinationClick,
   onCompareToggle,
   onQuickBook,
-  selectedDestinations,
+  selectedDestinations = [],
   setSelectedDestinations,
-  itemsPerView,
-  currentIndex,
+  itemsPerView = 4,
+  currentIndex = 0,
   setCurrentIndex,
 }) {
   // Custom hook for business logic
@@ -165,7 +165,7 @@ DestinationsSection.propTypes = {
       description: PropTypes.string.isRequired,
       category: PropTypes.string,
     })
-  ).isRequired,
+  ),
 
   filteredDestinations: PropTypes.arrayOf(
     PropTypes.shape({
@@ -179,11 +179,11 @@ DestinationsSection.propTypes = {
       description: PropTypes.string.isRequired,
       category: PropTypes.string,
     })
-  ).isRequired,
+  ),
 
   // State management props
   setFilteredDestinations: PropTypes.func.isRequired,
-  loading: PropTypes.bool.isRequired,
+  loading: PropTypes.bool,
 
   // Filter and sort props
   activeFilter: PropTypes.oneOf([
@@ -192,15 +192,15 @@ DestinationsSection.propTypes = {
     "adventure",
     "relaxation",
     "culture",
-  ]).isRequired,
+  ]),
   sortBy: PropTypes.oneOf([
     "featured",
     "price-low",
     "price-high",
     "rating",
     "popularity",
-  ]).isRequired,
-  showFilters: PropTypes.bool.isRequired,
+  ]),
+  showFilters: PropTypes.bool,
   setShowFilters: PropTypes.func.isRequired,
 
   // Event handlers
@@ -211,27 +211,15 @@ DestinationsSection.propTypes = {
   onQuickBook: PropTypes.func.isRequired,
 
   // Selection state
-  selectedDestinations: PropTypes.arrayOf(PropTypes.string).isRequired,
+  selectedDestinations: PropTypes.arrayOf(PropTypes.string),
   setSelectedDestinations: PropTypes.func.isRequired,
 
   // Carousel props
-  itemsPerView: PropTypes.number.isRequired,
-  currentIndex: PropTypes.number.isRequired,
+  itemsPerView: PropTypes.number,
+  currentIndex: PropTypes.number,
   setCurrentIndex: PropTypes.func.isRequired,
 };
 
-// Default props for better development experience
-DestinationsSection.defaultProps = {
-  destinations: [],
-  filteredDestinations: [],
-  loading: false,
-  activeFilter: "all",
-  sortBy: "featured",
-  showFilters: false,
-  selectedDestinations: [],
-  itemsPerView: 4,
-  currentIndex: 0,
-};
 
 DestinationsSection.displayName = "DestinationsSection";
 

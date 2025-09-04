@@ -1,4 +1,4 @@
-import { expect, afterEach } from 'vitest';
+import { expect, afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
 
@@ -118,5 +118,32 @@ vi.mock('axios', () => ({
         response: { use: vi.fn() },
       },
     })),
+  },
+}));
+
+// Mock services/api
+vi.mock('../services/api', () => ({
+  destinationApi: {
+    getDestinations: vi.fn(),
+    getDestinationById: vi.fn(),
+    searchDestinations: vi.fn(),
+  },
+  bookingApi: {
+    createBooking: vi.fn(),
+    getUserBookings: vi.fn(),
+    getBookingById: vi.fn(),
+    cancelBooking: vi.fn(),
+    checkAvailability: vi.fn(),
+  },
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    patch: vi.fn(),
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
   },
 }));

@@ -39,7 +39,7 @@ export const bookingApi = {
       checkOutDate
     });
 
-    const response = await api.get(`/bookings/check/availability?${params.toString()}`);
+    const response = await api.get(`/bookings/availability?${params.toString()}`);
     return response.data;
   }
 };

@@ -5,26 +5,40 @@
 }
 
 /* Page transitions */
-.page-enter {
+.page-transition {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateX(20px);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
-.page-enter-active {
+.page-transition.entered {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms, transform 300ms;
+  transform: translateX(0);
 }
 
-.page-exit {
-  opacity: 1;
-  transform: translateY(0);
+/* Smooth page transitions for better UX */
+.page-container {
+  min-height: 100vh;
+  transition: opacity 0.15s ease-in-out;
 }
 
-.page-exit-active {
+/* Fade transition for smoother navigation */
+.fade-enter {
   opacity: 0;
-  transform: translateY(-20px);
-  transition: opacity 300ms, transform 300ms;
+}
+
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 200ms ease-in-out;
+}
+
+.fade-exit {
+  opacity: 1;
+}
+
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
 }
 
 /* Loading spinner */

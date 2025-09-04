@@ -1,37 +1,75 @@
-const express = require('express');
-const cors = require('cors');
-const compression = require('compression');
+// Enhanced error handling for app initialization
+let express, cors, compression, errorHandler, requestLogger, addRequestId, redisSession, NotFoundError, error, securityConfig, specs, swaggerUi, swaggerOptions, routes, healthRoutes, initializeServices, connectDB, connectRedis;
 
-// Core middleware
-const errorHandler = require('./middleware/errorHandler');
-const { requestLogger, addRequestId } = require('./utils/logger');
-const { redisSession } = require('./middleware/redisCache');
-const { NotFoundError } = require('./utils/errors');
-const { error } = require('./utils/logger');
+try {
+  express = require('express');
+  cors = require('cors');
+  compression = require('compression');
 
-// Configuration
-const { securityConfig } = require('./config/security');
-const { specs, swaggerUi, swaggerOptions } = require('./config/swagger');
+  // Core middleware
+  errorHandler = require('./middleware/errorHandler');
+  const logger = require('./utils/logger');
+  requestLogger = logger.requestLogger;
+  addRequestId = logger.addRequestId;
+  error = logger.error;
+  
+  const redisCache = require('./middleware/redisCache');
+  redisSession = redisCache.redisSession;
+  
+  const errors = require('./utils/errors');
+  NotFoundError = errors.NotFoundError;
 
-// Routes
-const routes = require('./routes');
-const healthRoutes = require('./routes/health.routes');
+  // Configuration
+  const security = require('./config/security');
+  securityConfig = security.securityConfig;
+  
+  const swagger = require('./config/swagger');
+  specs = swagger.specs;
+  swaggerUi = swagger.swaggerUi;
+  swaggerOptions = swagger.swaggerOptions;
 
-// Services
-const { initialize: initializeServices } = require('./container/serviceRegistry');
-const connectDB = require('./config/database');
-const { connectRedis } = require('./config/redis');
+  // Routes
+  routes = require('./routes');
+  healthRoutes = require('./routes/health.routes');
+
+  // Services
+  const serviceRegistry = require('./container/serviceRegistry');
+  initializeServices = serviceRegistry.initialize;
+  connectDB = require('./config/database');
+  const redis = require('./config/redis');
+  connectRedis = redis.connectRedis;
+} catch (err) {
+  console.error('🚨 FAILED TO LOAD APP MODULES:', err.message);
+  console.error('Stack trace:', err.stack);
+  throw err;
+}
 
 const app = express();
 
-// Initialize service registry
-initializeServices();
+// Initialize service registry with error handling
+try {
+  initializeServices();
+  console.log('✅ Service registry initialized successfully');
+} catch (err) {
+  console.error('🚨 FAILED TO INITIALIZE SERVICE REGISTRY:', err.message);
+  console.error('Stack trace:', err.stack);
+  throw err;
+}
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB with error handling
+try {
+  connectDB();
+  console.log('✅ MongoDB connection initiated');
+} catch (err) {
+  console.error('🚨 FAILED TO INITIALIZE MONGODB CONNECTION:', err.message);
+  console.error('Stack trace:', err.stack);
+  throw err;
+}
 
-// Connect to Redis
+// Connect to Redis with error handling
 connectRedis().catch((err) => {
+  console.error('🚨 FAILED TO CONNECT TO REDIS:', err.message);
+  console.error('Stack trace:', err.stack);
   error('Failed to connect to Redis', { error: err.message });
   // Don't exit the process, continue without Redis
 });
@@ -61,7 +99,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 app.use('/api/v1', routes);
 
 // 404 handler for undefined routes
-app.all('*', (req, res, next) => {
+app.use((req, res, next) => {
   next(new NotFoundError(`Can't find ${req.originalUrl} on this server!`));
 });
 

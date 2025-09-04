@@ -23,6 +23,7 @@ pids
 
 # Testing
 coverage/
+.jest-cache/
 
 # IDE
 .idea/

@@ -16,6 +16,9 @@ import {
 } from 'react-icons/fi';
 import userService from '../services/userService';
 import { fetchProfile } from '../store/slices/authSlice';
+import Header from '../components/header/Header';
+import Footer from '../components/layout/Footer';
+import PageTransition from '../components/common/PageTransition';
 
 // List of countries with their codes for flag display
 const COUNTRIES = [
@@ -224,30 +227,26 @@ export default function Settings() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="min-h-screen bg-[#1a1f2d] py-12 px-4 sm:px-6 lg:px-8"
-    >
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-xl hover:bg-gray-800/50 transition-colors"
-            aria-label="Go back"
-          >
-            <FiArrowLeft className="w-6 h-6 text-gray-400 hover:text-purple-400" />
-          </button>
-          <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 ml-4">Account Settings</h2>
-        </div>
+    <div className="min-h-screen bg-[#1a1f2d] text-white">
+      <Header />
+      <PageTransition>
+        <div className="pt-20 pb-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Account Settings
+            </h1>
+            <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto">
+              Manage your profile information and account preferences.
+            </p>
+          </div>
 
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="bg-gray-800/50 rounded-xl shadow-xl p-8 border border-gray-700 space-y-8"
-        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="bg-gray-800/60 backdrop-blur-sm rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-700/30 space-y-8"
+          >
           {/* Profile Information Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <h3 className="text-xl font-semibold text-white mb-4">Profile Information</h3>
@@ -266,7 +265,7 @@ export default function Settings() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700/50 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
@@ -286,7 +285,7 @@ export default function Settings() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700/50 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
@@ -307,7 +306,7 @@ export default function Settings() {
                     value={formData.dateOfBirth}
                     onChange={handleChange}
                     max={getMaxDate()}
-                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700/50 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                   />
                 </div>
                 {formData.dateOfBirth && (
@@ -341,7 +340,7 @@ export default function Settings() {
                     name="nationality"
                     value={formData.nationality}
                     onChange={handleChange}
-                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700/50 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                   >
                     <option value="">Select your nationality</option>
                     {COUNTRIES.map(country => (
@@ -404,7 +403,7 @@ export default function Settings() {
                     name="currentPassword"
                     value={formData.currentPassword}
                     onChange={handleChange}
-                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700/50 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
@@ -424,7 +423,7 @@ export default function Settings() {
                     name="newPassword"
                     value={formData.newPassword}
                     onChange={handleChange}
-                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700/50 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
@@ -444,7 +443,7 @@ export default function Settings() {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 block w-full rounded-lg bg-gray-800/50 border border-gray-700/50 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
@@ -465,8 +464,11 @@ export default function Settings() {
               </button>
             </div>
           </form>
-        </motion.div>
-      </div>
-    </motion.div>
+          </motion.div>
+          </div>
+        </div>
+      </PageTransition>
+      <Footer />
+    </div>
   );
 }

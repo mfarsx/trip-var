@@ -1,0 +1,30 @@
+3f3a04da3da6d7777c522db61cbc2e59
+/**
+ * @param {Object} data - The data to be sent in the response
+ * @param {String} message - Optional message to be sent with the response
+ * @returns {Object} Standardized success response object
+ */
+exports.successResponse = (data = null, message = 'Success') => ({
+  status: 'success',
+  message,
+  data
+});
+
+/**
+ * @param {Array} data - The paginated data array
+ * @param {Number} page - Current page number
+ * @param {Number} limit - Items per page
+ * @param {Number} total - Total number of items
+ * @returns {Object} Standardized paginated response object
+ */
+exports.paginatedResponse = (data, page, limit, total) => ({
+  status: 'success',
+  data,
+  pagination: {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    total,
+    pages: Math.ceil(total / limit)
+  }
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJleHBvcnRzIiwic3VjY2Vzc1Jlc3BvbnNlIiwiZGF0YSIsIm1lc3NhZ2UiLCJzdGF0dXMiLCJwYWdpbmF0ZWRSZXNwb25zZSIsInBhZ2UiLCJsaW1pdCIsInRvdGFsIiwicGFnaW5hdGlvbiIsInBhcnNlSW50IiwicGFnZXMiLCJNYXRoIiwiY2VpbCJdLCJzb3VyY2VzIjpbInJlc3BvbnNlLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogQHBhcmFtIHtPYmplY3R9IGRhdGEgLSBUaGUgZGF0YSB0byBiZSBzZW50IGluIHRoZSByZXNwb25zZVxuICogQHBhcmFtIHtTdHJpbmd9IG1lc3NhZ2UgLSBPcHRpb25hbCBtZXNzYWdlIHRvIGJlIHNlbnQgd2l0aCB0aGUgcmVzcG9uc2VcbiAqIEByZXR1cm5zIHtPYmplY3R9IFN0YW5kYXJkaXplZCBzdWNjZXNzIHJlc3BvbnNlIG9iamVjdFxuICovXG5leHBvcnRzLnN1Y2Nlc3NSZXNwb25zZSA9IChkYXRhID0gbnVsbCwgbWVzc2FnZSA9ICdTdWNjZXNzJykgPT4gKHtcbiAgc3RhdHVzOiAnc3VjY2VzcycsXG4gIG1lc3NhZ2UsXG4gIGRhdGFcbn0pO1xuXG4vKipcbiAqIEBwYXJhbSB7QXJyYXl9IGRhdGEgLSBUaGUgcGFnaW5hdGVkIGRhdGEgYXJyYXlcbiAqIEBwYXJhbSB7TnVtYmVyfSBwYWdlIC0gQ3VycmVudCBwYWdlIG51bWJlclxuICogQHBhcmFtIHtOdW1iZXJ9IGxpbWl0IC0gSXRlbXMgcGVyIHBhZ2VcbiAqIEBwYXJhbSB7TnVtYmVyfSB0b3RhbCAtIFRvdGFsIG51bWJlciBvZiBpdGVtc1xuICogQHJldHVybnMge09iamVjdH0gU3RhbmRhcmRpemVkIHBhZ2luYXRlZCByZXNwb25zZSBvYmplY3RcbiAqL1xuZXhwb3J0cy5wYWdpbmF0ZWRSZXNwb25zZSA9IChkYXRhLCBwYWdlLCBsaW1pdCwgdG90YWwpID0+ICh7XG4gIHN0YXR1czogJ3N1Y2Nlc3MnLFxuICBkYXRhLFxuICBwYWdpbmF0aW9uOiB7XG4gICAgcGFnZTogcGFyc2VJbnQocGFnZSksXG4gICAgbGltaXQ6IHBhcnNlSW50KGxpbWl0KSxcbiAgICB0b3RhbCxcbiAgICBwYWdlczogTWF0aC5jZWlsKHRvdGFsIC8gbGltaXQpXG4gIH1cbn0pO1xuIl0sIm1hcHBpbmdzIjoiQUFBQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0FBLE9BQU8sQ0FBQ0MsZUFBZSxHQUFHLENBQUNDLElBQUksR0FBRyxJQUFJLEVBQUVDLE9BQU8sR0FBRyxTQUFTLE1BQU07RUFDL0RDLE1BQU0sRUFBRSxTQUFTO0VBQ2pCRCxPQUFPO0VBQ1BEO0FBQ0YsQ0FBQyxDQUFDOztBQUVGO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0FGLE9BQU8sQ0FBQ0ssaUJBQWlCLEdBQUcsQ0FBQ0gsSUFBSSxFQUFFSSxJQUFJLEVBQUVDLEtBQUssRUFBRUMsS0FBSyxNQUFNO0VBQ3pESixNQUFNLEVBQUUsU0FBUztFQUNqQkYsSUFBSTtFQUNKTyxVQUFVLEVBQUU7SUFDVkgsSUFBSSxFQUFFSSxRQUFRLENBQUNKLElBQUksQ0FBQztJQUNwQkMsS0FBSyxFQUFFRyxRQUFRLENBQUNILEtBQUssQ0FBQztJQUN0QkMsS0FBSztJQUNMRyxLQUFLLEVBQUVDLElBQUksQ0FBQ0MsSUFBSSxDQUFDTCxLQUFLLEdBQUdELEtBQUs7RUFDaEM7QUFDRixDQUFDLENBQUMiLCJpZ25vcmVMaXN0IjpbXX0=

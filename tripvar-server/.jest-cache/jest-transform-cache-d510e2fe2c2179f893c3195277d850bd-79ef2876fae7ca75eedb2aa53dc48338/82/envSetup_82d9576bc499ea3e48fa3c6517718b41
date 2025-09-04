@@ -1,0 +1,6 @@
+d68e2bd133e3a9594d18b9d3fb6a99dc
+// Load test environment variables
+require('dotenv').config({
+  path: '.env.test'
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJyZXF1aXJlIiwiY29uZmlnIiwicGF0aCJdLCJzb3VyY2VzIjpbImVudlNldHVwLmpzIl0sInNvdXJjZXNDb250ZW50IjpbIi8vIExvYWQgdGVzdCBlbnZpcm9ubWVudCB2YXJpYWJsZXNcbnJlcXVpcmUoJ2RvdGVudicpLmNvbmZpZyh7IHBhdGg6ICcuZW52LnRlc3QnIH0pOyJdLCJtYXBwaW5ncyI6IkFBQUE7QUFDQUEsT0FBTyxDQUFDLFFBQVEsQ0FBQyxDQUFDQyxNQUFNLENBQUM7RUFBRUMsSUFBSSxFQUFFO0FBQVksQ0FBQyxDQUFDIiwiaWdub3JlTGlzdCI6W119

@@ -9,7 +9,10 @@ process.on('uncaughtException', (err) => {
     error: err.message,
     stack: config.server.isDevelopment ? err.stack : undefined
   });
-  process.exit(1);
+  // In production, we should exit for uncaught exceptions
+  if (config.server.isProduction) {
+    process.exit(1);
+  }
 });
 
 process.on('unhandledRejection', (err) => {

@@ -1,0 +1,236 @@
+dd60f0bba83121011cbda10a1e5b6c67
+/* istanbul ignore next */
+function cov_2h76340yeo() {
+  var path = "/Users/mfarsx/dev/tripvar/tripvar-server/src/routes/booking.routes.js";
+  var hash = "a9cf35af378fdce3a16c331c8aff94b2d5d0707e";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/mfarsx/dev/tripvar/tripvar-server/src/routes/booking.routes.js",
+    statementMap: {
+      "0": {
+        start: {
+          line: 1,
+          column: 16
+        },
+        end: {
+          line: 1,
+          column: 34
+        }
+      },
+      "1": {
+        start: {
+          line: 10,
+          column: 4
+        },
+        end: {
+          line: 10,
+          column: 48
+        }
+      },
+      "2": {
+        start: {
+          line: 11,
+          column: 36
+        },
+        end: {
+          line: 11,
+          column: 65
+        }
+      },
+      "3": {
+        start: {
+          line: 13,
+          column: 15
+        },
+        end: {
+          line: 13,
+          column: 31
+        }
+      },
+      "4": {
+        start: {
+          line: 16,
+          column: 0
+        },
+        end: {
+          line: 16,
+          column: 25
+        }
+      },
+      "5": {
+        start: {
+          line: 19,
+          column: 0
+        },
+        end: {
+          line: 19,
+          column: 32
+        }
+      },
+      "6": {
+        start: {
+          line: 20,
+          column: 0
+        },
+        end: {
+          line: 20,
+          column: 44
+        }
+      },
+      "7": {
+        start: {
+          line: 23,
+          column: 0
+        },
+        end: {
+          line: 23,
+          column: 53
+        }
+      },
+      "8": {
+        start: {
+          line: 25,
+          column: 0
+        },
+        end: {
+          line: 25,
+          column: 35
+        }
+      },
+      "9": {
+        start: {
+          line: 26,
+          column: 0
+        },
+        end: {
+          line: 26,
+          column: 41
+        }
+      },
+      "10": {
+        start: {
+          line: 29,
+          column: 0
+        },
+        end: {
+          line: 29,
+          column: 61
+        }
+      },
+      "11": {
+        start: {
+          line: 30,
+          column: 0
+        },
+        end: {
+          line: 30,
+          column: 73
+        }
+      },
+      "12": {
+        start: {
+          line: 32,
+          column: 0
+        },
+        end: {
+          line: 32,
+          column: 24
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0
+    },
+    f: {},
+    b: {},
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "a9cf35af378fdce3a16c331c8aff94b2d5d0707e"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_2h76340yeo = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_2h76340yeo();
+const express =
+/* istanbul ignore next */
+(cov_2h76340yeo().s[0]++, require('express'));
+const {
+  createBooking,
+  getUserBookings,
+  getBookingById,
+  cancelBooking,
+  getAllBookings,
+  updateBookingStatus,
+  checkAvailability
+} =
+/* istanbul ignore next */
+(cov_2h76340yeo().s[1]++, require('../controllers/booking.controller'));
+const {
+  authenticate,
+  authorize
+} =
+/* istanbul ignore next */
+(cov_2h76340yeo().s[2]++, require('../middleware/auth'));
+const router =
+/* istanbul ignore next */
+(cov_2h76340yeo().s[3]++, express.Router());
+
+// All booking routes require authentication
+/* istanbul ignore next */
+cov_2h76340yeo().s[4]++;
+router.use(authenticate);
+
+// User booking routes
+/* istanbul ignore next */
+cov_2h76340yeo().s[5]++;
+router.post('/', createBooking);
+/* istanbul ignore next */
+cov_2h76340yeo().s[6]++;
+router.get('/my-bookings', getUserBookings);
+
+// Availability check (must come before /:id route)
+/* istanbul ignore next */
+cov_2h76340yeo().s[7]++;
+router.get('/check/availability', checkAvailability);
+/* istanbul ignore next */
+cov_2h76340yeo().s[8]++;
+router.get('/:id', getBookingById);
+/* istanbul ignore next */
+cov_2h76340yeo().s[9]++;
+router.put('/:id/cancel', cancelBooking);
+
+// Admin routes
+/* istanbul ignore next */
+cov_2h76340yeo().s[10]++;
+router.get('/admin/all', authorize('admin'), getAllBookings);
+/* istanbul ignore next */
+cov_2h76340yeo().s[11]++;
+router.put('/admin/:id/status', authorize('admin'), updateBookingStatus);
+/* istanbul ignore next */
+cov_2h76340yeo().s[12]++;
+module.exports = router;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMmg3NjM0MHllbyIsImFjdHVhbENvdmVyYWdlIiwiZXhwcmVzcyIsInMiLCJyZXF1aXJlIiwiY3JlYXRlQm9va2luZyIsImdldFVzZXJCb29raW5ncyIsImdldEJvb2tpbmdCeUlkIiwiY2FuY2VsQm9va2luZyIsImdldEFsbEJvb2tpbmdzIiwidXBkYXRlQm9va2luZ1N0YXR1cyIsImNoZWNrQXZhaWxhYmlsaXR5IiwiYXV0aGVudGljYXRlIiwiYXV0aG9yaXplIiwicm91dGVyIiwiUm91dGVyIiwidXNlIiwicG9zdCIsImdldCIsInB1dCIsIm1vZHVsZSIsImV4cG9ydHMiXSwic291cmNlcyI6WyJib29raW5nLnJvdXRlcy5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJjb25zdCBleHByZXNzID0gcmVxdWlyZSgnZXhwcmVzcycpO1xuY29uc3Qge1xuICBjcmVhdGVCb29raW5nLFxuICBnZXRVc2VyQm9va2luZ3MsXG4gIGdldEJvb2tpbmdCeUlkLFxuICBjYW5jZWxCb29raW5nLFxuICBnZXRBbGxCb29raW5ncyxcbiAgdXBkYXRlQm9va2luZ1N0YXR1cyxcbiAgY2hlY2tBdmFpbGFiaWxpdHlcbn0gPSByZXF1aXJlKCcuLi9jb250cm9sbGVycy9ib29raW5nLmNvbnRyb2xsZXInKTtcbmNvbnN0IHsgYXV0aGVudGljYXRlLCBhdXRob3JpemUgfSA9IHJlcXVpcmUoJy4uL21pZGRsZXdhcmUvYXV0aCcpO1xuXG5jb25zdCByb3V0ZXIgPSBleHByZXNzLlJvdXRlcigpO1xuXG4vLyBBbGwgYm9va2luZyByb3V0ZXMgcmVxdWlyZSBhdXRoZW50aWNhdGlvblxucm91dGVyLnVzZShhdXRoZW50aWNhdGUpO1xuXG4vLyBVc2VyIGJvb2tpbmcgcm91dGVzXG5yb3V0ZXIucG9zdCgnLycsIGNyZWF0ZUJvb2tpbmcpO1xucm91dGVyLmdldCgnL215LWJvb2tpbmdzJywgZ2V0VXNlckJvb2tpbmdzKTtcblxuLy8gQXZhaWxhYmlsaXR5IGNoZWNrIChtdXN0IGNvbWUgYmVmb3JlIC86aWQgcm91dGUpXG5yb3V0ZXIuZ2V0KCcvY2hlY2svYXZhaWxhYmlsaXR5JywgY2hlY2tBdmFpbGFiaWxpdHkpO1xuXG5yb3V0ZXIuZ2V0KCcvOmlkJywgZ2V0Qm9va2luZ0J5SWQpO1xucm91dGVyLnB1dCgnLzppZC9jYW5jZWwnLCBjYW5jZWxCb29raW5nKTtcblxuLy8gQWRtaW4gcm91dGVzXG5yb3V0ZXIuZ2V0KCcvYWRtaW4vYWxsJywgYXV0aG9yaXplKCdhZG1pbicpLCBnZXRBbGxCb29raW5ncyk7XG5yb3V0ZXIucHV0KCcvYWRtaW4vOmlkL3N0YXR1cycsIGF1dGhvcml6ZSgnYWRtaW4nKSwgdXBkYXRlQm9va2luZ1N0YXR1cyk7XG5cbm1vZHVsZS5leHBvcnRzID0gcm91dGVyOyJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lBZVk7SUFBQUEsY0FBQSxZQUFBQSxDQUFBO01BQUEsT0FBQUMsY0FBQTtJQUFBO0VBQUE7RUFBQSxPQUFBQSxjQUFBO0FBQUE7QUFBQUQsY0FBQTtBQWZaLE1BQU1FLE9BQU87QUFBQTtBQUFBLENBQUFGLGNBQUEsR0FBQUcsQ0FBQSxPQUFHQyxPQUFPLENBQUMsU0FBUyxDQUFDO0FBQ2xDLE1BQU07RUFDSkMsYUFBYTtFQUNiQyxlQUFlO0VBQ2ZDLGNBQWM7RUFDZEMsYUFBYTtFQUNiQyxjQUFjO0VBQ2RDLG1CQUFtQjtFQUNuQkM7QUFDRixDQUFDO0FBQUE7QUFBQSxDQUFBWCxjQUFBLEdBQUFHLENBQUEsT0FBR0MsT0FBTyxDQUFDLG1DQUFtQyxDQUFDO0FBQ2hELE1BQU07RUFBRVEsWUFBWTtFQUFFQztBQUFVLENBQUM7QUFBQTtBQUFBLENBQUFiLGNBQUEsR0FBQUcsQ0FBQSxPQUFHQyxPQUFPLENBQUMsb0JBQW9CLENBQUM7QUFFakUsTUFBTVUsTUFBTTtBQUFBO0FBQUEsQ0FBQWQsY0FBQSxHQUFBRyxDQUFBLE9BQUdELE9BQU8sQ0FBQ2EsTUFBTSxDQUFDLENBQUM7O0FBRS9CO0FBQUE7QUFBQWYsY0FBQSxHQUFBRyxDQUFBO0FBQ0FXLE1BQU0sQ0FBQ0UsR0FBRyxDQUFDSixZQUFZLENBQUM7O0FBRXhCO0FBQUE7QUFBQVosY0FBQSxHQUFBRyxDQUFBO0FBQ0FXLE1BQU0sQ0FBQ0csSUFBSSxDQUFDLEdBQUcsRUFBRVosYUFBYSxDQUFDO0FBQUM7QUFBQUwsY0FBQSxHQUFBRyxDQUFBO0FBQ2hDVyxNQUFNLENBQUNJLEdBQUcsQ0FBQyxjQUFjLEVBQUVaLGVBQWUsQ0FBQzs7QUFFM0M7QUFBQTtBQUFBTixjQUFBLEdBQUFHLENBQUE7QUFDQVcsTUFBTSxDQUFDSSxHQUFHLENBQUMscUJBQXFCLEVBQUVQLGlCQUFpQixDQUFDO0FBQUM7QUFBQVgsY0FBQSxHQUFBRyxDQUFBO0FBRXJEVyxNQUFNLENBQUNJLEdBQUcsQ0FBQyxNQUFNLEVBQUVYLGNBQWMsQ0FBQztBQUFDO0FBQUFQLGNBQUEsR0FBQUcsQ0FBQTtBQUNuQ1csTUFBTSxDQUFDSyxHQUFHLENBQUMsYUFBYSxFQUFFWCxhQUFhLENBQUM7O0FBRXhDO0FBQUE7QUFBQVIsY0FBQSxHQUFBRyxDQUFBO0FBQ0FXLE1BQU0sQ0FBQ0ksR0FBRyxDQUFDLFlBQVksRUFBRUwsU0FBUyxDQUFDLE9BQU8sQ0FBQyxFQUFFSixjQUFjLENBQUM7QUFBQztBQUFBVCxjQUFBLEdBQUFHLENBQUE7QUFDN0RXLE1BQU0sQ0FBQ0ssR0FBRyxDQUFDLG1CQUFtQixFQUFFTixTQUFTLENBQUMsT0FBTyxDQUFDLEVBQUVILG1CQUFtQixDQUFDO0FBQUM7QUFBQVYsY0FBQSxHQUFBRyxDQUFBO0FBRXpFaUIsTUFBTSxDQUFDQyxPQUFPLEdBQUdQLE1BQU0iLCJpZ25vcmVMaXN0IjpbXX0=

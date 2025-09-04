@@ -111,3 +111,7 @@ site/
 
 # windsurf rules
 .windsurfrules
+
+# Jest cache
+.jest-cache/
+.jest-cache/**

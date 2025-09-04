@@ -8,16 +8,30 @@ class WebSocketService {
     this.wss = null;
     this.clients = new Map(); // Map of userId to WebSocket connections
     this.connectionCount = 0;
+    this.rateLimitMap = new Map(); // Rate limiting per user
+    this.maxMessagesPerMinute = 60; // Rate limit
+    this.cleanupInterval = null;
   }
 
   initialize(server) {
     this.wss = new WebSocket.Server({ 
       server,
       path: '/ws',
-      verifyClient: this.verifyClient.bind(this)
+      verifyClient: this.verifyClient.bind(this),
+      maxPayload: 1024 * 1024, // 1MB max payload
+      perMessageDeflate: {
+        threshold: 1024,
+        concurrencyLimit: 10,
+        memLevel: 7
+      }
     });
 
     this.wss.on('connection', this.handleConnection.bind(this));
+    
+    // Start cleanup interval for rate limiting
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupRateLimit();
+    }, 60000); // Clean up every minute
     
     info('WebSocket server initialized', {
       path: '/ws',
@@ -125,6 +139,16 @@ class WebSocketService {
   }
 
   handleMessage(ws, user, message) {
+    // Rate limiting check
+    if (!this.checkRateLimit(user.userId)) {
+      warn('Rate limit exceeded for user', { userId: user.userId });
+      this.sendToClient(ws, {
+        type: 'error',
+        payload: { message: 'Rate limit exceeded' }
+      });
+      return;
+    }
+
     info('WebSocket message received', {
       userId: user.userId,
       type: message.type
@@ -220,8 +244,39 @@ class WebSocketService {
     };
   }
 
+  // Rate limiting methods
+  checkRateLimit(userId) {
+    const now = Date.now();
+    const userRateLimit = this.rateLimitMap.get(userId) || { count: 0, resetTime: now + 60000 };
+    
+    if (now > userRateLimit.resetTime) {
+      // Reset counter
+      userRateLimit.count = 1;
+      userRateLimit.resetTime = now + 60000;
+    } else {
+      userRateLimit.count++;
+    }
+    
+    this.rateLimitMap.set(userId, userRateLimit);
+    return userRateLimit.count <= this.maxMessagesPerMinute;
+  }
+
+  cleanupRateLimit() {
+    const now = Date.now();
+    for (const [userId, rateLimit] of this.rateLimitMap.entries()) {
+      if (now > rateLimit.resetTime) {
+        this.rateLimitMap.delete(userId);
+      }
+    }
+  }
+
   // Close all connections
   close() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    
     if (this.wss) {
       this.wss.close();
       info('WebSocket server closed');

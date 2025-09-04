@@ -1,23 +1,20 @@
 const container = require('./index');
 
 // Models
-const User = require('../models/user.model');
-const Destination = require('../models/destination.model');
-const Booking = require('../models/booking.model');
-const Review = require('../models/review.model');
-// const Payment = require('../models/payment.model'); // Payment model not implemented yet
-const Notification = require('../models/notification.model');
+const User = require('../public/models/user.model');
+const Destination = require('../public/models/destination.model');
+const Booking = require('../public/models/booking.model');
+const Review = require('../public/models/review.model');
+// const Payment = require('../public/models/payment.model'); // Payment model not implemented yet
+const Notification = require('../public/models/notification.model');
 
 // Repositories
-const BaseRepository = require('../repositories/base.repository');
 const UserRepository = require('../repositories/user.repository');
 
 // Services
-const BaseService = require('../services/base.service');
 const UserService = require('../services/user.service');
 
 // Controllers
-const BaseController = require('../controllers/base.controller');
 const AuthController = require('../controllers/auth.controller');
 
 // Utils
@@ -39,19 +36,19 @@ function registerServices() {
   container.register('UserRepository', UserRepository, [], { singleton: true });
 
   // Register other repositories as factories
-  container.registerFactory('DestinationRepository', (Destination) => {
+  container.registerFactory('DestinationRepository', (DestinationModel) => {
     const DestinationRepository = require('../repositories/destination.repository');
-    return new DestinationRepository(Destination);
+    return new DestinationRepository(DestinationModel);
   }, ['Destination']);
 
-  container.registerFactory('BookingRepository', (Booking) => {
+  container.registerFactory('BookingRepository', (BookingModel) => {
     const BookingRepository = require('../repositories/booking.repository');
-    return new BookingRepository(Booking);
+    return new BookingRepository(BookingModel);
   }, ['Booking']);
 
-  container.registerFactory('ReviewRepository', (Review) => {
+  container.registerFactory('ReviewRepository', (ReviewModel) => {
     const ReviewRepository = require('../repositories/review.repository');
-    return new ReviewRepository(Review);
+    return new ReviewRepository(ReviewModel);
   }, ['Review']);
 
   // container.registerFactory('PaymentRepository', (Payment) => {
@@ -59,9 +56,9 @@ function registerServices() {
   //   return new PaymentRepository(Payment);
   // }, ['Payment']); // Payment repository not implemented yet
 
-  container.registerFactory('NotificationRepository', (Notification) => {
+  container.registerFactory('NotificationRepository', (NotificationModel) => {
     const NotificationRepository = require('../repositories/notification.repository');
-    return new NotificationRepository(Notification);
+    return new NotificationRepository(NotificationModel);
   }, ['Notification']);
 
   // Register services
@@ -132,10 +129,9 @@ function registerServices() {
 function initialize() {
   try {
     registerServices();
-    console.log('Service registry initialized successfully');
+    // Service registry initialized successfully
   } catch (error) {
-    console.error('Failed to initialize service registry:', error);
-    throw error;
+    throw new Error(`Failed to initialize service registry: ${error.message}`);
   }
 }
 

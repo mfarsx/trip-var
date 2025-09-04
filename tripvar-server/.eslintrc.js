@@ -11,8 +11,8 @@ module.exports = {
   ],
   plugins: ['security', 'node'],
   parserOptions: {
-    ecmaVersion: 12,
-    sourceType: 'module'
+    ecmaVersion: 2022,
+    sourceType: 'script'
   },
   rules: {
     // Error prevention
@@ -106,9 +106,11 @@ module.exports = {
     'node/no-missing-import': 'error',
     'node/no-extraneous-require': 'error',
     'node/no-extraneous-import': 'error',
-    'node/no-process-exit': 'error',
+    'node/no-process-exit': 'warn',
+    'no-process-exit': 'warn',
     'node/no-path-concat': 'error',
     'node/no-sync': 'warn',
+    'node/no-unsupported-features/es-syntax': 'warn',
 
     // Security
     'security/detect-object-injection': 'warn',

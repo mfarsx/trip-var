@@ -71,7 +71,7 @@ const connectDB = async() => {
       error: err.message,
       stack: config.server.isDevelopment ? err.stack : undefined
     });
-    process.exit(1);
+    throw err;
   }
 };
 

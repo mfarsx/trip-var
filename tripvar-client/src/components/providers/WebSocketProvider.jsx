@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import websocketService from '../../services/websocketService';
 import logger from '../../utils/logger';
@@ -16,6 +16,7 @@ export const useWebSocketContext = () => {
 
 const WebSocketProvider = ({ children }) => {
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const [connectionState, setConnectionState] = useState('DISCONNECTED');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -24,19 +25,32 @@ const WebSocketProvider = ({ children }) => {
     } else {
       logger.info('User not authenticated, disconnecting WebSocket');
       websocketService.disconnect();
+      setConnectionState('DISCONNECTED');
     }
 
-    // Listen for connection failures
+    // Listen for connection state changes
+    const unsubscribeConnected = websocketService.subscribe('connected', () => {
+      setConnectionState('CONNECTED');
+    });
+
+    const unsubscribeDisconnected = websocketService.subscribe('disconnected', () => {
+      setConnectionState('DISCONNECTED');
+    });
+
     const unsubscribeConnectionFailed = websocketService.subscribe('connection_failed', (error) => {
       logger.warn('WebSocket connection failed - continuing without real-time features', error);
+      setConnectionState('FAILED');
     });
 
     const unsubscribeMaxAttempts = websocketService.subscribe('max_reconnect_attempts_reached', () => {
       logger.warn('WebSocket reconnection attempts exhausted - real-time features unavailable');
+      setConnectionState('FAILED');
     });
 
     // Cleanup on unmount
     return () => {
+      unsubscribeConnected();
+      unsubscribeDisconnected();
       unsubscribeConnectionFailed();
       unsubscribeMaxAttempts();
       websocketService.disconnect();
@@ -45,9 +59,10 @@ const WebSocketProvider = ({ children }) => {
 
   const contextValue = {
     websocketService,
-    connectionState: websocketService.getConnectionState(),
-    isConnected: websocketService.getConnectionState() === 'CONNECTED',
-    isConnecting: websocketService.getConnectionState() === 'CONNECTING'
+    connectionState,
+    isConnected: connectionState === 'CONNECTED',
+    isConnecting: connectionState === 'CONNECTING',
+    isFailed: connectionState === 'FAILED'
   };
 
   return (

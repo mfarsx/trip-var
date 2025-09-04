@@ -1,5 +1,5 @@
 const userRepository = require('../repositories/user.repository');
-const { ValidationError, UnauthorizedError, NotFoundError } = require('../utils/errors');
+const { ValidationError, UnauthorizedError, NotFoundError, ConflictError } = require('../utils/errors');
 const { redisUtils } = require('../middleware/redisCache');
 const COUNTRIES = require('../utils/countries');
 const BaseService = require('./base.service');
@@ -16,7 +16,7 @@ class UserService extends BaseService {
     // Check if user already exists
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
-      throw new ValidationError('Email already registered');
+      throw new ConflictError('Email already registered');
     }
 
     // Format dateOfBirth to handle timezone issues

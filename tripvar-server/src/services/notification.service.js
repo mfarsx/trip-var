@@ -1,4 +1,4 @@
-const Notification = require('../models/notification.model');
+const Notification = require('../public/models/notification.model');
 const { createSystemNotification } = require('../controllers/notification.controller');
 const { info, error } = require('../utils/logger');
 

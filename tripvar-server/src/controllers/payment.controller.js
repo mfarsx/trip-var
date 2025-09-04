@@ -1,7 +1,58 @@
-const Booking = require('../models/booking.model');
+const Booking = require('../public/models/booking.model');
 const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
 const { successResponse } = require('../utils/response');
 const { info, error } = require('../utils/logger');
+
+// Simulate payment processing (replace with real payment provider integration)
+const simulatePaymentProcessing = async(paymentData) => {
+  // Simulate processing delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Simulate 95% success rate
+  const success = Math.random() > 0.05;
+
+  if (success) {
+    return {
+      success: true,
+      paymentIntentId: `pi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      amount: paymentData.amount,
+      currency: 'USD',
+      status: 'succeeded'
+    };
+  } else {
+    return {
+      success: false,
+      error: 'Payment processing failed',
+      errorCode: 'PAYMENT_FAILED'
+    };
+  }
+};
+
+// Simulate refund processing (replace with real payment provider integration)
+const simulateRefundProcessing = async(refundData) => {
+  // Simulate processing delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Simulate 98% success rate for refunds
+  const success = Math.random() > 0.02;
+
+  if (success) {
+    return {
+      success: true,
+      refundId: `re_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      amount: refundData.amount,
+      currency: 'USD',
+      status: 'succeeded'
+    };
+  } else {
+    return {
+      success: false,
+      error: 'Refund processing failed',
+      errorCode: 'REFUND_FAILED'
+    };
+  }
+};
 
 // Process payment for a booking
 const processPayment = async(req, res, next) => {
@@ -211,7 +262,7 @@ const getPaymentHistory = async(req, res, next) => {
     }
 
     // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
     // Get bookings with payment information
     const bookings = await Booking.find(query)
@@ -219,7 +270,7 @@ const getPaymentHistory = async(req, res, next) => {
       .populate('destination', 'title location imageUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
 
     // Get total count
     const total = await Booking.countDocuments(query);
@@ -255,8 +306,8 @@ const getPaymentHistory = async(req, res, next) => {
           bookings,
           paymentStats,
           pagination: {
-            current: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            current: parseInt(page, 10),
+            pages: Math.ceil(total / parseInt(limit, 10)),
             total
           }
         },
@@ -267,55 +318,6 @@ const getPaymentHistory = async(req, res, next) => {
   } catch (err) {
     error('Error fetching payment history', { error: err.message, userId: req.user?.id });
     next(err);
-  }
-};
-
-// Simulate payment processing (replace with real payment provider integration)
-const simulatePaymentProcessing = async(paymentData) => {
-  // Simulate processing delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Simulate 95% success rate
-  const success = Math.random() > 0.05;
-
-  if (success) {
-    return {
-      success: true,
-      paymentIntentId: `pi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      amount: paymentData.amount,
-      currency: 'USD',
-      status: 'succeeded'
-    };
-  } else {
-    return {
-      success: false,
-      error: 'Payment processing failed. Please try again.'
-    };
-  }
-};
-
-// Simulate refund processing (replace with real payment provider integration)
-const simulateRefundProcessing = async(refundData) => {
-  // Simulate processing delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Simulate 98% success rate for refunds
-  const success = Math.random() > 0.02;
-
-  if (success) {
-    return {
-      success: true,
-      refundId: `re_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      amount: refundData.amount,
-      currency: 'USD',
-      status: 'succeeded'
-    };
-  } else {
-    return {
-      success: false,
-      error: 'Refund processing failed. Please contact support.'
-    };
   }
 };
 

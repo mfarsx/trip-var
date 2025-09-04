@@ -76,11 +76,11 @@ const handleMulterError = err => {
 const sendErrorDev = (err, res, req) => {
   res.status(err.statusCode).json({
     status: err.status,
+    message: err.message,
+    code: err.code,
+    details: err.details,
     error: {
       name: err.name,
-      message: err.message,
-      code: err.code,
-      details: err.details,
       stack: err.stack
     },
     requestId: req.requestId,
@@ -131,8 +131,27 @@ const sendErrorProd = (err, res, req) => {
 
 // Global error handling middleware
 module.exports = (err, req, res, next) => {
+
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
+  err.timestamp = err.timestamp || new Date().toISOString();
+  err.requestId = req.requestId || req.id || 'unknown';
+
+  // Handle JSON parsing errors
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    err = createError.validation('Invalid JSON format', { 
+      originalError: err.message,
+      code: 'INVALID_JSON'
+    });
+  }
+
+  // Handle payload too large errors
+  if (err.type === 'entity.too.large') {
+    err = createError.validation('Request payload too large', {
+      code: 'PAYLOAD_TOO_LARGE',
+      limit: err.limit
+    });
+  }
 
   // Log all errors with appropriate level
   if (err.statusCode >= 500) {
@@ -148,17 +167,15 @@ module.exports = (err, req, res, next) => {
     });
 
     // Alert for critical server errors
-    if (err.statusCode >= 500) {
-      security('CRITICAL SERVER ERROR', {
-        error: err.message,
-        requestId: req.requestId,
-        url: req.url,
-        method: req.method,
-        statusCode: err.statusCode,
-        ip: req.ip,
-        timestamp: new Date().toISOString()
-      });
-    }
+    warn('CRITICAL SERVER ERROR', {
+      error: err.message,
+      requestId: req.requestId,
+      url: req.url,
+      method: req.method,
+      statusCode: err.statusCode,
+      ip: req.ip,
+      timestamp: new Date().toISOString()
+    });
   } else if (err.statusCode >= 400) {
     warn('Client error', {
       error: err.message,
@@ -173,7 +190,7 @@ module.exports = (err, req, res, next) => {
 
   // Log security-related errors
   if (err.statusCode === 401 || err.statusCode === 403) {
-    security('Authentication/Authorization error', {
+    warn('Authentication/Authorization error', {
       error: err.message,
       requestId: req.requestId,
       url: req.url,
@@ -182,7 +199,7 @@ module.exports = (err, req, res, next) => {
       userAgent: req.get('User-Agent')
     });
   }
-
+  
   if (config.server.isDevelopment) {
     sendErrorDev(err, res, req);
   } else {

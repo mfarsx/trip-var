@@ -12,7 +12,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/src/tests/setup.js'],
 
   // Load environment variables for tests
-  setupFiles: ['<rootDir>/src/tests/envSetup.js'],
+  setupFiles: ['<rootDir>/src/tests/jest.setup.js', '<rootDir>/src/tests/envSetup.js'],
 
   // Coverage configuration
   collectCoverage: true,
@@ -46,13 +46,20 @@ module.exports = {
   restoreMocks: true,
 
   // Verbose output
-  verbose: true,
+  verbose: false, // Reduce output noise
 
   // Force exit after tests complete
   forceExit: true,
 
   // Detect open handles
   detectOpenHandles: true,
+
+  // Run tests in parallel for better performance
+  maxWorkers: '50%',
+
+  // Cache for better performance
+  cache: true,
+  cacheDirectory: '<rootDir>/.jest-cache',
 
   // Module name mapping for absolute imports
   moduleNameMapper: {

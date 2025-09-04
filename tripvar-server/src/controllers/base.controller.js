@@ -26,7 +26,7 @@ class BaseController {
    * @param {number} total - Total items
    * @param {string} message - Success message
    */
-  sendPaginated(res, data, page, limit, total, message = 'Data retrieved successfully') {
+  sendPaginated(res, data, page, limit, total) {
     res.status(200).json(paginatedResponse(data, page, limit, total));
   }
 
@@ -97,8 +97,8 @@ class BaseController {
    * @returns {Object} Pagination parameters
    */
   getPaginationParams(query) {
-    const page = Math.max(1, parseInt(query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10));
+    const page = Math.max(1, parseInt(query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 10));
     const skip = (page - 1) * limit;
 
     return { page, limit, skip };

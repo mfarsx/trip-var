@@ -1,4 +1,4 @@
-const Destination = require('../models/destination.model');
+const Destination = require('../public/models/destination.model');
 const { ValidationError } = require('../utils/errors');
 const { info } = require('../utils/logger');
 
@@ -75,7 +75,7 @@ const destinationController = {
       });
 
       res.status(200).json({
-        success: true,
+        status: 'success',
         data: {
           destinations
         },
@@ -94,7 +94,7 @@ const destinationController = {
         throw new ValidationError('Destination not found');
       }
       res.status(200).json({
-        success: true,
+        status: 'success',
         data: {
           destination
         },
@@ -110,7 +110,7 @@ const destinationController = {
     try {
       const destination = await Destination.create(req.body);
       res.status(201).json({
-        success: true,
+        status: 'success',
         data: {
           destination
         },
@@ -133,7 +133,7 @@ const destinationController = {
         throw new ValidationError('Destination not found');
       }
       res.status(200).json({
-        success: true,
+        status: 'success',
         data: {
           destination
         },
@@ -152,7 +152,7 @@ const destinationController = {
         throw new ValidationError('Destination not found');
       }
       res.status(200).json({
-        success: true,
+        status: 'success',
         message: 'Destination deleted successfully'
       });
     } catch (error) {

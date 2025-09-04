@@ -42,6 +42,22 @@ router.put('/:id',
   destinationController.updateDestination
 );
 
+router.patch('/:id',
+  authenticate,
+  authorize('admin'),
+  [
+    validationRules.destinationTitle.optional(),
+    validationRules.destinationDescription.optional(),
+    validationRules.destinationImageUrl.optional(),
+    validationRules.destinationRating.optional(),
+    validationRules.destinationPrice.optional(),
+    validationRules.destinationLocation.optional(),
+    validationRules.destinationCategory.optional()
+  ],
+  validateRequest,
+  destinationController.updateDestination
+);
+
 router.delete('/:id', authenticate, authorize('admin'), destinationController.deleteDestination);
 
 module.exports = router;

@@ -1,0 +1,358 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18'
+  MONGODB_VERSION: '7.0'
+  REDIS_VERSION: '7.2'
+
+jobs:
+  # Server Tests
+  server-tests:
+    name: Server Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tripvar-server/package-lock.json
+
+      - name: Install server dependencies
+        working-directory: ./tripvar-server
+        run: npm ci
+
+      - name: Run server linting
+        working-directory: ./tripvar-server
+        run: npm run lint
+
+      - name: Run server unit tests
+        working-directory: ./tripvar-server
+        run: npm run test:unit
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/tripvar-test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-key-for-testing-only
+
+      - name: Run server integration tests
+        working-directory: ./tripvar-server
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/tripvar-test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-key-for-testing-only
+
+      - name: Generate server coverage report
+        working-directory: ./tripvar-server
+        run: npm run test:coverage
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/tripvar-test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-key-for-testing-only
+
+      - name: Upload server coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./tripvar-server/coverage/lcov.info
+          flags: server
+          name: server-coverage
+
+  # Client Tests
+  client-tests:
+    name: Client Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: tripvar-client/package-lock.json
+
+      - name: Install client dependencies
+        working-directory: ./tripvar-client
+        run: npm ci
+
+      - name: Run client linting
+        working-directory: ./tripvar-client
+        run: npm run lint
+
+      - name: Run client tests
+        working-directory: ./tripvar-client
+        run: npm run test:run
+        env:
+          NODE_ENV: test
+          VITE_API_URL: http://localhost:8000
+
+      - name: Generate client coverage report
+        working-directory: ./tripvar-client
+        run: npm run test:coverage
+        env:
+          NODE_ENV: test
+          VITE_API_URL: http://localhost:8000
+
+      - name: Upload client coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./tripvar-client/coverage/lcov.info
+          flags: client
+          name: client-coverage
+
+  # End-to-End Tests
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [server-tests, client-tests]
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd tripvar-server && npm ci
+          cd ../tripvar-client && npm ci
+
+      - name: Build client
+        working-directory: ./tripvar-client
+        run: npm run build
+        env:
+          NODE_ENV: production
+          VITE_API_URL: http://localhost:8000
+
+      - name: Start server
+        working-directory: ./tripvar-server
+        run: |
+          npm start &
+          sleep 10
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/tripvar-test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-key-for-testing-only
+          PORT: 8000
+
+      - name: Wait for server to be ready
+        run: |
+          timeout 30 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+
+      - name: Run E2E tests
+        run: |
+          # Run API integration tests
+          cd tripvar-server && npm run test:integration
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/tripvar-test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-key-for-testing-only
+
+  # Security Tests
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd tripvar-server && npm ci
+          cd ../tripvar-client && npm ci
+
+      - name: Run security audit (server)
+        working-directory: ./tripvar-server
+        run: npm audit --audit-level moderate
+
+      - name: Run security audit (client)
+        working-directory: ./tripvar-client
+        run: npm audit --audit-level moderate
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+        continue-on-error: true
+
+  # Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [server-tests]
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        working-directory: ./tripvar-server
+        run: npm ci
+
+      - name: Start server
+        working-directory: ./tripvar-server
+        run: |
+          npm start &
+          sleep 10
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/tripvar-test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-key-for-testing-only
+          PORT: 8000
+
+      - name: Wait for server to be ready
+        run: |
+          timeout 30 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+
+      - name: Run load tests
+        run: |
+          # Install artillery for load testing
+          npm install -g artillery
+          
+          # Create a simple load test
+          cat > load-test.yml << EOF
+          config:
+            target: 'http://localhost:8000'
+            phases:
+              - duration: 30
+                arrivalRate: 10
+          scenarios:
+            - name: "API Load Test"
+              flow:
+                - get:
+                    url: "/api/v1/destinations"
+                - get:
+                    url: "/health"
+          EOF
+          
+          # Run load test
+          artillery run load-test.yml
+        continue-on-error: true
+
+  # Test Results Summary
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [server-tests, client-tests, e2e-tests, security-tests, performance-tests]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test Results Summary
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Server Tests | ${{ needs.server-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Client Tests | ${{ needs.client-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ${{ needs.e2e-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Tests | ${{ needs.security-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Tests | ${{ needs.performance-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.server-tests.result }}" == "success" && "${{ needs.client-tests.result }}" == "success" && "${{ needs.e2e-tests.result }}" == "success" ]]; then
+            echo "🎉 All critical tests passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Some tests failed. Please review the results." >> $GITHUB_STEP_SUMMARY
+          fi

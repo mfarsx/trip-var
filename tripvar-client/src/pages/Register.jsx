@@ -117,6 +117,9 @@ export default function Register() {
 
             <div className="space-y-5">
               <div>
+                <label htmlFor="name" className="sr-only">
+                  Name
+                </label>
                 <div className="relative">
                   <FiUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
@@ -133,6 +136,9 @@ export default function Register() {
               </div>
 
               <div>
+                <label htmlFor="email" className="sr-only">
+                  Email
+                </label>
                 <div className="relative">
                   <FiMail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
@@ -149,6 +155,9 @@ export default function Register() {
               </div>
 
               <div>
+                <label htmlFor="password" className="sr-only">
+                  Password
+                </label>
                 <div className="relative">
                   <FiLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input

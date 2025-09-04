@@ -125,6 +125,9 @@ export default function Login() {
 
             <div className="space-y-4">
               <div className="relative">
+                <label htmlFor="email" className="sr-only">
+                  Email
+                </label>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FiMail className="h-5 w-5 text-gray-400" />
                 </div>
@@ -141,6 +144,9 @@ export default function Login() {
               </div>
 
               <div className="relative">
+                <label htmlFor="password" className="sr-only">
+                  Password
+                </label>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FiLock className="h-5 w-5 text-gray-400" />
                 </div>

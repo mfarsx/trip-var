@@ -1,5 +1,5 @@
 const BaseRepository = require('./base.repository');
-const User = require('../models/user.model');
+const User = require('../public/models/user.model');
 const { NotFoundError, ValidationError } = require('../utils/errors');
 
 class UserRepository extends BaseRepository {

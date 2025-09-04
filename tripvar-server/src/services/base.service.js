@@ -1,4 +1,4 @@
-const { redisUtils } = require('../middleware/redisCache');
+const { redisUtils } = require('../config/redis');
 
 /**
  * Base service class with common functionality

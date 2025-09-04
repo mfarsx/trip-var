@@ -172,7 +172,7 @@ class BaseRepository {
         data: documents,
         pagination: {
           page: parseInt(page),
-          limit: parseInt(limit),
+          limit: parseInt(limit, 10),
           total,
           pages: Math.ceil(total / limit),
           hasNext: page * limit < total,

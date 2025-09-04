@@ -6,8 +6,8 @@ const path = require('path');
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Import models
-const Destination = require('../models/destination.model');
-const User = require('../models/user.model');
+const Destination = require('../public/models/destination.model');
+const User = require('../public/models/user.model');
 
 // Sample destinations data - Expanded with more variety
 const sampleDestinations = [

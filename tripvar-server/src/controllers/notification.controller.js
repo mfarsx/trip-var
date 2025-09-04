@@ -1,4 +1,4 @@
-const Notification = require('../models/notification.model');
+const Notification = require('../public/models/notification.model');
 const { ValidationError, NotFoundError } = require('../utils/errors');
 const { successResponse } = require('../utils/response');
 const { info, error } = require('../utils/logger');
@@ -22,7 +22,7 @@ const getUserNotifications = async(req, res, next) => {
     }
 
     // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
     // Get notifications with pagination
     const notifications = await Notification.find(query)
@@ -30,7 +30,7 @@ const getUserNotifications = async(req, res, next) => {
       .populate('destination', 'title location imageUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
 
     // Get total count
     const total = await Notification.countDocuments(query);
@@ -44,8 +44,8 @@ const getUserNotifications = async(req, res, next) => {
           notifications,
           unreadCount,
           pagination: {
-            current: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            current: parseInt(page, 10),
+            pages: Math.ceil(total / parseInt(limit, 10)),
             total
           }
         },
@@ -311,7 +311,7 @@ const getAllNotifications = async(req, res, next) => {
     }
 
     // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
     // Get notifications with pagination
     const notifications = await Notification.find(query)
@@ -320,7 +320,7 @@ const getAllNotifications = async(req, res, next) => {
       .populate('destination', 'title location')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
 
     // Get total count
     const total = await Notification.countDocuments(query);
@@ -330,8 +330,8 @@ const getAllNotifications = async(req, res, next) => {
         {
           notifications,
           pagination: {
-            current: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            current: parseInt(page, 10),
+            pages: Math.ceil(total / parseInt(limit, 10)),
             total
           }
         },

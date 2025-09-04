@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RealTimeNotifications from "./components/notifications/RealTimeNotifications";
 import WebSocketProvider from "./components/providers/WebSocketProvider";
+import WebSocketStatus from "./components/common/WebSocketStatus";
 import "./App.css";
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
               }}
             />
             <RealTimeNotifications />
+            <WebSocketStatus />
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />

@@ -21,7 +21,7 @@ const config = {
     port: parseInt(process.env.PORT, 10) || 8000,
     host: process.env.HOST || '0.0.0.0',
     nodeEnv: process.env.NODE_ENV || 'development',
-    isDevelopment: process.env.NODE_ENV === 'development',
+    isDevelopment: process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test',
     isProduction: process.env.NODE_ENV === 'production',
     isTest: process.env.NODE_ENV === 'test'
   },
@@ -143,7 +143,7 @@ const validateConfig = () => {
     // Use process.stderr for critical startup errors before logger is available
     process.stderr.write('Configuration validation errors:\n');
     errors.forEach(error => process.stderr.write(`- ${error}\n`));
-    process.exit(1);
+    throw new Error('Configuration validation failed');
   }
 };
 

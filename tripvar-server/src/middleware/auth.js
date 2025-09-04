@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { promisify } = require('util');
-const User = require('../models/user.model');
+const User = require('../public/models/user.model');
 const { UnauthorizedError, ForbiddenError } = require('../utils/errors');
 
 exports.authenticate = async(req, res, next) => {
@@ -20,9 +20,11 @@ exports.authenticate = async(req, res, next) => {
     }
 
     if (!token) {
-      throw new UnauthorizedError(
-        'You are not logged in! Please log in to get access.'
-      );
+      return res.status(401).json({
+        status: 'fail',
+        message: 'You are not logged in! Please log in to get access.',
+        code: 'UNAUTHORIZED'
+      });
     }
 
     // 2) Verify token
@@ -34,16 +36,20 @@ exports.authenticate = async(req, res, next) => {
       // 3) Check if user still exists
       const user = await User.findById(decoded.id);
       if (!user) {
-        throw new UnauthorizedError(
-          'The user belonging to this token no longer exists.'
-        );
+        return res.status(401).json({
+          status: 'fail',
+          message: 'The user belonging to this token no longer exists.',
+          code: 'UNAUTHORIZED'
+        });
       }
 
       // 4) Check if user changed password after the token was issued
       if (user.changedPasswordAfter(decoded.iat)) {
-        throw new UnauthorizedError(
-          'User recently changed password! Please log in again.'
-        );
+        return res.status(401).json({
+          status: 'fail',
+          message: 'User recently changed password! Please log in again.',
+          code: 'UNAUTHORIZED'
+        });
       }
 
       // Grant access to protected route
@@ -54,15 +60,18 @@ exports.authenticate = async(req, res, next) => {
       if (err.name === 'TokenExpiredError') {
         return res.status(401).json({
           status: 'fail',
-          message: 'Your token has expired. Please log in again.'
+          message: 'Your token has expired. Please log in again.',
+          code: 'TOKEN_EXPIRED'
         });
       } else if (err.name === 'JsonWebTokenError') {
         return res.status(401).json({
           status: 'fail',
-          message: 'Invalid token. Please log in again.'
+          message: 'Invalid token. Please log in again.',
+          code: 'INVALID_TOKEN'
         });
       }
-      throw err;
+      // For other errors, pass to error handler
+      next(err);
     }
   } catch (error) {
     next(error);

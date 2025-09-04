@@ -347,6 +347,7 @@ envValidator.addValidation('VITE_STRIPE_PUBLISHABLE_KEY', {
 envValidator.addValidation('VITE_WS_URL', {
   required: false,
   type: 'string',
+  pattern: /^wss?:\/\/.+/,
   description: 'WebSocket server URL',
   defaultValue: 'ws://localhost:8000'
 });

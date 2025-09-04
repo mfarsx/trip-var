@@ -1,6 +1,6 @@
-const Review = require('../models/review.model');
-const Destination = require('../models/destination.model');
-const Booking = require('../models/booking.model');
+const Review = require('../public/models/review.model');
+const Destination = require('../public/models/destination.model');
+const Booking = require('../public/models/booking.model');
 const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
 const { successResponse } = require('../utils/response');
 const { info, error } = require('../utils/logger');
@@ -124,7 +124,7 @@ const getDestinationReviews = async(req, res, next) => {
     }
 
     // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
     // Get reviews with pagination
     const reviews = await Review.find({
@@ -134,7 +134,7 @@ const getDestinationReviews = async(req, res, next) => {
       .populate('user', 'name email')
       .sort(sortObj)
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
 
     // Get total count
     const total = await Review.countDocuments({
@@ -185,8 +185,8 @@ const getDestinationReviews = async(req, res, next) => {
           reviews,
           ratingStats,
           pagination: {
-            current: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            current: parseInt(page, 10),
+            pages: Math.ceil(total / parseInt(limit, 10)),
             total
           }
         },
@@ -207,14 +207,14 @@ const getUserReviews = async(req, res, next) => {
     const { page = 1, limit = 10 } = req.query;
 
     // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
     // Get user's reviews
     const reviews = await Review.find({ user: userId })
       .populate('destination', 'title location imageUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
 
     // Get total count
     const total = await Review.countDocuments({ user: userId });
@@ -224,8 +224,8 @@ const getUserReviews = async(req, res, next) => {
         {
           reviews,
           pagination: {
-            current: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            current: parseInt(page, 10),
+            pages: Math.ceil(total / parseInt(limit, 10)),
             total
           }
         },
@@ -378,7 +378,7 @@ const getAllReviews = async(req, res, next) => {
     }
 
     // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
     // Get reviews with pagination
     const reviews = await Review.find(query)
@@ -386,7 +386,7 @@ const getAllReviews = async(req, res, next) => {
       .populate('user', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
 
     // Get total count
     const total = await Review.countDocuments(query);
@@ -396,8 +396,8 @@ const getAllReviews = async(req, res, next) => {
         {
           reviews,
           pagination: {
-            current: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            current: parseInt(page, 10),
+            pages: Math.ceil(total / parseInt(limit, 10)),
             total
           }
         },

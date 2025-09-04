@@ -247,8 +247,8 @@ const validateObjectId = (paramName) => {
 const validatePagination = () => {
   return (req, res, next) => {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
+      const page = parseInt(req.query.page, 10) || 1;
+      const limit = parseInt(req.query.limit, 10) || 10;
 
       if (page < 1) {
         const error = new ValidationError('Page must be a positive integer');

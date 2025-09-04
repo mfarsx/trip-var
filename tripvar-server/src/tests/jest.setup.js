@@ -73,5 +73,8 @@ process.env.JWT_EXPIRES_IN = '1h';
 process.env.LOG_LEVEL = 'error';
 process.env.REDIS_URL = 'redis://localhost:6379';
 
+// Suppress Node.js warnings
+process.env.NODE_NO_WARNINGS = '1';
+
 // Increase timeout for tests
 jest.setTimeout(30000);

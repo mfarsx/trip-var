@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('./app.test');
+const app = require('./app');
 const {
   setupTestEnvironment,
   cleanupTestEnvironment,
@@ -32,7 +32,9 @@ describe('Destination API', () => {
     // Create test data
     user = await createTestUser();
     admin = await createTestAdmin();
-    destination = await createTestDestination();
+    destination = await createTestDestination({
+      category: 'Adventure' // Change from default 'Beach' to avoid conflicts
+    });
     token = generateTestToken(user);
     adminToken = generateTestToken(admin);
   });
@@ -252,7 +254,7 @@ describe('Destination API', () => {
         .expect(403);
 
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toContain('Access denied');
+      expect(response.body.message).toContain('You do not have permission to perform this action');
     });
 
     it('should fail to create destination with missing required fields', async () => {
@@ -331,7 +333,7 @@ describe('Destination API', () => {
         .expect(403);
 
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toContain('Access denied');
+      expect(response.body.message).toContain('You do not have permission to perform this action');
     });
   });
 
@@ -369,7 +371,7 @@ describe('Destination API', () => {
         .expect(403);
 
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toContain('Access denied');
+      expect(response.body.message).toContain('You do not have permission to perform this action');
     });
   });
 

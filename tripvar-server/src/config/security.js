@@ -93,9 +93,18 @@ const securityConfig = {
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map(error => error.msg);
+    const errorDetails = errors.array().map(error => ({
+      field: error.param,
+      message: error.msg,
+      value: error.value,
+      location: error.location
+    }));
+
     return res.status(400).json({
-      error: 'Validation failed',
-      details: errors.array()
+      status: 'fail',
+      message: `Validation failed: ${errorMessages.join(', ')}`,
+      details: errorDetails
     });
   }
   next();

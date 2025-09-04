@@ -6,7 +6,7 @@ const destinationController = {
   // Get all destinations
   getAllDestinations: async function(req, res, next) {
     try {
-      const { category, featured, search, from, to, date, guests } = req.query;
+      const { category, featured, search, from, to, date, guests, page = 1, limit = 20 } = req.query;
       const query = {};
 
       // Basic filters
@@ -66,18 +66,36 @@ const destinationController = {
         query.$or = searchConditions;
       }
 
-      const destinations = await Destination.find(query);
+      // Calculate pagination
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+      const skip = (pageNum - 1) * limitNum;
+
+      // Get destinations with pagination
+      const destinations = await Destination.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum);
+
+      // Get total count for pagination info
+      const total = await Destination.countDocuments(query);
 
       // Log the search for analytics purposes
       info('Search performed', {
-        category, featured, search, from, to, date, guests,
-        resultsCount: destinations.length
+        category, featured, search, from, to, date, guests, page: pageNum, limit: limitNum,
+        resultsCount: destinations.length,
+        totalCount: total
       });
 
       res.status(200).json({
         status: 'success',
         data: {
-          destinations
+          destinations,
+          pagination: {
+            current: pageNum,
+            pages: Math.ceil(total / limitNum),
+            total
+          }
         },
         message: 'Destinations retrieved successfully'
       });
@@ -89,9 +107,17 @@ const destinationController = {
   // Get destination by ID
   getDestinationById: async function(req, res, next) {
     try {
+      // Check if ID is valid MongoDB ObjectId format
+      if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new ValidationError('Invalid ID format');
+      }
+      
       const destination = await Destination.findById(req.params.id);
       if (!destination) {
-        throw new ValidationError('Destination not found');
+        const error = new ValidationError('Destination not found');
+        error.code = 'NOT_FOUND';
+        error.statusCode = 404;
+        throw error;
       }
       res.status(200).json({
         status: 'success',
@@ -124,13 +150,21 @@ const destinationController = {
   // Update destination (admin only)
   updateDestination: async function(req, res, next) {
     try {
+      // Check if ID is valid MongoDB ObjectId format
+      if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new ValidationError('Invalid ID format');
+      }
+      
       const destination = await Destination.findByIdAndUpdate(
         req.params.id,
         req.body,
         { new: true, runValidators: true }
       );
       if (!destination) {
-        throw new ValidationError('Destination not found');
+        const error = new ValidationError('Destination not found');
+        error.code = 'NOT_FOUND';
+        error.statusCode = 404;
+        throw error;
       }
       res.status(200).json({
         status: 'success',
@@ -147,9 +181,17 @@ const destinationController = {
   // Delete destination (admin only)
   deleteDestination: async function(req, res, next) {
     try {
+      // Check if ID is valid MongoDB ObjectId format
+      if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new ValidationError('Invalid ID format');
+      }
+      
       const destination = await Destination.findByIdAndDelete(req.params.id);
       if (!destination) {
-        throw new ValidationError('Destination not found');
+        const error = new ValidationError('Destination not found');
+        error.code = 'NOT_FOUND';
+        error.statusCode = 404;
+        throw error;
       }
       res.status(200).json({
         status: 'success',

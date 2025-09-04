@@ -1,2 +1,6 @@
-// Load test environment variables
-require('dotenv').config({ path: '.env.test' });
+// Load test environment variables with quiet mode
+require('dotenv').config({ 
+  path: '.env.test',
+  debug: false,
+  override: false
+});

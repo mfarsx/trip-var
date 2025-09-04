@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('./app.test');
+const app = require('./app');
 const {
   setupTestEnvironment,
   cleanupTestEnvironment,
@@ -432,7 +432,7 @@ describe('Payment API', () => {
     it('should handle payment processing failure gracefully', async () => {
       // Mock payment processing to fail
       const originalMathRandom = Math.random;
-      Math.random = () => 0.1; // Force failure (5% chance)
+      Math.random = () => 0.01; // Force failure (5% chance)
 
       const paymentData = {
         paymentMethod: 'credit-card',
@@ -465,7 +465,7 @@ describe('Payment API', () => {
 
       // Mock refund processing to fail
       const originalMathRandom = Math.random;
-      Math.random = () => 0.1; // Force failure (2% chance)
+      Math.random = () => 0.01; // Force failure (2% chance)
 
       const refundData = {
         reason: 'Customer requested cancellation'

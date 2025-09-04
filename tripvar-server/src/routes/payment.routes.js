@@ -14,7 +14,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Payment processing routes
-router.post('/booking/:bookingId/process',
+router.post('/:bookingId/process',
   [
     validationRules.paymentMethod,
     validationRules.paymentDetails
@@ -23,9 +23,9 @@ router.post('/booking/:bookingId/process',
   processPayment
 );
 
-router.get('/booking/:bookingId/status', getPaymentStatus);
+router.get('/:bookingId/status', getPaymentStatus);
 
-router.post('/booking/:bookingId/refund',
+router.post('/:bookingId/refund',
   [
     validationRules.refundReason
   ],

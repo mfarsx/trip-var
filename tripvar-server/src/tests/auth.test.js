@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('./app.test');
+const app = require('./app');
 const {
   setupTestEnvironment,
   cleanupTestEnvironment,

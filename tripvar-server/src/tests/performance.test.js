@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('./app.test');
+const app = require('./app');
 const {
   setupTestEnvironment,
   cleanupTestEnvironment,
@@ -90,7 +90,7 @@ describe('Performance Tests', () => {
           title: `Performance Test Destination ${index}`,
           description: 'Performance test description',
           location: 'Test Location',
-          category: 'Test'
+          category: 'Adventure'
         });
       });
 
@@ -99,7 +99,7 @@ describe('Performance Tests', () => {
       const startTime = Date.now();
       
       const response = await request(app)
-        .get('/api/v1/destinations')
+        .get('/api/v1/destinations?limit=100')
         .expect(200);
 
       const responseTime = Date.now() - startTime;
@@ -116,7 +116,7 @@ describe('Performance Tests', () => {
           title: `Pagination Test Destination ${index}`,
           description: 'Pagination test description',
           location: 'Test Location',
-          category: 'Test'
+          category: 'Adventure'
         });
       });
 

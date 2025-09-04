@@ -8,6 +8,11 @@ const handleCastErrorDB = err => {
 };
 
 const handleValidationErrorDB = err => {
+  if (!err.errors) {
+    // Handle case where errors object doesn't exist
+    return createError.validation(err.message || 'Validation failed');
+  }
+  
   const errors = Object.values(err.errors).map(el => ({
     field: el.path,
     message: el.message,
@@ -131,7 +136,6 @@ const sendErrorProd = (err, res, req) => {
 
 // Global error handling middleware
 module.exports = (err, req, res, next) => {
-
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
   err.timestamp = err.timestamp || new Date().toISOString();
@@ -200,41 +204,47 @@ module.exports = (err, req, res, next) => {
     });
   }
   
+  let error = { ...err };
+  error.message = err.message;
+
+  // Handle specific error types (both dev and prod)
+  if (error.name === 'CastError') {
+    error = handleCastErrorDB(error);
+  }
+  if (error.name === 'ValidationError') {
+    error = handleValidationErrorDB(error);
+  }
+  if (error.name === 'JsonWebTokenError') {
+    error = handleJWTError();
+  }
+  if (error.name === 'TokenExpiredError') {
+    error = handleJWTExpiredError();
+  }
+  if (error.name === 'MongoError') {
+    error = handleMongoError(error);
+  }
+  if (error.name === 'MongoServerError') {
+    error = handleMongoError(error);
+  }
+  if (error.name === 'RedisError') {
+    error = handleRedisError(error);
+  }
+  if (error.name === 'RateLimitError') {
+    error = handleRateLimitError(error);
+  }
+  if (error.name === 'MulterError') {
+    error = handleMulterError(error);
+  }
+  
+  // Handle custom error codes
+  if (error.code === 'NOT_FOUND') {
+    error.statusCode = 404;
+    error.status = 'fail';
+  }
+
   if (config.server.isDevelopment) {
-    sendErrorDev(err, res, req);
+    sendErrorDev(error, res, req);
   } else {
-    let error = { ...err };
-    error.message = err.message;
-
-    // Handle specific error types
-    if (error.name === 'CastError') {
-      error = handleCastErrorDB(error);
-    }
-    if (error.name === 'ValidationError') {
-      error = handleValidationErrorDB(error);
-    }
-    if (error.name === 'JsonWebTokenError') {
-      error = handleJWTError();
-    }
-    if (error.name === 'TokenExpiredError') {
-      error = handleJWTExpiredError();
-    }
-    if (error.name === 'MongoError') {
-      error = handleMongoError(error);
-    }
-    if (error.name === 'MongoServerError') {
-      error = handleMongoError(error);
-    }
-    if (error.name === 'RedisError') {
-      error = handleRedisError(error);
-    }
-    if (error.name === 'RateLimitError') {
-      error = handleRateLimitError(error);
-    }
-    if (error.name === 'MulterError') {
-      error = handleMulterError(error);
-    }
-
     sendErrorProd(error, res, req);
   }
 };

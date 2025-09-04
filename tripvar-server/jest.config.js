@@ -45,8 +45,11 @@ module.exports = {
   // Restore mocks between tests
   restoreMocks: true,
 
-  // Verbose output
-  verbose: false, // Reduce output noise
+  // Verbose output - only show test results, not individual assertions
+  verbose: false,
+  
+  // Silent mode to reduce console noise
+  silent: false,
 
   // Force exit after tests complete
   forceExit: true,

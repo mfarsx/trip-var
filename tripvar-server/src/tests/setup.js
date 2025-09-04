@@ -25,8 +25,6 @@ const setupTestEnvironment = async () => {
 
   // Connect to test database with optimized settings
   await mongoose.connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     maxPoolSize: 1, // Reduce connection pool for tests
     serverSelectionTimeoutMS: 5000, // Faster timeout
     socketTimeoutMS: 45000,
@@ -422,6 +420,7 @@ const testUtils = {
   createTestDestination,
   createTestBooking,
   createTestReview,
+  createTestNotification,
   generateTestToken,
   generateFutureDates,
   createMockRequest,

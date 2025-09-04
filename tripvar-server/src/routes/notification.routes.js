@@ -21,7 +21,7 @@ router.get('/', getUserNotifications);
 router.get('/stats', getNotificationStats);
 router.get('/:notificationId', getNotificationById);
 
-router.put('/mark-read',
+router.patch('/mark-read',
   [
     validationRules.notificationIds.optional()
   ],
@@ -38,6 +38,19 @@ router.delete('/',
 );
 
 // Admin routes
+router.post('/',
+  authorize('admin'),
+  [
+    validationRules.notificationUserId,
+    validationRules.notificationTitle,
+    validationRules.notificationMessage,
+    validationRules.notificationType,
+    validationRules.notificationPriority.optional()
+  ],
+  validateRequest,
+  createNotification
+);
+
 router.post('/admin/create',
   authorize('admin'),
   [

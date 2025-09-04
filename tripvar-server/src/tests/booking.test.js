@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('./app.test');
+const app = require('./app');
 const {
   setupTestEnvironment,
   cleanupTestEnvironment,
@@ -368,7 +368,7 @@ describe('Booking API', () => {
         .expect(403);
 
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toContain('Access denied');
+      expect(response.body.message).toContain('You do not have permission to perform this action');
     });
   });
 
@@ -409,7 +409,7 @@ describe('Booking API', () => {
         .expect(403);
 
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toContain('Access denied');
+      expect(response.body.message).toContain('You do not have permission to perform this action');
     });
   });
 

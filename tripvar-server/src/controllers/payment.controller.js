@@ -137,7 +137,7 @@ const getPaymentStatus = async(req, res, next) => {
     const userId = req.user.id;
 
     const booking = await Booking.findById(bookingId)
-      .select('paymentStatus paymentMethod totalAmount paymentIntentId createdAt')
+      .select('user paymentStatus paymentMethod totalAmount paymentIntentId createdAt')
       .populate('destination', 'title');
 
     if (!booking) {
@@ -190,18 +190,29 @@ const processRefund = async(req, res, next) => {
       throw new ValidationError('Access denied');
     }
 
-    // Check if booking is paid
-    if (booking.paymentStatus !== 'paid') {
-      throw new ConflictError('Cannot refund unpaid booking');
-    }
-
     // Check if booking is already refunded
     if (booking.paymentStatus === 'refunded') {
       throw new ConflictError('Booking is already refunded');
     }
 
-    // Calculate refund amount
-    const refundAmount = booking.calculateRefund();
+    // Check if booking is paid
+    if (booking.paymentStatus !== 'paid') {
+      throw new ConflictError('Cannot refund unpaid booking');
+    }
+
+    // Calculate refund amount based on cancellation policy
+    const now = new Date();
+    const daysUntilCheckIn = Math.ceil((booking.checkInDate - now) / (1000 * 3600 * 24));
+    
+    let refundAmount = 0;
+    // Refund policy: 100% if cancelled 7+ days before, 50% if 3-6 days, 0% if less than 3 days
+    if (daysUntilCheckIn >= 7) {
+      refundAmount = booking.totalAmount;
+    } else if (daysUntilCheckIn >= 3) {
+      refundAmount = booking.totalAmount * 0.5;
+    } else {
+      refundAmount = 0;
+    }
 
     if (refundAmount === 0) {
       throw new ValidationError('No refund available for this booking');

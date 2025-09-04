@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('./app.test');
+const app = require('./app');
 const {
   setupTestEnvironment,
   cleanupTestEnvironment,
@@ -141,10 +141,11 @@ describe('Integration Tests - Complete User Flows', () => {
       expectSuccessResponse(firstBookingResponse, 201);
 
       // Try to create overlapping booking (should fail if availability is properly checked)
+      const overlappingDates = generateFutureDates(30, 4); // Same dates as first booking
       const overlappingBookingData = {
         destinationId: destination._id,
-        checkInDate: '2024-06-03', // Overlaps with first booking
-        checkOutDate: '2024-06-07',
+        checkInDate: overlappingDates.checkInDate, // Overlaps with first booking
+        checkOutDate: overlappingDates.checkOutDate,
         numberOfGuests: 2,
         paymentMethod: 'credit-card'
       };
@@ -245,7 +246,7 @@ describe('Integration Tests - Complete User Flows', () => {
         .expect(403);
 
       expect(createResponse.body.status).toBe('fail');
-      expect(createResponse.body.message).toContain('Access denied');
+      expect(createResponse.body.message).toContain('You do not have permission to perform this action');
 
       // Try to view all bookings as regular user
       const allBookingsResponse = await request(app)
@@ -254,7 +255,7 @@ describe('Integration Tests - Complete User Flows', () => {
         .expect(403);
 
       expect(allBookingsResponse.body.status).toBe('fail');
-      expect(allBookingsResponse.body.message).toContain('Access denied');
+      expect(allBookingsResponse.body.message).toContain('You do not have permission to perform this action');
     });
   });
 

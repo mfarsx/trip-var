@@ -1,6 +1,6 @@
 const Booking = require('../public/models/booking.model');
 const Destination = require('../public/models/destination.model');
-const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
+const { ValidationError, NotFoundError, ConflictError, ForbiddenError } = require('../utils/errors');
 const { successResponse } = require('../utils/response');
 const { info, error } = require('../utils/logger');
 const NotificationService = require('../services/notification.service');
@@ -131,7 +131,7 @@ const getUserBookings = async(req, res, next) => {
     const total = await Booking.countDocuments(query);
 
     res.json({
-      success: true,
+      status: 'success',
       data: {
         bookings,
         pagination: {
@@ -164,11 +164,11 @@ const getBookingById = async(req, res, next) => {
 
     // Check if user owns this booking or is admin
     if (booking.user._id.toString() !== userId && req.user.role !== 'admin') {
-      throw new ValidationError('Access denied');
+      throw new ForbiddenError('Access denied');
     }
 
     res.json({
-      success: true,
+      status: 'success',
       data: {
         booking
       }
@@ -195,7 +195,7 @@ const cancelBooking = async(req, res, next) => {
 
     // Check if user owns this booking
     if (booking.user.toString() !== userId) {
-      throw new ValidationError('Access denied');
+      throw new ForbiddenError('Access denied');
     }
 
     // Check if booking can be cancelled
@@ -242,7 +242,7 @@ const cancelBooking = async(req, res, next) => {
     }
 
     res.json({
-      success: true,
+      status: 'success',
       message: 'Booking cancelled successfully',
       data: {
         booking,
@@ -285,7 +285,7 @@ const getAllBookings = async(req, res, next) => {
     const total = await Booking.countDocuments(query);
 
     res.json({
-      success: true,
+      status: 'success',
       data: {
         bookings,
         pagination: {
@@ -328,7 +328,7 @@ const updateBookingStatus = async(req, res, next) => {
     });
 
     res.json({
-      success: true,
+      status: 'success',
       message: 'Booking status updated successfully',
       data: {
         booking
@@ -356,7 +356,7 @@ const checkAvailability = async(req, res, next) => {
     const isAvailable = await Booking.checkAvailability(destinationId, checkIn, checkOut);
 
     res.json({
-      success: true,
+      status: 'success',
       data: {
         available: isAvailable,
         checkInDate: checkIn,

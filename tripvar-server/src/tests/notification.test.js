@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('./app.test');
+const app = require('./app');
 const {
   setupTestEnvironment,
   cleanupTestEnvironment,
@@ -42,7 +42,7 @@ describe('Notification API', () => {
   describe('GET /api/v1/notifications', () => {
     beforeEach(async () => {
       // Create test notifications
-      await createTestNotification({ userId: user._id, type: 'booking_confirmed' });
+      await createTestNotification({ userId: user._id, type: 'booking_confirmed', isRead: true });
       await createTestNotification({ userId: user._id, type: 'booking_reminder', isRead: false });
       await createTestNotification({ userId: user._id, type: 'promotion', isRead: true });
     });
@@ -336,7 +336,7 @@ describe('Notification API', () => {
         .expect(400);
 
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toContain('Missing required notification information');
+      expect(response.body.message).toContain('Validation failed');
     });
 
     it('should fail for non-admin users', async () => {
@@ -354,7 +354,7 @@ describe('Notification API', () => {
         .expect(403);
 
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toContain('Access denied');
+      expect(response.body.message).toContain('You do not have permission to perform this action');
     });
   });
 
@@ -384,7 +384,7 @@ describe('Notification API', () => {
 
       expectSuccessResponse(response, 200);
       expect(response.body.data.notifications).toHaveLength(1);
-      expect(response.body.data.notifications[0].user).toBe(user._id.toString());
+      expect(response.body.data.notifications[0].user._id).toBe(user._id.toString());
     });
 
     it('should fail for non-admin users', async () => {
@@ -394,7 +394,7 @@ describe('Notification API', () => {
         .expect(403);
 
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toContain('Access denied');
+      expect(response.body.message).toContain('You do not have permission to perform this action');
     });
   });
 });

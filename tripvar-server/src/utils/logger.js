@@ -12,9 +12,24 @@ const logFormat = winston.format.combine(
     let log = `${timestamp} [${level.toUpperCase()}]: ${message}`;
 
     if (Object.keys(meta).length > 0) {
-      log += ` ${JSON.stringify(meta)}`;
+      log += ` ${JSON.stringify(meta, null, 2)}`;
     }
 
+    return log;
+  })
+);
+
+// Console format for development
+const consoleFormat = winston.format.combine(
+  winston.format.colorize(),
+  winston.format.timestamp({ format: 'HH:mm:ss' }),
+  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+    let log = `${timestamp} ${level}: ${message}`;
+    
+    if (Object.keys(meta).length > 0) {
+      log += `\n${JSON.stringify(meta, null, 2)}`;
+    }
+    
     return log;
   })
 );
@@ -31,10 +46,7 @@ const logger = winston.createLogger({
     // Console transport - only show warnings and errors in development
     new winston.transports.Console({
       level: process.env.LOG_LEVEL || (config.server.isDevelopment ? 'warn' : 'info'),
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
+      format: config.server.isDevelopment ? consoleFormat : winston.format.simple()
     }),
 
     // Error log file

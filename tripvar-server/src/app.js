@@ -1,18 +1,26 @@
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
-const routes = require('./routes');
-const healthRoutes = require('./routes/health.routes');
+
+// Core middleware
 const errorHandler = require('./middleware/errorHandler');
 const { requestLogger, addRequestId } = require('./utils/logger');
 const { redisSession } = require('./middleware/redisCache');
 const { NotFoundError } = require('./utils/errors');
 const { error } = require('./utils/logger');
-const connectDB = require('./config/database');
-const { connectRedis } = require('./config/redis');
+
+// Configuration
 const { securityConfig } = require('./config/security');
 const { specs, swaggerUi, swaggerOptions } = require('./config/swagger');
+
+// Routes
+const routes = require('./routes');
+const healthRoutes = require('./routes/health.routes');
+
+// Services
 const { initialize: initializeServices } = require('./container/serviceRegistry');
+const connectDB = require('./config/database');
+const { connectRedis } = require('./config/redis');
 
 const app = express();
 

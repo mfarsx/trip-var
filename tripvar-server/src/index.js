@@ -3,6 +3,10 @@ const { info, error, warn } = require('./utils/logger');
 const config = require('./config/config');
 const websocketService = require('./services/websocketService');
 
+// Import connection modules
+const mongoose = require('mongoose');
+const redis = require('./config/redis');
+
 // Global error handlers
 process.on('uncaughtException', (err) => {
   error('Uncaught Exception', {
@@ -40,7 +44,7 @@ process.on('unhandledRejection', (err) => {
 });
 
 // Graceful shutdown handler
-const gracefulShutdown = async(signal) => {
+const gracefulShutdown = async (signal) => {
   info(`${signal} received, shutting down gracefully`);
 
   try {
@@ -55,14 +59,12 @@ const gracefulShutdown = async(signal) => {
     }
 
     // Close database connections
-    const mongoose = require('mongoose');
     if (mongoose.connection.readyState === 1) {
       await mongoose.connection.close();
       info('Database connection closed');
     }
 
     // Close Redis connection
-    const redis = require('./config/redis');
     if (redis && redis.disconnect) {
       await redis.disconnect();
       info('Redis connection closed');
@@ -83,6 +85,24 @@ const gracefulShutdown = async(signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Create startup banner
+const createStartupBanner = () => {
+  const banner = `
+╔══════════════════════════════════════════════════════════╗
+║                    🚀 TRIPVAR SERVER                    ║
+║                                                          ║
+║  📡 Server:    http://${config.server.host}:${config.server.port}${' '.repeat(20 - config.server.port.toString().length)}║
+║  🔌 WebSocket: ws://${config.server.host}:${config.server.port}/ws${' '.repeat(18 - config.server.port.toString().length)}║
+║  📚 API Docs:  http://${config.server.host}:${config.server.port}/api-docs${' '.repeat(12 - config.server.port.toString().length)}║
+║  ❤️  Health:    http://${config.server.host}:${config.server.port}/health${' '.repeat(13 - config.server.port.toString().length)}║
+║  🌍 Environment: ${config.server.nodeEnv}${' '.repeat(32 - config.server.nodeEnv.length)}║
+║  🆔 Process ID: ${process.pid}${' '.repeat(33 - process.pid.toString().length)}║
+║  ⏰ Started:    ${new Date().toISOString()}${' '.repeat(8)}║
+╚══════════════════════════════════════════════════════════╝
+`;
+  return banner;
+};
+
 // Start server
 const server = app.listen(config.server.port, config.server.host, () => {
   info('🚀 Tripvar Server is running', {
@@ -96,17 +116,8 @@ const server = app.listen(config.server.port, config.server.host, () => {
   // Initialize WebSocket server
   websocketService.initialize(server);
 
-  // Display startup information
-  console.log('\n' + '='.repeat(50));
-  console.log('🚀 Tripvar Server Started Successfully!');
-  console.log('='.repeat(50));
-  console.log(`📡 Server: http://${config.server.host}:${config.server.port}`);
-  console.log(`🔌 WebSocket: ws://${config.server.host}:${config.server.port}/ws`);
-  console.log(`📚 API Docs: http://${config.server.host}:${config.server.port}/api-docs`);
-  console.log(`❤️  Health: http://${config.server.host}:${config.server.port}/health`);
-  console.log(`🌍 Environment: ${config.server.nodeEnv}`);
-  console.log(`🆔 Process ID: ${process.pid}`);
-  console.log('='.repeat(50) + '\n');
+  // Display startup banner
+  console.log(createStartupBanner());
 });
 
 // Handle server errors

@@ -342,7 +342,7 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/health', healthRoutes);
 
 // 404 handler for undefined routes
-app.use('*', (req, res, next) => {
+app.use((req, res, next) => {
   const error = new Error(`Route ${req.originalUrl} not found`);
   error.statusCode = 404;
   error.status = 'fail';

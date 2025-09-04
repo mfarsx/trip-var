@@ -1,6 +1,6 @@
 const Notification = require('../public/models/notification.model');
 const { ValidationError, NotFoundError } = require('../utils/errors');
-const { successResponse } = require('../utils/response');
+const { sendSuccess, sendCreated, sendPaginated } = require('../utils/response');
 const { info, error } = require('../utils/logger');
 
 // Get user's notifications
@@ -38,20 +38,15 @@ const getUserNotifications = async(req, res, next) => {
     // Get unread count
     const unreadCount = await Notification.getUnreadCount(userId);
 
-    res.json(
-      successResponse(
-        {
-          notifications,
-          unreadCount,
-          pagination: {
-            current: parseInt(page, 10),
-            pages: Math.ceil(total / parseInt(limit, 10)),
-            total
-          }
-        },
-        'Notifications retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Notifications retrieved successfully', {
+      notifications,
+      unreadCount,
+      pagination: {
+        current: parseInt(page, 10),
+        pages: Math.ceil(total / parseInt(limit, 10)),
+        total
+      }
+    });
 
   } catch (err) {
     error('Error fetching notifications', { error: err.message, userId: req.user?.id });
@@ -74,14 +69,9 @@ const markNotificationsAsRead = async(req, res, next) => {
       modifiedCount: result.modifiedCount
     });
 
-    res.json(
-      successResponse(
-        {
-          modifiedCount: result.modifiedCount
-        },
-        'Notifications marked as read successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Notifications marked as read successfully', {
+      modifiedCount: result.modifiedCount
+    });
 
   } catch (err) {
     error('Error marking notifications as read', { error: err.message, userId: req.user?.id });
@@ -110,14 +100,9 @@ const deleteNotifications = async(req, res, next) => {
       deletedCount: result.deletedCount
     });
 
-    res.json(
-      successResponse(
-        {
-          deletedCount: result.deletedCount
-        },
-        'Notifications deleted successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Notifications deleted successfully', {
+      deletedCount: result.deletedCount
+    });
 
   } catch (err) {
     error('Error deleting notifications', { error: err.message, userId: req.user?.id });
@@ -149,12 +134,7 @@ const getNotificationById = async(req, res, next) => {
       await notification.save();
     }
 
-    res.json(
-      successResponse(
-        { notification },
-        'Notification retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Notification retrieved successfully', { notification });
 
   } catch (err) {
     error('Error fetching notification', { error: err.message, notificationId: req.params.notificationId });
@@ -227,12 +207,7 @@ const getNotificationStats = async(req, res, next) => {
       });
     }
 
-    res.json(
-      successResponse(
-        { notificationStats },
-        'Notification statistics retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Notification statistics retrieved successfully', { notificationStats });
 
   } catch (err) {
     error('Error fetching notification stats', { error: err.message, userId: req.user?.id });
@@ -277,12 +252,7 @@ const createNotification = async(req, res, next) => {
       priority
     });
 
-    res.status(201).json(
-      successResponse(
-        { notification },
-        'Notification created successfully'
-      )
-    );
+    sendCreated(res, { notification }, 'Notification created successfully');
 
   } catch (err) {
     error('Error creating notification', { error: err.message });
@@ -325,19 +295,14 @@ const getAllNotifications = async(req, res, next) => {
     // Get total count
     const total = await Notification.countDocuments(query);
 
-    res.json(
-      successResponse(
-        {
-          notifications,
-          pagination: {
-            current: parseInt(page, 10),
-            pages: Math.ceil(total / parseInt(limit, 10)),
-            total
-          }
-        },
-        'All notifications retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'All notifications retrieved successfully', {
+      notifications,
+      pagination: {
+        current: parseInt(page, 10),
+        pages: Math.ceil(total / parseInt(limit, 10)),
+        total
+      }
+    });
 
   } catch (err) {
     error('Error fetching all notifications', { error: err.message });

@@ -1,4 +1,4 @@
-const { successResponse, paginatedResponse } = require('../utils/response');
+const { sendSuccess: sendSuccessUtil, sendCreated, sendPaginated: sendPaginatedUtil } = require('../utils/response');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ValidationError } = require('../utils/errors');
 
@@ -14,7 +14,7 @@ class BaseController {
    * @param {number} statusCode - HTTP status code
    */
   sendSuccess(res, data = null, message = 'Success', statusCode = 200) {
-    res.status(statusCode).json(successResponse(data, message));
+    return sendSuccessUtil(res, statusCode, message, data);
   }
 
   /**
@@ -27,7 +27,11 @@ class BaseController {
    * @param {string} message - Success message
    */
   sendPaginated(res, data, page, limit, total) {
-    res.status(200).json(paginatedResponse(data, page, limit, total));
+    return sendPaginatedUtil(res, data, {
+      current: page,
+      pages: Math.ceil(total / limit),
+      total
+    });
   }
 
   /**

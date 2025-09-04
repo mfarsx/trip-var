@@ -2,7 +2,7 @@ const Review = require('../public/models/review.model');
 const Destination = require('../public/models/destination.model');
 const Booking = require('../public/models/booking.model');
 const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
-const { successResponse } = require('../utils/response');
+const { sendSuccess, sendCreated, sendPaginated } = require('../utils/response');
 const { info, error } = require('../utils/logger');
 
 // Create a new review
@@ -76,12 +76,7 @@ const createReview = async(req, res, next) => {
       rating
     });
 
-    res.status(201).json(
-      successResponse(
-        { review },
-        'Review created successfully'
-      )
-    );
+    sendCreated(res, { review }, 'Review created successfully');
 
   } catch (err) {
     error('Error creating review', { error: err.message, userId: req.user?.id });
@@ -179,20 +174,15 @@ const getDestinationReviews = async(req, res, next) => {
       });
     }
 
-    res.json(
-      successResponse(
-        {
-          reviews,
-          ratingStats,
-          pagination: {
-            current: parseInt(page, 10),
-            pages: Math.ceil(total / parseInt(limit, 10)),
-            total
-          }
-        },
-        'Reviews retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Reviews retrieved successfully', {
+      reviews,
+      ratingStats,
+      pagination: {
+        current: parseInt(page, 10),
+        pages: Math.ceil(total / parseInt(limit, 10)),
+        total
+      }
+    });
 
   } catch (err) {
     error('Error fetching reviews', { error: err.message, destinationId: req.params.destinationId });
@@ -219,19 +209,14 @@ const getUserReviews = async(req, res, next) => {
     // Get total count
     const total = await Review.countDocuments({ user: userId });
 
-    res.json(
-      successResponse(
-        {
-          reviews,
-          pagination: {
-            current: parseInt(page, 10),
-            pages: Math.ceil(total / parseInt(limit, 10)),
-            total
-          }
-        },
-        'User reviews retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'User reviews retrieved successfully', {
+      reviews,
+      pagination: {
+        current: parseInt(page, 10),
+        pages: Math.ceil(total / parseInt(limit, 10)),
+        total
+      }
+    });
 
   } catch (err) {
     error('Error fetching user reviews', { error: err.message, userId: req.user?.id });
@@ -269,12 +254,7 @@ const updateReview = async(req, res, next) => {
       userId
     });
 
-    res.json(
-      successResponse(
-        { review: updatedReview },
-        'Review updated successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Review updated successfully', { review: updatedReview });
 
   } catch (err) {
     error('Error updating review', { error: err.message, reviewId: req.params.reviewId });
@@ -307,12 +287,7 @@ const deleteReview = async(req, res, next) => {
       deletedBy: req.user.role
     });
 
-    res.json(
-      successResponse(
-        null,
-        'Review deleted successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Review deleted successfully');
 
   } catch (err) {
     error('Error deleting review', { error: err.message, reviewId: req.params.reviewId });
@@ -347,15 +322,10 @@ const markReviewHelpful = async(req, res, next) => {
 
     await review.save();
 
-    res.json(
-      successResponse(
-        {
-          helpful: !isAlreadyHelpful,
-          helpfulVotes: review.helpfulVotes
-        },
-        `Review ${isAlreadyHelpful ? 'unmarked' : 'marked'} as helpful`
-      )
-    );
+    sendSuccess(res, 200, `Review ${isAlreadyHelpful ? 'unmarked' : 'marked'} as helpful`, {
+      helpful: !isAlreadyHelpful,
+      helpfulVotes: review.helpfulVotes
+    });
 
   } catch (err) {
     error('Error marking review helpful', { error: err.message, reviewId: req.params.reviewId });
@@ -391,19 +361,14 @@ const getAllReviews = async(req, res, next) => {
     // Get total count
     const total = await Review.countDocuments(query);
 
-    res.json(
-      successResponse(
-        {
-          reviews,
-          pagination: {
-            current: parseInt(page, 10),
-            pages: Math.ceil(total / parseInt(limit, 10)),
-            total
-          }
-        },
-        'All reviews retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'All reviews retrieved successfully', {
+      reviews,
+      pagination: {
+        current: parseInt(page, 10),
+        pages: Math.ceil(total / parseInt(limit, 10)),
+        total
+      }
+    });
 
   } catch (err) {
     error('Error fetching all reviews', { error: err.message });
@@ -453,12 +418,7 @@ const updateReviewStatus = async(req, res, next) => {
       adminId: req.user.id
     });
 
-    res.json(
-      successResponse(
-        { review },
-        'Review status updated successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Review status updated successfully', { review });
 
   } catch (err) {
     error('Error updating review status', { error: err.message, reviewId: req.params.reviewId });

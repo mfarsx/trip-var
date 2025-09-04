@@ -1,7 +1,7 @@
 const Booking = require('../public/models/booking.model');
 const Destination = require('../public/models/destination.model');
 const { ValidationError, NotFoundError, ConflictError, ForbiddenError } = require('../utils/errors');
-const { successResponse } = require('../utils/response');
+const { sendSuccess, sendCreated, sendPaginated } = require('../utils/response');
 const { info, error } = require('../utils/logger');
 const NotificationService = require('../services/notification.service');
 
@@ -94,10 +94,7 @@ const createBooking = async(req, res, next) => {
       });
     }
 
-    res.status(201).json(successResponse(
-      { booking },
-      'Booking created successfully'
-    ));
+    sendCreated(res, { booking }, 'Booking created successfully');
 
   } catch (err) {
     error('Error creating booking', { error: err.message, userId: req.user?.id });

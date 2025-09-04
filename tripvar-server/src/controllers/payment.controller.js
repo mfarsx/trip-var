@@ -1,6 +1,6 @@
 const Booking = require('../public/models/booking.model');
 const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
-const { successResponse } = require('../utils/response');
+const { sendSuccess, sendCreated } = require('../utils/response');
 const { info, error } = require('../utils/logger');
 
 // Simulate payment processing (replace with real payment provider integration)
@@ -107,15 +107,10 @@ const processPayment = async(req, res, next) => {
         paymentMethod
       });
 
-      res.json(
-        successResponse(
-          {
-            booking,
-            paymentResult
-          },
-          'Payment processed successfully'
-        )
-      );
+      sendSuccess(res, 200, 'Payment processed successfully', {
+        booking,
+        paymentResult
+      });
     } else {
       // Payment failed
       booking.paymentStatus = 'failed';
@@ -149,22 +144,17 @@ const getPaymentStatus = async(req, res, next) => {
       throw new ValidationError('Access denied');
     }
 
-    res.json(
-      successResponse(
-        {
-          booking: {
-            id: booking._id,
-            destination: booking.destination,
-            paymentStatus: booking.paymentStatus,
-            paymentMethod: booking.paymentMethod,
-            totalAmount: booking.totalAmount,
-            paymentIntentId: booking.paymentIntentId,
-            createdAt: booking.createdAt
-          }
-        },
-        'Payment status retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Payment status retrieved successfully', {
+      booking: {
+        id: booking._id,
+        destination: booking.destination,
+        paymentStatus: booking.paymentStatus,
+        paymentMethod: booking.paymentMethod,
+        totalAmount: booking.totalAmount,
+        paymentIntentId: booking.paymentIntentId,
+        createdAt: booking.createdAt
+      }
+    });
 
   } catch (err) {
     error('Error fetching payment status', { error: err.message, bookingId: req.params.bookingId });
@@ -241,15 +231,10 @@ const processRefund = async(req, res, next) => {
         reason
       });
 
-      res.json(
-        successResponse(
-          {
-            booking,
-            refundResult
-          },
-          'Refund processed successfully'
-        )
-      );
+      sendSuccess(res, 200, 'Refund processed successfully', {
+        booking,
+        refundResult
+      });
     } else {
       throw new ValidationError(refundResult.error || 'Refund processing failed');
     }
@@ -311,20 +296,15 @@ const getPaymentHistory = async(req, res, next) => {
       refundedBookings: 0
     };
 
-    res.json(
-      successResponse(
-        {
-          bookings,
-          paymentStats,
-          pagination: {
-            current: parseInt(page, 10),
-            pages: Math.ceil(total / parseInt(limit, 10)),
-            total
-          }
-        },
-        'Payment history retrieved successfully'
-      )
-    );
+    sendSuccess(res, 200, 'Payment history retrieved successfully', {
+      bookings,
+      paymentStats,
+      pagination: {
+        current: parseInt(page, 10),
+        pages: Math.ceil(total / parseInt(limit, 10)),
+        total
+      }
+    });
 
   } catch (err) {
     error('Error fetching payment history', { error: err.message, userId: req.user?.id });

@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { motion } from "framer-motion";
 import PropTypes from "prop-types";
 import DestinationsCarousel from "../destinations/DestinationsCarousel";
 import EmptyState from "../common/EmptyState";
@@ -40,7 +41,7 @@ const DestinationsSection = memo(function DestinationsSection({
   onQuickBook,
   selectedDestinations = [],
   setSelectedDestinations,
-  itemsPerView = 4,
+  itemsPerView = 5,
   currentIndex = 0,
   setCurrentIndex,
 }) {
@@ -85,10 +86,37 @@ const DestinationsSection = memo(function DestinationsSection({
     <PerformanceMonitor componentName="DestinationsSection">
       <section
         id="destinations-section"
-        className="py-20 px-4 relative overflow-hidden"
+        className="py-24 px-4 relative overflow-hidden"
         aria-label="Destinations section"
         role="region"
       >
+        {/* Modern background effects */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/10 via-indigo-900/5 to-pink-900/10" />
+          <div className="absolute inset-0">
+            {[...Array(20)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 bg-purple-400/20 rounded-full"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                }}
+                animate={{
+                  y: [0, -30, 0],
+                  opacity: [0, 0.4, 0],
+                  scale: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 5 + Math.random() * 3,
+                  repeat: Infinity,
+                  delay: Math.random() * 3,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
         <BackgroundDecorations />
 
         <div className="max-w-7xl mx-auto relative">
@@ -139,7 +167,7 @@ const DestinationsSection = memo(function DestinationsSection({
 
           {/* Call-to-Action Section - Only show when there are results */}
           {hasResults && (
-            <div className="mt-16" role="complementary">
+            <div className="mt-20" role="complementary">
               <ExploreButton onNavigate={handleNavigateToDestinations} />
               <FeatureBadges />
             </div>

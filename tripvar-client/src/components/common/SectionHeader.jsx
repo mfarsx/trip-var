@@ -1,3 +1,5 @@
+import { motion } from "framer-motion";
+import { FiStar, FiShield, FiZap, FiGlobe } from "react-icons/fi";
 import PropTypes from "prop-types";
 
 export default function SectionHeader({
@@ -7,50 +9,133 @@ export default function SectionHeader({
   showStats = true,
 }) {
   const stats = [
-    { color: "emerald", text: "Real-time availability" },
-    { color: "blue", text: "Best price guarantee" },
-    { color: "purple", text: "24/7 support" },
+    { 
+      icon: FiZap, 
+      color: "from-emerald-400 to-green-400", 
+      text: "Real-time availability",
+      bgColor: "from-emerald-500/20 to-green-500/20"
+    },
+    { 
+      icon: FiShield, 
+      color: "from-blue-400 to-cyan-400", 
+      text: "Best price guarantee",
+      bgColor: "from-blue-500/20 to-cyan-500/20"
+    },
+    { 
+      icon: FiGlobe, 
+      color: "from-purple-400 to-violet-400", 
+      text: "24/7 support",
+      bgColor: "from-purple-500/20 to-violet-500/20"
+    },
   ];
 
   return (
-    <div className="text-center mb-16">
-      {/* Section badge */}
-      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full border border-purple-500/30 mb-6">
-        <svg
-          className="w-4 h-4 text-purple-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+    <div className="text-center mb-20 relative">
+      {/* Background decoration */}
+      <div className="absolute inset-0 -z-10">
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-2 h-2 bg-purple-400/10 rounded-full"
+            style={{
+              left: `${20 + Math.random() * 60}%`,
+              top: `${20 + Math.random() * 60}%`,
+            }}
+            animate={{
+              y: [0, -20, 0],
+              opacity: [0, 0.3, 0],
+              scale: [0.5, 1, 0.5],
+            }}
+            transition={{
+              duration: 4 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
           />
-        </svg>
-        <span className="text-sm font-medium text-purple-300">{badgeText}</span>
+        ))}
       </div>
 
-      <h2 className="text-5xl md:text-6xl font-bold mb-8 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent animate-gradient tracking-tight">
-        {title}
-      </h2>
-      <p className="text-gray-300 text-xl max-w-3xl mx-auto leading-relaxed font-medium">
-        {description}
-      </p>
+      {/* Section badge */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        whileInView={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+        className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-xl rounded-full border border-white/20 mb-8 shadow-lg"
+      >
+        <motion.div
+          animate={{ rotate: [0, 10, -10, 0] }}
+          transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+        >
+          <FiStar className="w-5 h-5 text-yellow-400" />
+        </motion.div>
+        <span className="text-sm font-semibold text-white/90">{badgeText}</span>
+      </motion.div>
 
-      {/* Quick stats */}
+      {/* Main title */}
+      <motion.h2
+        initial={{ y: 30, opacity: 0 }}
+        whileInView={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+        viewport={{ once: true }}
+        className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-8"
+      >
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-pink-200">
+          {title.split(' ').slice(0, -1).join(' ')}
+        </span>
+        <br />
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300">
+          {title.split(' ').slice(-1)}
+        </span>
+      </motion.h2>
+
+      {/* Description */}
+      <motion.p
+        initial={{ y: 20, opacity: 0 }}
+        whileInView={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        viewport={{ once: true }}
+        className="text-gray-300 text-xl sm:text-2xl max-w-4xl mx-auto leading-relaxed font-medium"
+      >
+        {description}
+      </motion.p>
+
+      {/* Enhanced stats */}
       {showStats && (
-        <div className="flex flex-wrap justify-center gap-12 mt-12">
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          viewport={{ once: true }}
+          className="flex flex-wrap justify-center gap-8 mt-16"
+        >
           {stats.map((stat, index) => (
-            <div key={index} className="flex items-center gap-3 text-gray-200">
-              <div
-                className={`w-3 h-3 bg-${stat.color}-400 rounded-full animate-pulse shadow-lg shadow-${stat.color}-400/50`}
-              ></div>
-              <span className="text-base font-semibold">{stat.text}</span>
-            </div>
+            <motion.div
+              key={index}
+              initial={{ y: 20, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.8 + index * 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="group relative p-6 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-500"
+            >
+              <div className="flex items-center gap-4">
+                <motion.div
+                  whileHover={{ rotate: 5, scale: 1.1 }}
+                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}
+                >
+                  <stat.icon className="w-6 h-6 text-white" />
+                </motion.div>
+                <span className="text-white font-semibold text-lg group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-300 transition-all duration-300">
+                  {stat.text}
+                </span>
+              </div>
+              
+              {/* Hover effect */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgColor} rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

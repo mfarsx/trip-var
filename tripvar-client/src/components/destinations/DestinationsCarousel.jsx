@@ -56,7 +56,7 @@ export default function DestinationsCarousel({
   onCompareToggle, 
   onQuickBook, 
   selectedDestinations = [],
-  itemsPerView = 4,
+  itemsPerView = 5,
   currentIndex = 0,
   setCurrentIndex,
   showArrows = true,
@@ -181,145 +181,146 @@ export default function DestinationsCarousel({
       {/* Carousel Container */}
       <div 
         ref={carouselRef}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900/20 to-gray-800/20 backdrop-blur-sm border border-gray-700/30 p-4"
+        className="relative overflow-hidden rounded-2xl w-full"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        style={{ width: '100%' }}
       >
         <motion.div
-          className={`flex transition-transform duration-700 ease-out ${
-            destinations.length <= itemsPerView ? 'justify-center' : ''
-          }`}
+          className="flex transition-transform duration-700 ease-out"
           style={{
-            transform: destinations.length <= itemsPerView 
-              ? 'translateX(0%)'
-              : `translateX(-${currentIndex * (100 / itemsPerView)}%)`,
-            width: destinations.length <= itemsPerView 
-              ? '100%' 
-              : `${(destinations.length / itemsPerView) * 100}%`
+            transform: `translateX(-${currentIndex * (100 / itemsPerView)}%)`,
+            width: `${(destinations.length / itemsPerView) * 100}%`
           }}
         >
           {destinations.map((destination, index) => (
             <motion.div
               key={destination._id}
-              className="flex-shrink-0 px-1.5"
-              style={{ width: `${100 / itemsPerView}%` }}
+              className="flex-shrink-0 px-2"
+              style={{ 
+                width: `${100 / itemsPerView}%`,
+                minWidth: `${100 / itemsPerView}%`,
+                maxWidth: `${100 / itemsPerView}%`
+              }}
               variants={cardVariants}
               initial="hidden"
               animate="visible"
               whileHover="hover"
             >
-              <div className="group relative bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden cursor-pointer border border-white/10 hover:border-purple-400/50 transition-all duration-500 h-full flex flex-col shadow-2xl hover:shadow-purple-500/20 destination-card" style={{minHeight: '500px'}}>
-                {/* Image Container - Updated */}
-                <div className="relative h-72 w-full overflow-hidden">
+              {/* Minimalist Card Design */}
+              <div className="relative bg-gray-900/50 rounded-xl overflow-hidden cursor-pointer border border-gray-800/50 hover:border-purple-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10 w-full max-w-full">
+                {/* Image with Overlay */}
+                <div className="relative h-48 w-full overflow-hidden">
                   <img
                     src={destination.imageUrl}
                     alt={destination.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                     onError={(e) => {
                       e.target.src = `https://source.unsplash.com/random/400x300?${destination.title}`;
                     }}
                   />
                   
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  {/* Simple overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   
-                  {/* Favorite Button */}
-                  <button 
-                    className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg ${
-                      isFavorite(destination._id)
-                        ? 'bg-red-500/90 text-white'
-                        : 'bg-white/20 hover:bg-white/30 text-white'
-                    }`}
-                    onClick={(e) => handleToggleFavorite(e, destination._id)}
-                    disabled={loading}
-                  >
-                    {isFavorite(destination._id) ? (
-                      <FaHeart className="w-4 h-4" />
-                    ) : (
-                      <FiHeart className="w-4 h-4" />
-                    )}
-                  </button>
-
-                  {/* Rating */}
-                  <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full">
-                    <FiStar className="w-4 h-4 text-amber-400 fill-current" />
-                    <span className="text-white text-sm font-bold">{destination.rating}</span>
-                  </div>
-
-                  {/* Price Badge */}
-                  <div className="absolute bottom-4 right-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full shadow-lg">
-                    <span className="text-lg font-bold">${destination.price}</span>
-                  </div>
-
-                  {/* Title and Location */}
-                  <div className="absolute bottom-4 left-4 right-20">
-                    <h3 className="text-xl font-bold text-white mb-1 line-clamp-1">
-                      {destination.title}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-gray-200">
-                      <FiMapPin className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm font-medium line-clamp-1">
-                        {destination.location}
-                      </span>
+                  {/* Top badges */}
+                  <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+                    {/* Rating */}
+                    <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-md">
+                      <FiStar className="w-3 h-3 text-yellow-400 fill-current" />
+                      <span className="text-white text-xs font-medium">{destination.rating}</span>
                     </div>
+                    
+                    {/* Favorite */}
+                    <motion.button 
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className={`p-2 rounded-md backdrop-blur-sm transition-all duration-200 ${
+                        isFavorite(destination._id)
+                          ? 'bg-red-500/80 text-white'
+                          : 'bg-black/50 text-white hover:bg-red-500/50'
+                      }`}
+                      onClick={(e) => handleToggleFavorite(e, destination._id)}
+                      disabled={loading}
+                    >
+                      {isFavorite(destination._id) ? (
+                        <FaHeart className="w-3 h-3" />
+                      ) : (
+                        <FiHeart className="w-3 h-3" />
+                      )}
+                    </motion.button>
+                  </div>
+                  
+                  {/* Price */}
+                  <div className="absolute bottom-3 right-3 bg-purple-600 text-white px-3 py-1.5 rounded-md">
+                    <span className="text-sm font-bold">${destination.price}</span>
                   </div>
                 </div>
                 
                 {/* Content */}
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  {/* Description */}
-                  <p className="text-gray-300 text-sm leading-relaxed mb-4 line-clamp-3">
-                    {destination.description}
-                  </p>
-                  
-                  {/* Quick Info */}
-                  <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
-                    <div className="flex items-center gap-1.5">
-                      <FiClock className="w-3.5 h-3.5 text-blue-400" />
-                      <span className="font-medium">3-5 days</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <FiUsers className="w-3.5 h-3.5 text-green-400" />
-                      <span className="font-medium">2-8 people</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <FiTrendingUp className="w-3.5 h-3.5 text-purple-400" />
-                      <span className="font-medium">Popular</span>
+                <div className="p-4">
+                  {/* Title and Location */}
+                  <div className="mb-3">
+                    <h3 className="text-lg font-semibold text-white mb-1 line-clamp-1 group-hover:text-purple-300 transition-colors">
+                      {destination.title}
+                    </h3>
+                    <div className="flex items-center gap-1.5 text-gray-400">
+                      <FiMapPin className="w-3 h-3" />
+                      <span className="text-sm">{destination.location}</span>
                     </div>
                   </div>
                   
-                  {/* Bottom Section */}
-                  <div className="space-y-4">
-                    {/* Reviews */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <FiStar 
-                            key={i} 
-                            className={`w-3.5 h-3.5 ${
-                              i < Math.floor(destination.rating) 
-                                ? 'text-amber-400 fill-current' 
-                                : 'text-gray-600'
-                            }`} 
-                          />
-                        ))}
-                      </div>
-                      <span className="text-gray-400 text-xs">
-                        {destination.ratingCount} reviews
+                  {/* Description */}
+                  <p className="text-gray-300 text-sm leading-relaxed mb-4 line-clamp-2">
+                    {destination.description}
+                  </p>
+                  
+                  {/* Quick info */}
+                  <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
+                    <div className="flex items-center gap-1">
+                      <FiClock className="w-3 h-3" />
+                      <span>3-5 days</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <FiUsers className="w-3 h-3" />
+                      <span>2-8 people</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <FiTrendingUp className="w-3 h-3" />
+                      <span>Popular</span>
+                    </div>
+                  </div>
+                  
+                  {/* Reviews and Button */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <FiStar 
+                          key={i} 
+                          className={`w-3 h-3 ${
+                            i < Math.floor(destination.rating) 
+                              ? 'text-yellow-400 fill-current' 
+                              : 'text-gray-600'
+                          }`} 
+                        />
+                      ))}
+                      <span className="text-xs text-gray-400 ml-1">
+                        ({destination.ratingCount})
                       </span>
                     </div>
                     
-                    {/* Action Button */}
-                    <button 
-                      className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 btn-modern"
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDestinationClick(destination._id);
                       }}
                     >
-                      Explore Now
-                    </button>
+                      View Details
+                    </motion.button>
                   </div>
                 </div>
               </div>
@@ -331,26 +332,45 @@ export default function DestinationsCarousel({
       {/* Navigation Arrows */}
       {showArrows && destinations.length > itemsPerView && (
         <>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1, x: -2 }}
+            whileTap={{ scale: 0.9 }}
             onClick={prevSlide}
-            className="absolute left-6 top-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white/15 backdrop-blur-xl border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/25 hover:border-purple-400/60 transition-all duration-300 transform hover:scale-110 shadow-2xl group opacity-0 group-hover:opacity-100"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:border-purple-400/50 transition-all duration-300 shadow-xl group opacity-0 group-hover:opacity-100"
             aria-label="Previous destinations"
           >
             <FiChevronLeft className="w-6 h-6 group-hover:text-purple-300 transition-colors" />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1, x: 2 }}
+            whileTap={{ scale: 0.9 }}
             onClick={nextSlide}
-            className="absolute right-6 top-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white/15 backdrop-blur-xl border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/25 hover:border-purple-400/60 transition-all duration-300 transform hover:scale-110 shadow-2xl group opacity-0 group-hover:opacity-100"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:border-purple-400/50 transition-all duration-300 shadow-xl group opacity-0 group-hover:opacity-100"
             aria-label="Next destinations"
           >
             <FiChevronRight className="w-6 h-6 group-hover:text-purple-300 transition-colors" />
-          </button>
+          </motion.button>
         </>
       )}
 
-
-
-
+      {/* Dots Indicator */}
+      {showDots && destinations.length > itemsPerView && (
+        <div className="flex justify-center mt-8 gap-2">
+          {Array.from({ length: Math.ceil(destinations.length / itemsPerView) }).map((_, index) => (
+            <motion.button
+              key={index}
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.8 }}
+              onClick={() => setCurrentIndex(index)}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50'
+                  : 'bg-white/30 hover:bg-white/50'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

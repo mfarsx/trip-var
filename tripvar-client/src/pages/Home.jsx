@@ -61,9 +61,40 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a1f2d]">
+    <div className="min-h-screen bg-[#1a1f2d] relative overflow-hidden">
+      {/* Global background effects */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-indigo-900/10 to-pink-900/20" />
+        <div className="absolute inset-0">
+          {[...Array(30)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-purple-400/10 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -50, 0],
+                opacity: [0, 0.5, 0],
+                scale: [0.5, 1, 0.5],
+              }}
+              transition={{
+                duration: 6 + Math.random() * 4,
+                repeat: Infinity,
+                delay: Math.random() * 5,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
       <Header onLogout={handleLogout} />
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
         <HeroSection />
         <SearchSection
           searchParams={searchParams}

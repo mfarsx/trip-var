@@ -84,6 +84,13 @@ app.use(securityConfig.generalLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Ensure proper Content-Type headers for API responses
+app.use('/api', (req, res, next) => {
+  // Set default Content-Type for API responses
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
+
 // Logging and session middleware
 app.use(addRequestId);
 app.use(requestLogger);

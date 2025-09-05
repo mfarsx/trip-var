@@ -38,7 +38,9 @@ class WebSocketService {
       return;
     }
 
-    const wsUrl = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8000'}/ws?token=${token}`;
+    const wsUrl = import.meta.env.DEV 
+      ? (import.meta.env.VITE_DOCKER ? `ws://server:8000/ws?token=${token}` : `ws://localhost:8000/ws?token=${token}`)
+      : `${import.meta.env.VITE_WS_URL || 'ws://localhost:8000'}/ws?token=${token}`;
     
     try {
       this.socket = new WebSocket(wsUrl);

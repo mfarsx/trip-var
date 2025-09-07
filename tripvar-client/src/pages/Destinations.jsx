@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchDestinations } from "../store/slices/destinationSlice";
+import { logout } from "../store/slices/authSlice";
 import DestinationsGrid from "../components/destinations/DestinationsGrid";
 import DestinationDetail from "../components/destinations/DestinationDetail";
 import LoadingState from "../components/common/LoadingState";
@@ -23,6 +24,10 @@ const Destinations = () => {
   useEffect(() => {
     dispatch(fetchDestinations());
   }, [dispatch]);
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   const handleQuickBook = (destinationId) => {
     // Navigate to destination detail page with quick booking action
@@ -59,7 +64,7 @@ const Destinations = () => {
     }
     return (
       <div className="min-h-screen bg-[#1a1f2d] text-white">
-        <Header />
+        <Header onLogout={handleLogout} />
         <PageTransition>
           <DestinationDetail destination={destination} onBack={() => navigate("/destinations")} />
         </PageTransition>
@@ -69,7 +74,7 @@ const Destinations = () => {
 
   return (
     <div className="min-h-screen bg-[#1a1f2d] text-white">
-      <Header />
+      <Header onLogout={handleLogout} />
       <PageTransition>
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

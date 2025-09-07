@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { FiHeart, FiMapPin, FiStar, FiDollarSign, FiTrash2 } from "react-icons/fi";
-import { fetchProfile } from "../store/slices/authSlice";
+import { fetchProfile, logout } from "../store/slices/authSlice";
 import { toggleFavorite, getFavorites } from "../services/userService";
 import LoadingState from "../components/common/LoadingState";
 import ErrorState from "../components/common/ErrorState";
@@ -21,6 +21,10 @@ const Favorites = () => {
   useEffect(() => {
     fetchFavorites();
   }, []);
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   const fetchFavorites = async () => {
     try {
@@ -65,7 +69,7 @@ const Favorites = () => {
 
   return (
     <div className="min-h-screen bg-[#1a1f2d] text-white">
-      <Header />
+      <Header onLogout={handleLogout} />
       <PageTransition>
         <div className="pt-20 pb-8">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

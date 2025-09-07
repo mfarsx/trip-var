@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchUserBookings, cancelBooking } from "../store/slices/bookingSlice";
+import { logout } from "../store/slices/authSlice";
 import { 
   FiCalendar, 
   FiMapPin, 
@@ -42,6 +43,10 @@ const Bookings = () => {
   useEffect(() => {
     dispatch(fetchUserBookings());
   }, [dispatch]);
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   // Filter and sort bookings
   const filteredAndSortedBookings = useMemo(() => {
@@ -152,7 +157,7 @@ const Bookings = () => {
 
   return (
     <div className="min-h-screen bg-[#1a1f2d] text-white">
-      <Header />
+      <Header onLogout={handleLogout} />
       <PageTransition>
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

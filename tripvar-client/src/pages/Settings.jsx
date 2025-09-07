@@ -15,7 +15,7 @@ import {
   FiAlertCircle,
 } from 'react-icons/fi';
 import userService from '../services/userService';
-import { fetchProfile } from '../store/slices/authSlice';
+import { fetchProfile, logout } from '../store/slices/authSlice';
 import Header from '../components/header/Header';
 import Footer from '../components/layout/Footer';
 import PageTransition from '../components/common/PageTransition';
@@ -118,6 +118,10 @@ export default function Settings() {
       }));
     }
   }, [user]);
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   const calculateAge = (birthDate) => {
     if (!birthDate) return null;
@@ -228,7 +232,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-[#1a1f2d] text-white">
-      <Header />
+      <Header onLogout={handleLogout} />
       <PageTransition>
         <div className="pt-20 pb-8">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

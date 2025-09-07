@@ -38,9 +38,7 @@ class WebSocketService {
       return;
     }
 
-    const wsUrl = import.meta.env.DEV 
-      ? (import.meta.env.VITE_DOCKER ? `ws://server:8000/ws?token=${token}` : `ws://localhost:8000/ws?token=${token}`)
-      : `${import.meta.env.VITE_WS_URL || 'ws://localhost:8000'}/ws?token=${token}`;
+    const wsUrl = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8000'}/ws?token=${token}`;
     
     try {
       this.socket = new WebSocket(wsUrl);
@@ -243,7 +241,10 @@ class WebSocketService {
   disconnect() {
     this.stopHeartbeat();
     if (this.socket) {
-      this.socket.close(1000, 'Client disconnecting');
+      // Only close if the socket is not already closed or closing
+      if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
+        this.socket.close(1000, 'Client disconnecting');
+      }
       this.socket = null;
     }
     this.listeners.clear();

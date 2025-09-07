@@ -53,7 +53,10 @@ const WebSocketProvider = ({ children }) => {
       unsubscribeDisconnected();
       unsubscribeConnectionFailed();
       unsubscribeMaxAttempts();
-      websocketService.disconnect();
+      // Only disconnect if user is no longer authenticated
+      if (!isAuthenticated) {
+        websocketService.disconnect();
+      }
     };
   }, [isAuthenticated]);
 

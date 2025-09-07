@@ -99,6 +99,11 @@ app.use(redisSession());
 // Health check routes (outside of versioned API)
 app.use('/health', healthRoutes);
 
+// Redirect /api/v1/health to /health for compatibility
+app.get('/api/v1/health', (req, res) => {
+  res.redirect('/health');
+});
+
 // API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 

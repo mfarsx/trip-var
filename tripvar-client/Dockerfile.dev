@@ -15,9 +15,9 @@ COPY . .
 # Expose port
 EXPOSE 5173
 
-# Add health check
+# Add health check (using node to check if server is running)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5173 || exit 1
+  CMD node -e "require('http').get('http://localhost:5173', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
 # Start development server with error handling
 CMD ["sh", "-c", "echo '🚀 Starting Tripvar Client Development Server...' && echo '📦 Dependencies installed:' && npm list --depth=0 2>/dev/null || echo '⚠️  Some dependency warnings (non-critical)' && echo '🔧 Starting Vite dev server...' && npm run dev -- --host 0.0.0.0 --port 5173"]

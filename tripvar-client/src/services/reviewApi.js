@@ -25,7 +25,7 @@ export const reviewApi = {
     if (params.page) queryParams.append("page", params.page);
     if (params.limit) queryParams.append("limit", params.limit);
 
-    const response = await api.get(`/reviews/my-reviews?${queryParams.toString()}`);
+    const response = await api.get(`/reviews?${queryParams.toString()}`);
     return response.data;
   },
 
@@ -43,7 +43,7 @@ export const reviewApi = {
 
   // Mark review as helpful
   markReviewHelpful: async (reviewId) => {
-    const response = await api.post(`/reviews/${reviewId}/helpful`);
+    const response = await api.post(`/reviews/${reviewId}/likes`);
     return response.data;
   }
 };

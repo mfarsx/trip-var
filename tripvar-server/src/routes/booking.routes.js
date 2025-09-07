@@ -19,17 +19,11 @@ router.get('/availability', checkAvailability);
 router.use(authenticate);
 
 // User booking routes
+router.get('/', getUserBookings);
 router.post('/', createBooking);
-router.get('/', getUserBookings); // Main route for getting user bookings
-router.get('/my-bookings', getUserBookings); // Alternative route
-
 router.get('/:id', getBookingById);
-router.delete('/:id', cancelBooking); // DELETE method for cancellation
-router.put('/:id/cancel', cancelBooking); // Alternative PUT method
+router.delete('/:id', cancelBooking);
 
-// Admin routes
-router.get('/admin/all', authorize('admin'), getAllBookings);
-router.patch('/:id/status', authorize('admin'), updateBookingStatus);
-router.put('/admin/:id/status', authorize('admin'), updateBookingStatus); // Alternative PUT method
+// Admin routes moved to /admin/bookings
 
 module.exports = router;

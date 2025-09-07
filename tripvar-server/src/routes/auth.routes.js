@@ -54,7 +54,7 @@ router
   .delete(authController.deleteAccount);
 
 // Password update
-router.patch('/update-password',
+router.patch('/password',
   sanitize(),
   validate(updatePasswordSchema),
   authController.updatePassword

@@ -3,20 +3,20 @@ import api from './api';
 // Payment API service
 export const paymentApi = {
   // Process payment for a booking
-  processPayment: async (bookingId, paymentData) => {
-    const response = await api.post(`/payments/booking/${bookingId}/process`, paymentData);
+  processPayment: async (paymentData) => {
+    const response = await api.post(`/payments`, paymentData);
     return response.data;
   },
 
-  // Get payment status for a booking
-  getPaymentStatus: async (bookingId) => {
-    const response = await api.get(`/payments/booking/${bookingId}/status`);
+  // Get payment status
+  getPaymentStatus: async (paymentId) => {
+    const response = await api.get(`/payments/${paymentId}`);
     return response.data;
   },
 
-  // Process refund for a booking
-  processRefund: async (bookingId, refundData) => {
-    const response = await api.post(`/payments/booking/${bookingId}/refund`, refundData);
+  // Process refund for a payment
+  processRefund: async (paymentId, refundData) => {
+    const response = await api.post(`/payments/${paymentId}/refunds`, refundData);
     return response.data;
   },
 
@@ -28,7 +28,7 @@ export const paymentApi = {
     if (params.status) queryParams.append('status', params.status);
     if (params.type) queryParams.append('type', params.type);
 
-    const response = await api.get(`/payments/history?${queryParams.toString()}`);
+    const response = await api.get(`/payments?${queryParams.toString()}`);
     return response.data;
   },
 

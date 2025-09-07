@@ -21,6 +21,7 @@ router.get('/destination/:destinationId', getDestinationReviews);
 router.use(authenticate);
 
 // User review routes
+router.get('/', getUserReviews);
 router.post('/',
   [
     validationRules.destinationId,
@@ -32,8 +33,7 @@ router.post('/',
   createReview
 );
 
-router.get('/my-reviews', getUserReviews);
-
+// Note: Individual review retrieval can be added later if needed
 router.put('/:reviewId',
   [
     validationRules.reviewTitle.optional(),
@@ -46,10 +46,8 @@ router.put('/:reviewId',
 
 router.delete('/:reviewId', deleteReview);
 
-router.post('/:reviewId/helpful', markReviewHelpful);
+router.post('/:reviewId/likes', markReviewHelpful);
 
-// Admin routes
-router.get('/admin/all', authorize('admin'), getAllReviews);
-router.put('/admin/:reviewId/status', authorize('admin'), updateReviewStatus);
+// Admin routes moved to /admin/reviews
 
 module.exports = router;

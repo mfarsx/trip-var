@@ -15,7 +15,7 @@ export const bookingApi = {
     if (params.page) queryParams.append("page", params.page);
     if (params.limit) queryParams.append("limit", params.limit);
 
-    const response = await api.get(`/bookings/my-bookings?${queryParams.toString()}`);
+    const response = await api.get(`/bookings?${queryParams.toString()}`);
     return response.data;
   },
 
@@ -27,7 +27,7 @@ export const bookingApi = {
 
   // Cancel a booking
   cancelBooking: async (bookingId, reason) => {
-    const response = await api.put(`/bookings/${bookingId}/cancel`, { reason });
+    const response = await api.delete(`/bookings/${bookingId}`, { data: { reason } });
     return response.data;
   },
 

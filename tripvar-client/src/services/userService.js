@@ -23,7 +23,7 @@ export const userService = {
 
   updatePassword: async (passwordData) => {
     try {
-      const response = await api.patch("/auth/update-password", passwordData);
+      const response = await api.patch("/auth/password", passwordData);
       return response;
     } catch (error) {
       console.error("Error updating password:", error);

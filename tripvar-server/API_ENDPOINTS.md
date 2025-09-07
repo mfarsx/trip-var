@@ -17,7 +17,11 @@ All responses follow this format:
 {
   "success": true,
   "data": { ... },
-  "message": "Success message"
+  "message": "Success message",
+  "meta": {
+    "pagination": { ... },
+    "filters": { ... }
+  }
 }
 ```
 
@@ -67,7 +71,7 @@ All responses follow this format:
   ```
 
 #### Update Password
-- **PATCH** `/auth/update-password`
+- **PATCH** `/auth/password`
 - **Body:**
   ```json
   {
@@ -82,14 +86,14 @@ All responses follow this format:
 #### Logout
 - **POST** `/auth/logout`
 
-#### Get All Users (Admin)
-- **GET** `/auth/users`
-
 #### Get User Favorites
 - **GET** `/auth/favorites`
 
-#### Toggle Favorite Destination
+#### Add Favorite Destination
 - **POST** `/auth/favorites/:destinationId`
+
+#### Remove Favorite Destination
+- **DELETE** `/auth/favorites/:destinationId`
 
 ---
 
@@ -111,36 +115,18 @@ All responses follow this format:
 #### Get Destination by ID
 - **GET** `/destinations/:id`
 
-### Admin Routes (Require Admin Role)
-
-#### Create Destination
-- **POST** `/destinations`
-- **Body:**
-  ```json
-  {
-    "title": "Beautiful Beach Resort",
-    "description": "A stunning beach destination...",
-    "imageUrl": "https://example.com/image.jpg",
-    "rating": 4.5,
-    "price": 150,
-    "location": "Maldives",
-    "category": "Beach",
-    "featured": true
-  }
-  ```
-
-#### Update Destination
-- **PUT** `/destinations/:id`
-- **Body:** Same as create (all fields optional)
-
-#### Delete Destination
-- **DELETE** `/destinations/:id`
-
 ---
 
 ## Booking Endpoints (`/bookings`)
 
 ### Protected Routes (Require Authentication)
+
+#### Get User's Bookings
+- **GET** `/bookings`
+- **Query Parameters:**
+  - `status`: Filter by status (confirmed, cancelled, completed, no-show)
+  - `page`: Page number (default: 1)
+  - `limit`: Items per page (default: 10)
 
 #### Create Booking
 - **POST** `/bookings`
@@ -158,18 +144,11 @@ All responses follow this format:
   }
   ```
 
-#### Get User's Bookings
-- **GET** `/bookings/my-bookings`
-- **Query Parameters:**
-  - `status`: Filter by status (confirmed, cancelled, completed, no-show)
-  - `page`: Page number (default: 1)
-  - `limit`: Items per page (default: 10)
-
 #### Get Booking by ID
 - **GET** `/bookings/:id`
 
 #### Cancel Booking
-- **PUT** `/bookings/:id/cancel`
+- **DELETE** `/bookings/:id`
 - **Body:**
   ```json
   {
@@ -178,30 +157,11 @@ All responses follow this format:
   ```
 
 #### Check Availability
-- **GET** `/bookings/check/availability`
+- **GET** `/bookings/availability`
 - **Query Parameters:**
   - `destinationId`: Destination ID
   - `checkInDate`: Check-in date
   - `checkOutDate`: Check-out date
-
-### Admin Routes (Require Admin Role)
-
-#### Get All Bookings
-- **GET** `/bookings/admin/all`
-- **Query Parameters:**
-  - `status`: Filter by status
-  - `page`: Page number
-  - `limit`: Items per page
-  - `destinationId`: Filter by destination
-
-#### Update Booking Status
-- **PUT** `/bookings/admin/:id/status`
-- **Body:**
-  ```json
-  {
-    "status": "completed"
-  }
-  ```
 
 ---
 
@@ -217,6 +177,12 @@ All responses follow this format:
   - `sort`: Sort order (newest, oldest, highest, lowest, most_helpful)
 
 ### Protected Routes (Require Authentication)
+
+#### Get User's Reviews
+- **GET** `/reviews`
+- **Query Parameters:**
+  - `page`: Page number
+  - `limit`: Items per page
 
 #### Create Review
 - **POST** `/reviews`
@@ -237,12 +203,6 @@ All responses follow this format:
   }
   ```
 
-#### Get User's Reviews
-- **GET** `/reviews/my-reviews`
-- **Query Parameters:**
-  - `page`: Page number
-  - `limit`: Items per page
-
 #### Update Review
 - **PUT** `/reviews/:reviewId`
 - **Body:** Same as create (all fields optional)
@@ -250,28 +210,8 @@ All responses follow this format:
 #### Delete Review
 - **DELETE** `/reviews/:reviewId`
 
-#### Mark Review as Helpful
-- **POST** `/reviews/:reviewId/helpful`
-
-### Admin Routes (Require Admin Role)
-
-#### Get All Reviews
-- **GET** `/reviews/admin/all`
-- **Query Parameters:**
-  - `status`: Filter by status (pending, approved, rejected)
-  - `page`: Page number
-  - `limit`: Items per page
-  - `destinationId`: Filter by destination
-
-#### Update Review Status
-- **PUT** `/reviews/admin/:reviewId/status`
-- **Body:**
-  ```json
-  {
-    "status": "approved",
-    "adminResponse": "Thank you for your feedback!"
-  }
-  ```
+#### Like/Unlike Review
+- **POST** `/reviews/:reviewId/likes`
 
 ---
 
@@ -279,11 +219,19 @@ All responses follow this format:
 
 ### Protected Routes (Require Authentication)
 
+#### Get Payment History
+- **GET** `/payments`
+- **Query Parameters:**
+  - `page`: Page number
+  - `limit`: Items per page
+  - `status`: Filter by payment status (pending, paid, failed, refunded)
+
 #### Process Payment
-- **POST** `/payments/booking/:bookingId/process`
+- **POST** `/payments`
 - **Body:**
   ```json
   {
+    "bookingId": "64a1b2c3d4e5f6789012345",
     "paymentMethod": "credit-card",
     "paymentDetails": {
       "cardNumber": "4111111111111111",
@@ -295,23 +243,16 @@ All responses follow this format:
   ```
 
 #### Get Payment Status
-- **GET** `/payments/booking/:bookingId/status`
+- **GET** `/payments/:paymentId`
 
 #### Process Refund
-- **POST** `/payments/booking/:bookingId/refund`
+- **POST** `/payments/:paymentId/refunds`
 - **Body:**
   ```json
   {
     "reason": "Customer requested cancellation"
   }
   ```
-
-#### Get Payment History
-- **GET** `/payments/history`
-- **Query Parameters:**
-  - `page`: Page number
-  - `limit`: Items per page
-  - `status`: Filter by payment status (pending, paid, failed, refunded)
 
 ---
 
@@ -335,7 +276,7 @@ All responses follow this format:
 - **GET** `/notifications/:notificationId`
 
 #### Mark Notifications as Read
-- **PUT** `/notifications/mark-read`
+- **PATCH** `/notifications/read`
 - **Body:**
   ```json
   {
@@ -352,32 +293,33 @@ All responses follow this format:
   }
   ```
 
-### Admin Routes (Require Admin Role)
+---
 
-#### Create Notification
-- **POST** `/notifications/admin/create`
-- **Body:**
-  ```json
-  {
-    "userId": "64a1b2c3d4e5f6789012345",
-    "title": "Welcome to Tripvar!",
-    "message": "Thank you for joining our platform.",
-    "type": "system",
-    "priority": "medium",
-    "actionUrl": "/dashboard",
-    "actionText": "Go to Dashboard"
-  }
-  ```
+## Admin Endpoints (`/admin`)
 
-#### Get All Notifications
-- **GET** `/notifications/admin/all`
-- **Query Parameters:**
-  - `page`: Page number
-  - `limit`: Items per page
-  - `userId`: Filter by user
-  - `type`: Filter by type
-  - `isRead`: Filter by read status
-  - `priority`: Filter by priority
+### All admin routes require admin role authorization
+
+#### User Management
+- **GET** `/admin/users` - Get all users
+
+#### Destination Management
+- **GET** `/admin/destinations` - Get all destinations
+- **POST** `/admin/destinations` - Create destination
+- **PUT** `/admin/destinations/:id` - Update destination
+- **PATCH** `/admin/destinations/:id` - Partial update destination
+- **DELETE** `/admin/destinations/:id` - Delete destination
+
+#### Booking Management
+- **GET** `/admin/bookings` - Get all bookings
+- **PATCH** `/admin/bookings/:id/status` - Update booking status
+
+#### Review Management
+- **GET** `/admin/reviews` - Get all reviews
+- **PATCH** `/admin/reviews/:id/status` - Update review status
+
+#### Notification Management
+- **GET** `/admin/notifications` - Get all notifications
+- **POST** `/admin/notifications` - Create notification
 
 ---
 
@@ -388,12 +330,29 @@ All responses follow this format:
 - **Response:**
   ```json
   {
-    "status": "OK",
+    "status": "ok",
     "timestamp": "2024-01-01T00:00:00.000Z",
-    "uptime": 3600,
-    "environment": "development"
+    "service": "tripvar-server",
+    "version": "1.0.0",
+    "environment": "development",
+    "uptime": 3600
   }
   ```
+
+#### Database Health Check
+- **GET** `/health/db`
+
+#### Redis Health Check
+- **GET** `/health/redis`
+
+#### Complete Health Check
+- **GET** `/health/all`
+
+#### Readiness Probe
+- **GET** `/health/ready`
+
+#### Liveness Probe
+- **GET** `/health/live`
 
 ---
 
@@ -481,10 +440,13 @@ Most list endpoints support pagination with these query parameters:
 Response includes pagination metadata:
 ```json
 {
-  "pagination": {
-    "current": 1,
-    "pages": 5,
-    "total": 50
+  "meta": {
+    "pagination": {
+      "current": 1,
+      "pages": 5,
+      "total": 50,
+      "limit": 10
+    }
   }
 }
 ```
@@ -501,22 +463,6 @@ Many endpoints support filtering and search:
 
 ---
 
-## File Uploads
-
-Currently, the API expects image URLs for destinations. File upload functionality can be added by integrating with cloud storage services like AWS S3, Cloudinary, or similar.
-
----
-
-## Webhooks
-
-Webhook endpoints can be added for:
-- Payment status updates
-- Booking confirmations
-- Review notifications
-- System alerts
-
----
-
 ## API Versioning
 
 The API uses URL versioning (`/api/v1`). Future versions will be available at `/api/v2`, etc.
@@ -529,18 +475,6 @@ The API uses URL versioning (`/api/v1`). Future versions will be available at `/
 2. Include the token in the Authorization header for protected routes
 3. Token expires based on JWT_EXPIRES_IN environment variable
 4. Refresh token functionality can be added for better UX
-
----
-
-## Admin Features
-
-Admin users have access to:
-- CRUD operations for destinations
-- View and manage all bookings
-- Moderate reviews
-- Send notifications to users
-- View system statistics
-- Manage user accounts
 
 ---
 

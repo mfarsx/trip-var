@@ -14,35 +14,52 @@ class WebSocketService {
   }
 
   initialize(server) {
-    this.wss = new WebSocket.Server({ 
-      server,
-      path: '/ws',
-      verifyClient: this.verifyClient.bind(this),
-      maxPayload: 1024 * 1024, // 1MB max payload
-      perMessageDeflate: {
-        threshold: 1024,
-        concurrencyLimit: 10,
-        memLevel: 7
-      }
-    });
+    try {
+      console.log('🔌 Creating WebSocket server...');
+      this.wss = new WebSocket.Server({ 
+        server,
+        path: '/ws',
+        verifyClient: this.verifyClient.bind(this),
+        maxPayload: 1024 * 1024, // 1MB max payload
+        perMessageDeflate: {
+          threshold: 1024,
+          concurrencyLimit: 10,
+          memLevel: 7
+        }
+      });
 
-    this.wss.on('connection', this.handleConnection.bind(this));
-    
-    // Start cleanup interval for rate limiting
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupRateLimit();
-    }, 60000); // Clean up every minute
-    
-    info('WebSocket server initialized', {
-      path: '/ws',
-      port: config.server.port
-    });
+      console.log('🔌 Setting up WebSocket event handlers...');
+      this.wss.on('connection', this.handleConnection.bind(this));
+      
+      // Handle WebSocket server errors
+      this.wss.on('error', (error) => {
+        console.error('🚨 WebSocket server error:', error.message);
+      });
+
+      // Start cleanup interval for rate limiting
+      this.cleanupInterval = setInterval(() => {
+        this.cleanupRateLimit();
+      }, 60000); // Clean up every minute
+      
+      info('WebSocket server initialized', {
+        path: '/ws',
+        port: config.server.port
+      });
+      console.log('✅ WebSocket server setup complete');
+    } catch (error) {
+      console.error('🚨 WebSocket initialization error:', error.message);
+      console.error('Stack trace:', error.stack);
+      throw error;
+    }
   }
 
   verifyClient(info) {
     try {
+      console.log('🔌 WebSocket connection attempt from:', info.origin);
       const url = new URL(info.req.url, `http://${info.req.headers.host}`);
       const token = url.searchParams.get('token');
+      
+      console.log('🔌 WebSocket token present:', !!token);
       
       if (!token) {
         warn('WebSocket connection attempt without token');
@@ -52,18 +69,21 @@ class WebSocketService {
       // Verify JWT token
       const decoded = jwt.verify(token, config.jwt.secret);
       info.req.user = decoded;
+      console.log('✅ WebSocket authentication successful for user:', decoded.id);
       return true;
     } catch (err) {
       warn('WebSocket connection with invalid token', { error: err.message });
+      console.log('❌ WebSocket authentication failed:', err.message);
       return false;
     }
   }
 
   handleConnection(ws, req) {
     const user = req.user;
-    const userId = user.userId;
+    const userId = user.id;
     
     this.connectionCount++;
+    console.log('🔌 WebSocket client connected:', userId);
     info('WebSocket client connected', {
       userId,
       connectionCount: this.connectionCount,

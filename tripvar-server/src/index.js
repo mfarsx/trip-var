@@ -102,17 +102,19 @@ try {
       pid: process.pid
     });
 
-    // Initialize WebSocket server
-    try {
-      websocketService.initialize(server);
-    } catch (wsError) {
-      console.error('🚨 FAILED TO INITIALIZE WEBSOCKET:', wsError.message);
-      console.error('Stack trace:', wsError.stack);
-    }
-
     // Display startup banner
     console.log(createStartupBanner());
   });
+
+  // Initialize WebSocket server after server is created
+  try {
+    console.log('🔌 Initializing WebSocket server...');
+    websocketService.initialize(server);
+    console.log('✅ WebSocket server initialized successfully');
+  } catch (wsError) {
+    console.error('🚨 FAILED TO INITIALIZE WEBSOCKET:', wsError.message);
+    console.error('Stack trace:', wsError.stack);
+  }
 
   // Handle server errors
   server.on('error', (err) => {

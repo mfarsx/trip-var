@@ -13,8 +13,9 @@ const router = express.Router();
 // All payment routes require authentication
 router.use(authenticate);
 
-// Payment processing routes
-router.post('/:bookingId/process',
+// Payment routes
+router.get('/', getPaymentHistory);
+router.post('/',
   [
     validationRules.paymentMethod,
     validationRules.paymentDetails
@@ -23,16 +24,13 @@ router.post('/:bookingId/process',
   processPayment
 );
 
-router.get('/:bookingId/status', getPaymentStatus);
-
-router.post('/:bookingId/refund',
+router.get('/:paymentId', getPaymentStatus);
+router.post('/:paymentId/refunds',
   [
     validationRules.refundReason
   ],
   validateRequest,
   processRefund
 );
-
-router.get('/history', getPaymentHistory);
 
 module.exports = router;

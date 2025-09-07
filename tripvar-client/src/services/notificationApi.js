@@ -28,7 +28,7 @@ export const notificationApi = {
 
   // Mark notifications as read
   markNotificationsAsRead: async (notificationIds = []) => {
-    const response = await api.put('/notifications/mark-read', {
+    const response = await api.patch('/notifications/read', {
       notificationIds
     });
     return response.data;
@@ -44,7 +44,7 @@ export const notificationApi = {
 
   // Create notification (admin only)
   createNotification: async (notificationData) => {
-    const response = await api.post('/notifications/admin/create', notificationData);
+    const response = await api.post('/admin/notifications', notificationData);
     return response.data;
   },
 
@@ -58,7 +58,7 @@ export const notificationApi = {
     if (params.isRead !== undefined) searchParams.append('isRead', params.isRead);
     if (params.priority) searchParams.append('priority', params.priority);
 
-    const response = await api.get(`/notifications/admin/all?${searchParams.toString()}`);
+    const response = await api.get(`/admin/notifications?${searchParams.toString()}`);
     return response.data;
   }
 };

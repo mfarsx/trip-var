@@ -171,7 +171,7 @@ export default function DestinationsCarousel({
           </svg>
         </div>
         <h3 className="text-xl font-semibold text-gray-300 mb-2">No destinations found</h3>
-        <p className="text-gray-500">Try adjusting your search criteria or explore our featured destinations.</p>
+        <p className="text-gray-500">Try adjusting your search criteria or explore our destinations.</p>
       </div>
     );
   }

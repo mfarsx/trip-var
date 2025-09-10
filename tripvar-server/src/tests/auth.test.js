@@ -6,6 +6,7 @@ const {
   clearDatabase,
   createTestUser,
   createTestAdmin,
+  createTestDestination,
   generateTestToken,
   expectValidationError,
   expectAuthError,
@@ -269,7 +270,7 @@ describe('Authentication API', () => {
     });
   });
 
-  describe('PATCH /api/v1/auth/update-password', () => {
+  describe('PATCH /api/v1/auth/password', () => {
     let user, token;
 
     beforeEach(async() => {
@@ -287,7 +288,7 @@ describe('Authentication API', () => {
       };
 
       const response = await request(app)
-        .patch('/api/v1/auth/update-password')
+        .patch('/api/v1/auth/password')
         .set('Authorization', `Bearer ${token}`)
         .send(passwordData)
         .expect(200);
@@ -304,7 +305,7 @@ describe('Authentication API', () => {
       };
 
       const response = await request(app)
-        .patch('/api/v1/auth/update-password')
+        .patch('/api/v1/auth/password')
         .set('Authorization', `Bearer ${token}`)
         .send(passwordData)
         .expect(401);
@@ -320,7 +321,7 @@ describe('Authentication API', () => {
       };
 
       const response = await request(app)
-        .patch('/api/v1/auth/update-password')
+        .patch('/api/v1/auth/password')
         .set('Authorization', `Bearer ${token}`)
         .send(passwordData)
         .expect(400);
@@ -352,6 +353,96 @@ describe('Authentication API', () => {
         .expect(401);
 
       expectAuthError(response, 401);
+    });
+  });
+
+  describe('POST /api/v1/auth/logout', () => {
+    let user, token;
+
+    beforeEach(async() => {
+      user = await createTestUser();
+      token = generateTestToken(user);
+    });
+
+    it('should logout successfully', async() => {
+      const response = await request(app)
+        .post('/api/v1/auth/logout')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expectSuccessResponse(response, 200, 'Logged out successfully');
+    });
+
+    it('should fail to logout without authentication', async() => {
+      const response = await request(app)
+        .post('/api/v1/auth/logout')
+        .expect(401);
+
+      expectAuthError(response, 401);
+    });
+  });
+
+  describe('GET /api/v1/auth/favorites', () => {
+    let user, token;
+
+    beforeEach(async() => {
+      user = await createTestUser();
+      token = generateTestToken(user);
+    });
+
+    it('should get user favorites successfully', async() => {
+      const response = await request(app)
+        .get('/api/v1/auth/favorites')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expectSuccessResponse(response, 200, 'Favorites retrieved successfully');
+      expect(Array.isArray(response.body.data.favorites)).toBe(true);
+    });
+
+    it('should fail to get favorites without authentication', async() => {
+      const response = await request(app)
+        .get('/api/v1/auth/favorites')
+        .expect(401);
+
+      expectAuthError(response, 401);
+    });
+  });
+
+  describe('POST /api/v1/auth/favorites/:destinationId', () => {
+    let user, token, destination;
+
+    beforeEach(async() => {
+      user = await createTestUser();
+      destination = await createTestDestination();
+      token = generateTestToken(user);
+    });
+
+    it('should add destination to favorites successfully', async() => {
+      const response = await request(app)
+        .post(`/api/v1/auth/favorites/${destination._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expectSuccessResponse(response, 200, 'Destination added to favorites');
+    });
+
+    it('should fail to add favorite without authentication', async() => {
+      const response = await request(app)
+        .post(`/api/v1/auth/favorites/${destination._id}`)
+        .expect(401);
+
+      expectAuthError(response, 401);
+    });
+
+    it('should fail to add favorite with invalid destination ID', async() => {
+      const response = await request(app)
+        .post('/api/v1/auth/favorites/invalid-id')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+
+      expect(response.body.status).toBe('fail');
+      expect(response.body.message).toContain('Invalid destination ID format');
     });
   });
 

@@ -1,29 +1,10 @@
 import { memo } from "react";
-import { motion } from "framer-motion";
 import PropTypes from "prop-types";
-import DestinationsCarousel from "../destinations/DestinationsCarousel";
-import EmptyState from "../common/EmptyState";
-import ComparisonPanel from "../common/ComparisonPanel";
-import ExploreButton from "../common/ExploreButton";
-import FeatureBadges from "../common/FeatureBadges";
-import SectionHeader from "../common/SectionHeader";
-import FilterButtons from "../common/FilterButtons";
-import SortAndFilterControls from "../common/SortAndFilterControls";
-import BackgroundDecorations from "../common/BackgroundDecorations";
-import LoadingSkeleton from "../common/LoadingSkeleton";
-import PerformanceMonitor from "../common/PerformanceMonitor";
-import { useDestinationsSection } from "../../hooks/useDestinationsSection";
 
 /**
- * DestinationsSection - Main section component for displaying and managing destinations
- *
- * Features:
- * - Responsive carousel with filtering and sorting
- * - Comparison functionality
- * - Loading states and empty states
- * - Advanced filtering controls
- * - Performance optimized with memoization and custom hooks
- * - Enhanced accessibility and error handling
+ * DestinationsSection - Clean component that renders nothing
+ * This component has been cleaned up to remove all featured collection references
+ * and now simply returns null to render nothing.
  */
 const DestinationsSection = memo(function DestinationsSection({
   destinations = [],
@@ -31,7 +12,7 @@ const DestinationsSection = memo(function DestinationsSection({
   setFilteredDestinations,
   loading = false,
   activeFilter = "all",
-  sortBy = "featured",
+  sortBy = "price-low",
   showFilters = false,
   setShowFilters,
   onFilterChange,
@@ -45,137 +26,8 @@ const DestinationsSection = memo(function DestinationsSection({
   currentIndex = 0,
   setCurrentIndex,
 }) {
-  // Custom hook for business logic
-  const {
-    hasResults,
-    hasSelections,
-    handleResetFilters,
-    handleCompare,
-    handleClearSelection,
-    handleNavigateToDestinations,
-    carouselProps,
-    sortAndFilterProps,
-  } = useDestinationsSection({
-    destinations,
-    filteredDestinations,
-    setFilteredDestinations,
-    selectedDestinations,
-    setSelectedDestinations,
-    setShowFilters,
-  });
-
-  // Early return for loading state with proper accessibility
-  if (loading) {
-    return (
-      <section
-        id="destinations-section"
-        className="py-20 px-4 relative overflow-hidden"
-        aria-label="Destinations section"
-        role="region"
-      >
-        <BackgroundDecorations />
-        <div className="max-w-7xl mx-auto relative">
-          <SectionHeader />
-          <LoadingSkeleton itemsPerView={itemsPerView} />
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <PerformanceMonitor componentName="DestinationsSection">
-      <section
-        id="destinations-section"
-        className="py-24 px-4 relative overflow-hidden"
-        aria-label="Destinations section"
-        role="region"
-      >
-        {/* Modern background effects */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/10 via-indigo-900/5 to-pink-900/10" />
-          <div className="absolute inset-0">
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-1 h-1 bg-purple-400/20 rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  y: [0, -30, 0],
-                  opacity: [0, 0.4, 0],
-                  scale: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: 5 + Math.random() * 3,
-                  repeat: Infinity,
-                  delay: Math.random() * 3,
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        <BackgroundDecorations />
-
-        <div className="max-w-7xl mx-auto relative">
-          {/* Section Header */}
-          <SectionHeader />
-
-          {/* Filter Controls */}
-          <FilterButtons
-            activeFilter={activeFilter}
-            onFilterChange={onFilterChange}
-          />
-
-          {/* Sort and Advanced Filter Controls */}
-          <SortAndFilterControls
-            {...sortAndFilterProps({
-              sortBy,
-              onSortChange,
-              showFilters,
-            })}
-          />
-
-          {/* Main Content Area */}
-          <div className="relative" role="main" aria-live="polite">
-            {hasResults ? (
-              <DestinationsCarousel
-                {...carouselProps({
-                  onDestinationClick,
-                  onCompareToggle,
-                  onQuickBook,
-                  itemsPerView,
-                  currentIndex,
-                  setCurrentIndex,
-                })}
-              />
-            ) : (
-              <EmptyState onButtonClick={handleResetFilters} />
-            )}
-          </div>
-
-          {/* Comparison Panel - Only show when items are selected */}
-          {hasSelections && (
-            <ComparisonPanel
-              selectedDestinations={selectedDestinations}
-              onCompare={handleCompare}
-              onClear={handleClearSelection}
-            />
-          )}
-
-          {/* Call-to-Action Section - Only show when there are results */}
-          {hasResults && (
-            <div className="mt-20" role="complementary">
-              <ExploreButton onNavigate={handleNavigateToDestinations} />
-              <FeatureBadges />
-            </div>
-          )}
-        </div>
-      </section>
-    </PerformanceMonitor>
-  );
+  // Return null - this component renders nothing
+  return null;
 });
 
 // Enhanced PropTypes with more specific validation
@@ -222,7 +74,6 @@ DestinationsSection.propTypes = {
     "culture",
   ]),
   sortBy: PropTypes.oneOf([
-    "featured",
     "price-low",
     "price-high",
     "rating",
@@ -247,7 +98,6 @@ DestinationsSection.propTypes = {
   currentIndex: PropTypes.number,
   setCurrentIndex: PropTypes.func.isRequired,
 };
-
 
 DestinationsSection.displayName = "DestinationsSection";
 

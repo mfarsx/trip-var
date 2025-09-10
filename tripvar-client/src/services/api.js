@@ -102,7 +102,6 @@ export const destinationApi = {
   getDestinations: async (params) => {
     const searchParams = new URLSearchParams();
     if (params?.category) searchParams.append("category", params.category);
-    if (params?.featured) searchParams.append("featured", params.featured);
 
     const response = await api.get(`/destinations?${searchParams.toString()}`);
     return response.data;

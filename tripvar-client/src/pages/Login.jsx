@@ -1,36 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate, useLocation, Navigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { login } from "../store/slices/authSlice";
 import Button from "../components/ui/Button";
+import ImageSlider from "../components/common/ImageSlider";
 import { FiMail, FiLock, FiGithub } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
-import { motion } from "framer-motion";
+import {
+  BACKGROUND_IMAGES,
+  ANIMATION_CONSTANTS,
+  LAYOUT_CONSTANTS,
+} from "../constants/pageConstants";
 
-const backgroundImages = [
-  "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba",
-  "https://images.unsplash.com/photo-1682687221323-6ce2dbc803ab",
-  "https://images.unsplash.com/photo-1682687220063-4742bd7fd538",
-];
-
-export default function Login() {
+/**
+ * Login - User authentication page
+ *
+ * Features:
+ * - Image slider with travel photos
+ * - Form validation
+ * - Social login options
+ * - Responsive design
+ * - Error handling
+ */
+function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { loading, error, isAuthenticated } = useSelector(
+    (state) => state.auth
+  );
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
   });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleChange = (e) => {
     const value =
@@ -58,51 +62,20 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Image slider */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        {backgroundImages.map((img, index) => (
-          <motion.div
-            key={img}
-            className="absolute inset-0"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: index === currentImageIndex ? 1 : 0 }}
-            transition={{ duration: 1 }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-900/50 to-indigo-900/50" />
-            <img
-              src={img}
-              alt="Travel"
-              className="object-cover w-full h-full"
-            />
-          </motion.div>
-        ))}
-        <div className="absolute inset-0 flex items-center justify-center text-white z-10">
-          <div className="max-w-md text-center px-8">
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8 }}
-              className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-200 to-pink-100"
-            >
-              Your Journey Begins Here
-            </motion.h1>
-            <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-xl text-gray-200"
-            >
-              Discover amazing destinations and create unforgettable memories
-            </motion.p>
-          </div>
-        </div>
-      </div>
+      <ImageSlider
+        images={BACKGROUND_IMAGES.LOGIN}
+        title="Your Journey Begins Here"
+        subtitle="Discover amazing destinations and create unforgettable memories"
+      />
 
       {/* Right side - Login form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-[#1a1f2d] p-8">
+      <div
+        className={`w-full lg:w-1/2 flex items-center justify-center ${LAYOUT_CONSTANTS.BACKGROUND_COLOR} p-8`}
+      >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: ANIMATION_CONSTANTS.FORM_SCALE_DURATION }}
           className="w-full max-w-md"
         >
           <div className="text-center mb-10">
@@ -119,7 +92,9 @@ export default function Login() {
                 animate={{ x: 0, opacity: 1 }}
                 className="p-4 rounded-lg bg-red-500/10 border border-red-500/20"
               >
-                <p className="text-red-400 text-sm">We&apos;re sorry - something&apos;s gone wrong.</p>
+                <p className="text-red-400 text-sm">
+                  We&apos;re sorry - something&apos;s gone wrong.
+                </p>
               </motion.div>
             )}
 
@@ -241,3 +216,7 @@ export default function Login() {
     </div>
   );
 }
+
+Login.displayName = "Login";
+
+export default Login;

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 export function useDestinationFilters(destinations, setFilteredDestinations) {
   const [activeFilter, setActiveFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("featured");
+  const [sortBy, setSortBy] = useState("price-low");
 
   const filterMap = {
     popular: "Popular",
@@ -40,9 +40,8 @@ export function useDestinationFilters(destinations, setFilteredDestinations) {
       case "popularity":
         filtered.sort((a, b) => b.ratingCount - a.ratingCount);
         break;
-      case "featured":
       default:
-        // Keep original order for featured
+        // Keep original order
         break;
     }
 

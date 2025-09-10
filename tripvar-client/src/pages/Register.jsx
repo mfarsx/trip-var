@@ -1,37 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate, Navigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { register } from "../store/slices/authSlice";
 import Button from "../components/ui/Button";
-
+import ImageSlider from "../components/common/ImageSlider";
 import { FiUser, FiMail, FiLock } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
-import { motion } from "framer-motion";
+import {
+  BACKGROUND_IMAGES,
+  ANIMATION_CONSTANTS,
+  LAYOUT_CONSTANTS,
+} from "../constants/pageConstants";
 
-const backgroundImages = [
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
-  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1",
-  "https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd",
-];
-
-export default function Register() {
+/**
+ * Register - User registration page
+ *
+ * Features:
+ * - Image slider with travel photos
+ * - Form validation
+ * - Social registration options
+ * - Responsive design
+ * - Error handling
+ */
+function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { loading, error, isAuthenticated } = useSelector(
+    (state) => state.auth
+  );
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -56,49 +59,20 @@ export default function Register() {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Image slider */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        {backgroundImages.map((img, index) => (
-          <motion.div
-            key={img}
-            className="absolute inset-0"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: index === currentImageIndex ? 1 : 0 }}
-            transition={{ duration: 1 }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-900/50 to-indigo-900/50" />
-            <img src={img} alt="Travel" className="object-cover w-full h-full" />
-          </motion.div>
-        ))}
-        <div className="absolute inset-0 flex items-center justify-center text-white z-10">
-          <div className="max-w-md text-center px-8">
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8 }}
-              className="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-200 to-pink-100"
-            >
-              Start Your Journey
-              <br />
-              Today
-            </motion.h1>
-            <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-xl text-gray-200"
-            >
-              Join our community of adventurers and explore the world
-            </motion.p>
-          </div>
-        </div>
-      </div>
+      <ImageSlider
+        images={BACKGROUND_IMAGES.REGISTER}
+        title="Start Your Journey Today"
+        subtitle="Join our community of adventurers and explore the world"
+      />
 
       {/* Right side - Register form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-[#1a1f2d] p-6 md:p-12">
+      <div
+        className={`w-full lg:w-1/2 flex items-center justify-center ${LAYOUT_CONSTANTS.BACKGROUND_COLOR} p-6 md:p-12`}
+      >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: ANIMATION_CONSTANTS.FORM_SCALE_DURATION }}
           className="w-full max-w-[400px] space-y-8"
         >
           <div className="text-center">
@@ -227,3 +201,7 @@ export default function Register() {
     </div>
   );
 }
+
+Register.displayName = "Register";
+
+export default Register;

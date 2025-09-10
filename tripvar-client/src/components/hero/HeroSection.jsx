@@ -13,7 +13,7 @@ export default function HeroSection() {
           alt="Hero background"
           className="h-full w-full object-cover"
         />
-        
+
         {/* Animated particles */}
         <div className="absolute inset-0">
           {[...Array(20)].map((_, i) => (
@@ -74,8 +74,9 @@ export default function HeroSection() {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="text-xl sm:text-2xl leading-relaxed text-gray-200 mb-8 max-w-3xl mx-auto"
           >
-            Discover extraordinary destinations, create unforgettable memories, 
-            and explore the world with confidence through our cutting-edge platform.
+            Discover extraordinary destinations, create unforgettable memories,
+            and explore the world with confidence through our cutting-edge
+            platform.
           </motion.p>
 
           {/* CTA Buttons */}
@@ -115,9 +116,15 @@ export default function HeroSection() {
             className="flex flex-wrap justify-center gap-3 text-sm"
           >
             {[
-              { label: "Real-time Availability", color: "from-green-400 to-emerald-400" },
+              {
+                label: "Real-time Availability",
+                color: "from-green-400 to-emerald-400",
+              },
               { label: "Instant Booking", color: "from-blue-400 to-cyan-400" },
-              { label: "Secure Payments", color: "from-purple-400 to-violet-400" },
+              {
+                label: "Secure Payments",
+                color: "from-purple-400 to-violet-400",
+              },
               { label: "24/7 Support", color: "from-pink-400 to-rose-400" },
             ].map((feature, index) => (
               <motion.div

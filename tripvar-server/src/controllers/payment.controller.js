@@ -57,8 +57,7 @@ const simulateRefundProcessing = async(refundData) => {
 // Process payment for a booking
 const processPayment = async(req, res, next) => {
   try {
-    const { bookingId } = req.params;
-    const { paymentMethod, paymentDetails } = req.body;
+    const { bookingId, paymentMethod, paymentDetails } = req.body;
     const userId = req.user.id;
 
     // Find the booking

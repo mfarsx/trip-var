@@ -94,30 +94,11 @@ const Destinations = () => {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Discover Amazing Destinations
+              Destinations
             </h1>
             <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto">
-              Explore our curated collection of destinations and book your next adventure with confidence.
+              Explore our destinations and book your next adventure.
             </p>
-          </div>
-          
-          <div className="mb-8 flex flex-wrap gap-3 sm:gap-4 justify-center">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span>Real-time availability</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <span>Instant booking</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
-              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-              <span>Secure payments</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-300">
-              <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
-              <span>Best price guarantee</span>
-            </div>
           </div>
           
           {/* Comparison Bar */}

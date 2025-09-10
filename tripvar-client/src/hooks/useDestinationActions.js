@@ -42,7 +42,6 @@ export function useDestinationActions() {
 
   const handleSortChange = (sort) => {
     const sortLabels = {
-      featured: "Featured",
       "price-low": "Price: Low to High",
       "price-high": "Price: High to Low",
       rating: "Highest Rated",

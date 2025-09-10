@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: tripvar-mongodb-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"  # Bind to localhost only for security
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./mongod.conf:/etc/mongod.conf:ro
+    environment:
+      - MONGO_INITDB_DATABASE=tripvar
+    command: mongod --config /etc/mongod.conf --auth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: tripvar-redis-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"  # Bind to localhost only for security
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --loglevel warning --requirepass ${REDIS_PASSWORD}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "1"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+  server:
+    build:
+      context: ./tripvar-server
+      dockerfile: Dockerfile
+      target: production
+    container_name: tripvar-server-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"  # Bind to localhost only
+    env_file:
+      - ./tripvar-server/.env.prod
+    volumes:
+      - ./logs:/usr/src/app/logs
+      - ./uploads:/usr/src/app/uploads
+    depends_on:
+      - mongodb
+      - redis
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=info
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  client:
+    build:
+      context: ./tripvar-client
+      dockerfile: Dockerfile
+      target: production
+    container_name: tripvar-client-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:80"  # Bind to localhost only
+    env_file:
+      - ./tripvar-client/.env.prod
+    depends_on:
+      - server
+    environment:
+      - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+  nginx:
+    image: nginx:alpine
+    container_name: tripvar-nginx-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - client
+      - server
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local

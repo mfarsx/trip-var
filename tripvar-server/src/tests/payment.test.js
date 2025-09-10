@@ -43,9 +43,10 @@ describe('Payment API', () => {
     adminToken = generateTestToken(admin);
   });
 
-  describe('POST /api/v1/payments/:bookingId/process', () => {
+  describe('POST /api/v1/payments', () => {
     it('should process payment successfully', async () => {
       const paymentData = {
+        bookingId: booking._id,
         paymentMethod: 'credit-card',
         paymentDetails: {
           cardNumber: '4111111111111111',
@@ -56,7 +57,7 @@ describe('Payment API', () => {
       };
 
       const response = await request(app)
-        .post(`/api/v1/payments/${booking._id}/process`)
+        .post('/api/v1/payments')
         .set('Authorization', `Bearer ${token}`)
         .send(paymentData)
         .expect(200);
@@ -69,6 +70,7 @@ describe('Payment API', () => {
 
     it('should fail to process payment for non-existent booking', async () => {
       const paymentData = {
+        bookingId: '507f1f77bcf86cd799439011',
         paymentMethod: 'credit-card',
         paymentDetails: {
           cardNumber: '4111111111111111',
@@ -79,7 +81,7 @@ describe('Payment API', () => {
       };
 
       const response = await request(app)
-        .post('/api/v1/payments/507f1f77bcf86cd799439011/process')
+        .post('/api/v1/payments')
         .set('Authorization', `Bearer ${token}`)
         .send(paymentData)
         .expect(404);
@@ -92,6 +94,7 @@ describe('Payment API', () => {
       const otherUserToken = generateTestToken(otherUser);
 
       const paymentData = {
+        bookingId: booking._id,
         paymentMethod: 'credit-card',
         paymentDetails: {
           cardNumber: '4111111111111111',
@@ -102,7 +105,7 @@ describe('Payment API', () => {
       };
 
       const response = await request(app)
-        .post(`/api/v1/payments/${booking._id}/process`)
+        .post('/api/v1/payments')
         .set('Authorization', `Bearer ${otherUserToken}`)
         .send(paymentData)
         .expect(400);
@@ -117,6 +120,7 @@ describe('Payment API', () => {
       await booking.save();
 
       const paymentData = {
+        bookingId: booking._id,
         paymentMethod: 'credit-card',
         paymentDetails: {
           cardNumber: '4111111111111111',
@@ -127,7 +131,7 @@ describe('Payment API', () => {
       };
 
       const response = await request(app)
-        .post(`/api/v1/payments/${booking._id}/process`)
+        .post('/api/v1/payments')
         .set('Authorization', `Bearer ${token}`)
         .send(paymentData)
         .expect(409);
@@ -141,6 +145,7 @@ describe('Payment API', () => {
       await booking.save();
 
       const paymentData = {
+        bookingId: booking._id,
         paymentMethod: 'credit-card',
         paymentDetails: {
           cardNumber: '4111111111111111',
@@ -151,7 +156,7 @@ describe('Payment API', () => {
       };
 
       const response = await request(app)
-        .post(`/api/v1/payments/${booking._id}/process`)
+        .post('/api/v1/payments')
         .set('Authorization', `Bearer ${token}`)
         .send(paymentData)
         .expect(409);
@@ -161,6 +166,7 @@ describe('Payment API', () => {
 
     it('should fail without authentication', async () => {
       const paymentData = {
+        bookingId: booking._id,
         paymentMethod: 'credit-card',
         paymentDetails: {
           cardNumber: '4111111111111111',
@@ -171,7 +177,7 @@ describe('Payment API', () => {
       };
 
       const response = await request(app)
-        .post(`/api/v1/payments/${booking._id}/process`)
+        .post('/api/v1/payments')
         .send(paymentData)
         .expect(401);
 
@@ -435,6 +441,7 @@ describe('Payment API', () => {
       Math.random = () => 0.01; // Force failure (5% chance)
 
       const paymentData = {
+        bookingId: booking._id,
         paymentMethod: 'credit-card',
         paymentDetails: {
           cardNumber: '4111111111111111',
@@ -445,7 +452,7 @@ describe('Payment API', () => {
       };
 
       const response = await request(app)
-        .post(`/api/v1/payments/${booking._id}/process`)
+        .post('/api/v1/payments')
         .set('Authorization', `Bearer ${token}`)
         .send(paymentData)
         .expect(400);

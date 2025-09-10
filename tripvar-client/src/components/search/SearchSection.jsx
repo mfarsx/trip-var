@@ -1,4 +1,11 @@
-import { FiMapPin, FiCalendar, FiUsers, FiHome, FiSearch, FiArrowRight } from "react-icons/fi";
+import {
+  FiMapPin,
+  FiCalendar,
+  FiUsers,
+  FiHome,
+  FiSearch,
+  FiArrowRight,
+} from "react-icons/fi";
 import { motion } from "framer-motion";
 import PropTypes from "prop-types";
 
@@ -25,7 +32,7 @@ export default function SearchSection({
       initial={{ y: 40, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.6, duration: 0.8 }}
-      className="container mx-auto px-4 py-12 max-w-7xl -mt-16 relative z-10"
+      className="container mx-auto px-4 py-16 max-w-7xl relative z-10"
     >
       {/* Section Header */}
       <motion.div
@@ -49,18 +56,18 @@ export default function SearchSection({
         transition={{ delay: 0.8 }}
         className="relative"
       >
-        <form 
+        <form
           onSubmit={handleSubmit}
           className="relative p-8 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl"
         >
           {/* Background gradient */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-blue-500/10 rounded-3xl" />
-          
+
           {/* Grid layout */}
           <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* From Input */}
-            <motion.div 
-              whileFocus={{ scale: 1.02, y: -2 }} 
+            <motion.div
+              whileFocus={{ scale: 1.02, y: -2 }}
               className="relative group"
             >
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -81,8 +88,8 @@ export default function SearchSection({
             </motion.div>
 
             {/* To Input */}
-            <motion.div 
-              whileFocus={{ scale: 1.02, y: -2 }} 
+            <motion.div
+              whileFocus={{ scale: 1.02, y: -2 }}
               className="relative group"
             >
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -104,8 +111,8 @@ export default function SearchSection({
             </motion.div>
 
             {/* Date Input */}
-            <motion.div 
-              whileFocus={{ scale: 1.02, y: -2 }} 
+            <motion.div
+              whileFocus={{ scale: 1.02, y: -2 }}
               className="relative group"
             >
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -125,8 +132,8 @@ export default function SearchSection({
             </motion.div>
 
             {/* Guests Select */}
-            <motion.div 
-              whileFocus={{ scale: 1.02, y: -2 }} 
+            <motion.div
+              whileFocus={{ scale: 1.02, y: -2 }}
               className="relative group"
             >
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -164,7 +171,9 @@ export default function SearchSection({
               disabled={isSearching}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className={`group relative px-12 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-lg rounded-2xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 overflow-hidden flex items-center gap-3 ${isSearching ? 'opacity-75 cursor-not-allowed' : ''}`}
+              className={`group relative px-12 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-lg rounded-2xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 overflow-hidden flex items-center gap-3 ${
+                isSearching ? "opacity-75 cursor-not-allowed" : ""
+              }`}
               aria-label="Search trips"
             >
               <span className="relative z-10 flex items-center gap-3">
@@ -196,10 +205,10 @@ export default function SearchSection({
       >
         {[
           "Popular Destinations",
-          "Adventure Trips", 
+          "Adventure Trips",
           "Beach Getaways",
           "City Breaks",
-          "Mountain Retreats"
+          "Mountain Retreats",
         ].map((filter, index) => (
           <motion.button
             key={filter}

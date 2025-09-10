@@ -9,13 +9,12 @@ import destinationSlice from '../../store/slices/destinationSlice';
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
-const mockUseParams = vi.fn(() => ({ id: null }));
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useParams: mockUseParams,
+    useParams: vi.fn(() => ({ id: null })),
   };
 });
 
@@ -411,7 +410,8 @@ describe('Destinations Component', () => {
   describe('Destination Detail View', () => {
     it('renders destination detail when id is provided', () => {
       // Mock useParams to return an id
-      mockUseParams.mockReturnValue({ id: '1' });
+      const { useParams } = require('react-router-dom');
+      vi.mocked(useParams).mockReturnValue({ id: '1' });
 
       renderDestinations();
 
@@ -422,7 +422,8 @@ describe('Destinations Component', () => {
 
     it('renders error when destination is not found', () => {
       // Mock useParams to return a non-existent id
-      mockUseParams.mockReturnValue({ id: '999' });
+      const { useParams } = require('react-router-dom');
+      vi.mocked(useParams).mockReturnValue({ id: '999' });
 
       renderDestinations();
 
@@ -432,7 +433,8 @@ describe('Destinations Component', () => {
 
     it('navigates back to destinations list', () => {
       // Mock useParams to return an id
-      mockUseParams.mockReturnValue({ id: '1' });
+      const { useParams } = require('react-router-dom');
+      vi.mocked(useParams).mockReturnValue({ id: '1' });
 
       renderDestinations();
 

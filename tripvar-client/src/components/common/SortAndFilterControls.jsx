@@ -28,7 +28,6 @@ export default function SortAndFilterControls({
             onChange={(e) => onSortChange(e.target.value)}
             className="appearance-none bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-2 text-gray-300 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
           >
-            <option value="featured">Sort by: Featured</option>
             <option value="price-low">Price: Low to High</option>
             <option value="price-high">Price: High to Low</option>
             <option value="rating">Highest Rated</option>

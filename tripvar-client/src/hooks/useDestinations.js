@@ -8,7 +8,7 @@ export function useDestinations() {
   const [filteredDestinations, setFilteredDestinations] = useState([]);
 
   useEffect(() => {
-    dispatch(fetchDestinations({ featured: true }));
+    dispatch(fetchDestinations());
   }, [dispatch]);
 
   useEffect(() => {

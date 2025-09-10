@@ -152,7 +152,7 @@ const Favorites = () => {
                     
                     <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
                       <span className="px-2 py-1 bg-purple-600/20 text-purple-400 text-xs rounded-full">
-                        {destination.category || 'Featured'}
+                        {destination.category || 'General'}
                       </span>
                       <button
                         onClick={(e) => {

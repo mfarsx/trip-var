@@ -3,9 +3,9 @@ import { FiStar, FiShield, FiZap, FiGlobe } from "react-icons/fi";
 import PropTypes from "prop-types";
 
 export default function SectionHeader({
-  badgeText = "Featured Collection",
-  title = "Featured Destinations",
-  description = "Discover amazing places handpicked by our travel experts. Slide through our collection and start your next adventure today.",
+  badgeText = "Explore",
+  title = "Destinations",
+  description = "Discover amazing places and start your next adventure today.",
   showStats = true,
 }) {
   const stats = [

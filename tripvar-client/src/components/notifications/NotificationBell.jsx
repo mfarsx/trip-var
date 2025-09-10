@@ -18,6 +18,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     // Fetch notifications and stats when component mounts
+    // Redux Toolkit's createAsyncThunk will handle duplicate prevention
     dispatch(fetchUserNotifications({ limit: 10 }));
     dispatch(fetchNotificationStats());
   }, [dispatch]);

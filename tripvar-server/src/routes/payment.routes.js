@@ -15,6 +15,7 @@ router.use(authenticate);
 
 // Payment routes
 router.get('/', getPaymentHistory);
+router.get('/history', getPaymentHistory);
 router.post('/',
   [
     validationRules.paymentMethod,
@@ -24,8 +25,8 @@ router.post('/',
   processPayment
 );
 
-router.get('/:paymentId', getPaymentStatus);
-router.post('/:paymentId/refunds',
+router.get('/:bookingId/status', getPaymentStatus);
+router.post('/:bookingId/refund',
   [
     validationRules.refundReason
   ],

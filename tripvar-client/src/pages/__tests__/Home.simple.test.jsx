@@ -42,7 +42,7 @@ vi.mock('../../hooks/useDestinationFilters', () => ({
   useDestinationFilters: () => ({
     activeFilter: 'all',
     setActiveFilter: vi.fn(),
-    sortBy: 'featured',
+    sortBy: 'price-low',
     setSortBy: vi.fn(),
   }),
 }));

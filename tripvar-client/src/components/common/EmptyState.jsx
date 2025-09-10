@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 
 export default function EmptyState({
   title = "No destinations found",
-  message = "Try adjusting your search criteria or explore our featured destinations.",
+  message = "Try adjusting your search criteria or explore our destinations.",
   buttonText = "View All Destinations",
   onButtonClick,
 }) {

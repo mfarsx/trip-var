@@ -18,14 +18,6 @@ const Favorites = () => {
   const [favorites, setFavorites] = useState([]);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
 
-  useEffect(() => {
-    fetchFavorites();
-  }, []);
-
-  const handleLogout = () => {
-    dispatch(logout());
-  };
-
   const fetchFavorites = async () => {
     try {
       setFavoritesLoading(true);
@@ -41,6 +33,14 @@ const Favorites = () => {
     } finally {
       setFavoritesLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchFavorites();
+  }, []);
+
+  const handleLogout = () => {
+    dispatch(logout());
   };
 
   const handleRemoveFavorite = async (destinationId) => {

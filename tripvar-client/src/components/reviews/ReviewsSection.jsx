@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FiStar, FiFilter, FiUser } from 'react-icons/fi';
 import { fetchDestinationReviews } from '../../store/slices/reviewSlice';
@@ -15,13 +15,25 @@ export default function ReviewsSection({ destinationId, destination }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
+  const hasFetched = useRef(false);
+  const lastParams = useRef({ destinationId: null, sortBy: null, currentPage: null });
 
   useEffect(() => {
     if (destinationId) {
-      dispatch(fetchDestinationReviews({ 
-        destinationId, 
-        params: { sort: sortBy, page: currentPage, limit: 5 } 
-      }));
+      const currentParams = { destinationId, sortBy, currentPage };
+      const paramsChanged = 
+        lastParams.current.destinationId !== destinationId ||
+        lastParams.current.sortBy !== sortBy ||
+        lastParams.current.currentPage !== currentPage;
+      
+      if (!hasFetched.current || paramsChanged) {
+        hasFetched.current = true;
+        lastParams.current = currentParams;
+        dispatch(fetchDestinationReviews({ 
+          destinationId, 
+          params: { sort: sortBy, page: currentPage, limit: 5 } 
+        }));
+      }
     }
   }, [dispatch, destinationId, sortBy, currentPage]);
 
@@ -33,6 +45,16 @@ export default function ReviewsSection({ destinationId, destination }) {
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
+
+  const handleReviewCreated = useCallback(() => {
+    // Refresh the reviews list to get updated stats
+    if (destinationId) {
+      dispatch(fetchDestinationReviews({ 
+        destinationId, 
+        params: { sort: sortBy, page: currentPage, limit: 5 } 
+      }));
+    }
+  }, [dispatch, destinationId, sortBy, currentPage]);
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -53,14 +75,14 @@ export default function ReviewsSection({ destinationId, destination }) {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="flex">
-                {renderStars(Math.round(ratingStats.averageRating))}
+                {renderStars(Math.round(ratingStats.averageRating || 0))}
               </div>
               <span className="text-lg font-semibold">
-                {ratingStats.averageRating.toFixed(1)}
+                {(ratingStats.averageRating || 0).toFixed(1)}
               </span>
             </div>
             <span className="text-gray-400">
-              ({ratingStats.totalReviews} reviews)
+              ({ratingStats.totalReviews || 0} reviews)
             </span>
           </div>
         </div>
@@ -144,6 +166,7 @@ export default function ReviewsSection({ destinationId, destination }) {
         <CreateReviewModal
           destination={destination}
           onClose={() => setShowCreateModal(false)}
+          onReviewCreated={handleReviewCreated}
         />
       )}
     </div>

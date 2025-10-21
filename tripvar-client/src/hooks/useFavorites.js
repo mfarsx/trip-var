@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
   fetchFavorites, 
@@ -10,6 +10,7 @@ import {
   selectFavoritesLoading,
   selectFavoritesError
 } from '../store/slices/favoritesSlice';
+import apiCallManager from '../utils/apiCallManager';
 
 export const useFavorites = () => {
   const dispatch = useDispatch();
@@ -17,13 +18,15 @@ export const useFavorites = () => {
   const favoriteIds = useSelector(selectFavoriteIds);
   const loading = useSelector(selectFavoritesLoading);
   const error = useSelector(selectFavoritesError);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
     // Fetch favorites when the hook is first used
-    if (favorites.length === 0 && !loading) {
-      dispatch(fetchFavorites());
+    if (!hasFetched.current && !loading) {
+      hasFetched.current = true;
+      apiCallManager.executeCall('fetchFavorites', () => dispatch(fetchFavorites()));
     }
-  }, [dispatch, favorites.length, loading]);
+  }, [dispatch, loading]);
 
   const isFavorite = (destinationId) => {
     return favoriteIds.has(destinationId);

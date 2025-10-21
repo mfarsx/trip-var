@@ -116,3 +116,4 @@ export const isToday = (date) => {
   checkDate.setHours(0, 0, 0, 0);
   return checkDate.getTime() === today.getTime();
 };
+

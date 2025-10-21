@@ -16,10 +16,12 @@ import Favorites from "./pages/Favorites";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Settings from "./pages/Settings";
+import Analytics from "./pages/Analytics";
 import ErrorBoundary from "./components/ErrorBoundary";
 import RealTimeNotifications from "./components/notifications/RealTimeNotifications";
 import WebSocketProvider from "./components/providers/WebSocketProvider";
 import WebSocketStatus from "./components/common/WebSocketStatus";
+import AppDataLoader from "./components/common/AppDataLoader";
 import "./App.css";
 
 function App() {
@@ -43,6 +45,7 @@ function App() {
                 },
               }}
             />
+            <AppDataLoader />
             <RealTimeNotifications />
             <WebSocketStatus />
             <Routes>
@@ -61,6 +64,7 @@ function App() {
                 <Route path="bookings" element={<Bookings />} />
                 <Route path="favorites" element={<Favorites />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="analytics" element={<Analytics />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

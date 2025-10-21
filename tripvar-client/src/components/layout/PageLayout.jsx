@@ -47,3 +47,4 @@ PageLayout.propTypes = {
 };
 
 export default PageLayout;
+

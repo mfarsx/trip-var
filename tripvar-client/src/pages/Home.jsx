@@ -6,6 +6,7 @@ import HeroSection from "../components/hero/HeroSection";
 import SearchSection from "../components/search/SearchSection";
 import BackgroundEffects from "../components/common/BackgroundEffects";
 import { useSearch } from "../hooks/useSearch";
+import { useDestinations } from "../hooks/useDestinations";
 
 // Constants
 const ANIMATION_DURATION = 0.8;
@@ -27,6 +28,9 @@ function Home() {
   // Custom hooks
   const { searchParams, setSearchParams, isSearching, handleSearch } =
     useSearch();
+
+  // Load destinations data when Home component mounts
+  const { destinations, loading: destinationsLoading } = useDestinations();
 
   const handleLogout = () => {
     dispatch(logout());

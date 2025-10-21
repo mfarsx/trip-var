@@ -1,69 +1,107 @@
 import { motion } from "framer-motion";
-import { FiHeart, FiStar, FiMapPin, FiClock, FiUsers, FiTrendingUp, FiCheck, FiBookmark, FiZap } from "react-icons/fi";
+import {
+  FiHeart,
+  FiStar,
+  FiMapPin,
+  FiCheck,
+  FiBookmark,
+  FiZap,
+} from "react-icons/fi";
 import { FaHeart } from "react-icons/fa";
 import PropTypes from "prop-types";
-import { useState, useEffect } from "react";
-import { userService } from "../../services/userService";
+import { useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { toggleFavorite } from "../../store/slices/favoritesSlice";
 import { toast } from "react-hot-toast";
+import { OptimizedImage } from "../common/OptimizedImage";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-  hover: { scale: 1.02, transition: { type: "spring", stiffness: 300 } }
+  hover: { scale: 1.02, transition: { type: "spring", stiffness: 300 } },
 };
 
-export default function DestinationsGrid({ destinations, onDestinationClick, onCompareToggle, onQuickBook, selectedDestinations = [] }) {
-  const [favoriteDestinations, setFavoriteDestinations] = useState([]);
-  const [loading, setLoading] = useState(false);
+export default function DestinationsGrid({
+  destinations,
+  onDestinationClick,
+  onCompareToggle,
+  onQuickBook,
+  selectedDestinations = [],
+}) {
+  const dispatch = useDispatch();
+  const favoriteIds = useSelector((state) => state.favorites.favoriteIds);
+  const toggling = useSelector((state) => state.favorites.toggling);
 
-  useEffect(() => {
-    fetchFavorites();
-  }, []);
+  const handleToggleFavorite = useCallback(
+    async (e, destinationId) => {
+      e.stopPropagation(); // Prevent triggering the destination click
 
-  const fetchFavorites = async () => {
-    try {
-      const response = await userService.getFavorites();
-      if (response && response.data && response.data.data) {
-        const favoriteIds = response.data.data.favorites.map(fav => fav._id);
-        setFavoriteDestinations(favoriteIds);
+      if (toggling) return;
+
+      try {
+        await dispatch(toggleFavorite(destinationId)).unwrap();
+      } catch (error) {
+        console.error("Error toggling favorite:", error);
+        toast.error("Failed to update favorites. Please try again.");
       }
-    } catch (error) {
-      console.error("Error fetching favorites:", error);
-      // Don't show toast error here as it might not be relevant for all users
-    }
-  };
+    },
+    [dispatch, toggling]
+  );
 
-  const handleToggleFavorite = async (e, destinationId) => {
-    e.stopPropagation(); // Prevent triggering the destination click
-    
-    if (loading) return;
-    
-    try {
-      setLoading(true);
-      const response = await userService.toggleFavorite(destinationId);
-      
-      if (response && response.data && response.data.data) {
-        const { isFavorite } = response.data.data;
-        
-        if (isFavorite) {
-          setFavoriteDestinations([...favoriteDestinations, destinationId]);
-          toast.success("Added to favorites");
-        } else {
-          setFavoriteDestinations(favoriteDestinations.filter(id => id !== destinationId));
-          toast.success("Removed from favorites");
-        }
-      }
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-      toast.error("Failed to update favorites. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isFavorite = useCallback(
+    (destinationId) => {
+      return favoriteIds.has(destinationId);
+    },
+    [favoriteIds]
+  );
 
-  const isFavorite = (destinationId) => {
-    return favoriteDestinations.includes(destinationId);
-  };
+  // Handle empty or invalid destinations
+  if (!destinations || destinations.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center">
+          <svg
+            className="w-12 h-12 text-purple-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+        </div>
+        <h3 className="text-xl font-semibold text-gray-300 mb-2">
+          No destinations found
+        </h3>
+        <p className="text-gray-500">
+          Try adjusting your search criteria or check back later.
+        </p>
+      </div>
+    );
+  }
+
+  // Validate required callback props
+  if (!onDestinationClick || !onCompareToggle || !onQuickBook) {
+    console.error("DestinationsGrid: Missing required callback props");
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-xl font-semibold text-red-400 mb-2">
+          Configuration Error
+        </h3>
+        <p className="text-gray-500">Please check component configuration.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -80,24 +118,26 @@ export default function DestinationsGrid({ destinations, onDestinationClick, onC
           onClick={() => onDestinationClick(destination._id)}
         >
           <div className="relative h-56 w-full overflow-hidden">
-            <img
+            <OptimizedImage
               src={destination.imageUrl}
               alt={destination.title}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-              onError={(e) => {
-                e.target.src = `https://source.unsplash.com/random/400x300?${destination.title}`;
-              }}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            
+
             {/* Action Buttons */}
             <div className="absolute top-3 right-3 flex gap-2">
               {/* Favorite Button */}
-              <button 
+              <button
                 className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white transition-all duration-200 backdrop-blur-sm"
                 onClick={(e) => handleToggleFavorite(e, destination._id)}
-                disabled={loading}
-                title={isFavorite(destination._id) ? 'Remove from favorites' : 'Add to favorites'}
+                disabled={toggling}
+                title={
+                  isFavorite(destination._id)
+                    ? "Remove from favorites"
+                    : "Add to favorites"
+                }
               >
                 {isFavorite(destination._id) ? (
                   <FaHeart className="w-4 h-4 text-red-500" />
@@ -107,17 +147,21 @@ export default function DestinationsGrid({ destinations, onDestinationClick, onC
               </button>
 
               {/* Compare Button */}
-              <button 
+              <button
                 className={`p-2 rounded-full backdrop-blur-sm transition-all duration-200 ${
                   selectedDestinations.includes(destination._id)
-                    ? 'bg-green-500/90 text-white'
-                    : 'bg-black/70 hover:bg-black/90 text-white'
+                    ? "bg-green-500/90 text-white"
+                    : "bg-black/70 hover:bg-black/90 text-white"
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onCompareToggle(destination._id);
                 }}
-                title={selectedDestinations.includes(destination._id) ? 'Remove from comparison' : 'Add to comparison'}
+                title={
+                  selectedDestinations.includes(destination._id)
+                    ? "Remove from comparison"
+                    : "Add to comparison"
+                }
               >
                 {selectedDestinations.includes(destination._id) ? (
                   <FiCheck className="w-4 h-4" />
@@ -130,7 +174,9 @@ export default function DestinationsGrid({ destinations, onDestinationClick, onC
             {/* Rating Badge */}
             <div className="absolute top-3 left-3 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full">
               <FiStar className="w-3.5 h-3.5 text-yellow-400 fill-current" />
-              <span className="text-white text-xs font-medium">{destination.rating}</span>
+              <span className="text-white text-xs font-medium">
+                {destination.rating}
+              </span>
             </div>
 
             {/* Availability Status */}
@@ -152,13 +198,13 @@ export default function DestinationsGrid({ destinations, onDestinationClick, onC
               </div>
             </div>
           </div>
-          
+
           <div className="p-4 space-y-3">
             {/* Description */}
             <p className="text-gray-300 line-clamp-2 text-sm leading-relaxed">
               {destination.description}
             </p>
-            
+
             {/* Price Section */}
             <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
               <div className="flex flex-col">
@@ -169,7 +215,9 @@ export default function DestinationsGrid({ destinations, onDestinationClick, onC
                   <span className="text-gray-500 text-xs">per person</span>
                 </div>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className="text-green-400 text-xs font-medium">Best Price</span>
+                  <span className="text-green-400 text-xs font-medium">
+                    Best Price
+                  </span>
                 </div>
               </div>
               <div className="text-right">
@@ -178,10 +226,10 @@ export default function DestinationsGrid({ destinations, onDestinationClick, onC
                 </div>
               </div>
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex gap-2 mt-3">
-              <button 
+              <button
                 className="flex-1 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-200"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -190,7 +238,7 @@ export default function DestinationsGrid({ destinations, onDestinationClick, onC
               >
                 View Details
               </button>
-              <button 
+              <button
                 className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 flex items-center gap-1"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -220,6 +268,9 @@ DestinationsGrid.propTypes = {
       ratingCount: PropTypes.number.isRequired,
       description: PropTypes.string.isRequired,
       price: PropTypes.number.isRequired,
+      duration: PropTypes.string,
+      groupSize: PropTypes.string,
+      category: PropTypes.string,
     })
   ).isRequired,
   onDestinationClick: PropTypes.func.isRequired,

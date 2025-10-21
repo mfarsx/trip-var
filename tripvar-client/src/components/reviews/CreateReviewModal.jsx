@@ -4,7 +4,7 @@ import { FiStar, FiX, FiRefreshCcw } from 'react-icons/fi';
 import { createReview } from '../../store/slices/reviewSlice';
 import PropTypes from 'prop-types';
 
-export default function CreateReviewModal({ destination, onClose }) {
+export default function CreateReviewModal({ destination, onClose, onReviewCreated }) {
   const dispatch = useDispatch();
   const { creating } = useSelector((state) => state.reviews);
   
@@ -58,6 +58,24 @@ export default function CreateReviewModal({ destination, onClose }) {
         rating: formData.rating,
         ratings: formData.ratings
       })).unwrap();
+      
+      // Reset form
+      setFormData({
+        title: '',
+        content: '',
+        rating: 0,
+        ratings: {
+          cleanliness: 0,
+          location: 0,
+          value: 0,
+          service: 0
+        }
+      });
+      
+      // Call the callback if provided
+      if (onReviewCreated) {
+        onReviewCreated();
+      }
       
       onClose();
     } catch (error) {

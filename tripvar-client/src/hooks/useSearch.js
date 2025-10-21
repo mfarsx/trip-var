@@ -24,13 +24,13 @@ export function useSearch() {
       // Use the backend search API
       const response = await destinationApi.searchDestinations(searchParams);
 
-      if (response.data.destinations.length === 0) {
+      if (response.data.data.destinations.length === 0) {
         toast.error("No destinations found matching your criteria");
         return;
       }
 
-      setFilteredDestinations(response.data.destinations);
-      toast.success(`Found ${response.data.destinations.length} destinations`);
+      setFilteredDestinations(response.data.data.destinations);
+      toast.success(`Found ${response.data.data.destinations.length} destinations`);
     } catch (error) {
       console.error("Search error:", error);
       toast.error("Error searching for destinations");

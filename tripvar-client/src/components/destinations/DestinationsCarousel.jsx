@@ -1,77 +1,64 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  FiChevronLeft, 
-  FiChevronRight, 
-  FiHeart, 
-  FiStar, 
-  FiMapPin, 
-  FiClock, 
-  FiUsers, 
-  FiTrendingUp, 
-  FiCheck, 
-  FiBookmark, 
-  FiZap,
-  FiPlay,
-  FiPause
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { motion } from "framer-motion";
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiHeart,
+  FiStar,
+  FiMapPin,
+  FiClock,
+  FiUsers,
+  FiTrendingUp,
 } from "react-icons/fi";
 import { FaHeart } from "react-icons/fa";
 import PropTypes from "prop-types";
-import { userService } from "../../services/userService";
+import { toggleFavorite } from "../../store/slices/favoritesSlice";
 import { toast } from "react-hot-toast";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { 
-      duration: 0.6,
-      ease: [0.25, 0.46, 0.45, 0.94]
-    }
-  },
-  hover: { 
-    y: -4,
-    transition: { 
-      duration: 0.3,
-      ease: [0.25, 0.46, 0.45, 0.94]
-    }
-  }
-};
-
-const containerVariants = {
-  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
+    y: 0,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1
-    }
-  }
+      duration: 0.6,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  },
+  hover: {
+    y: -4,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  },
 };
 
-export default function DestinationsCarousel({ 
-  destinations, 
-  onDestinationClick, 
-  onCompareToggle, 
-  onQuickBook, 
-  selectedDestinations = [],
+export default function DestinationsCarousel({
+  destinations,
+  onDestinationClick,
+  onCompareToggle,
+  onQuickBook,
+  selectedDestinations = [], // eslint-disable-line no-unused-vars -- Reserved for future comparison feature
   itemsPerView = 5,
   currentIndex = 0,
   setCurrentIndex,
   showArrows = true,
   showDots = true,
   autoPlay = false,
-  autoPlayInterval = 5000
+  autoPlayInterval = 5000,
 }) {
-  const [favoriteDestinations, setFavoriteDestinations] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const favoriteIds = useSelector((state) => state.favorites.favoriteIds);
+  const toggling = useSelector((state) => state.favorites.toggling);
+
   const [isAutoPlaying, setIsAutoPlaying] = useState(autoPlay);
   const carouselRef = useRef(null);
   const intervalRef = useRef(null);
 
   const maxIndex = Math.max(0, destinations.length - itemsPerView);
-  
+
   // Ensure currentIndex doesn't exceed maxIndex when destinations change
   useEffect(() => {
     if (currentIndex > maxIndex) {
@@ -80,72 +67,54 @@ export default function DestinationsCarousel({
   }, [destinations.length, maxIndex, currentIndex, setCurrentIndex]);
 
   useEffect(() => {
-    fetchFavorites();
-  }, []);
-
-  useEffect(() => {
     if (isAutoPlaying && destinations.length > itemsPerView) {
       intervalRef.current = setInterval(() => {
-        setCurrentIndex(prev => (prev >= maxIndex ? 0 : prev + 1));
+        setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
       }, autoPlayInterval);
     } else {
       clearInterval(intervalRef.current);
     }
 
     return () => clearInterval(intervalRef.current);
-  }, [isAutoPlaying, destinations.length, itemsPerView, maxIndex, autoPlayInterval]);
+  }, [
+    isAutoPlaying,
+    destinations.length,
+    itemsPerView,
+    maxIndex,
+    autoPlayInterval,
+    setCurrentIndex,
+  ]);
 
-  const fetchFavorites = async () => {
-    try {
-      const response = await userService.getFavorites();
-      if (response && response.data && response.data.data) {
-        const favoriteIds = response.data.data.favorites.map(fav => fav._id);
-        setFavoriteDestinations(favoriteIds);
+  const handleToggleFavorite = useCallback(
+    async (e, destinationId) => {
+      e.stopPropagation();
+
+      if (toggling) return;
+
+      try {
+        await dispatch(toggleFavorite(destinationId)).unwrap();
+      } catch (error) {
+        console.error("Error toggling favorite:", error);
+        toast.error("Failed to update favorites. Please try again.");
       }
-    } catch (error) {
-      console.error("Error fetching favorites:", error);
-    }
-  };
+    },
+    [dispatch, toggling]
+  );
 
-  const handleToggleFavorite = async (e, destinationId) => {
-    e.stopPropagation();
-    
-    if (loading) return;
-    
-    try {
-      setLoading(true);
-      const response = await userService.toggleFavorite(destinationId);
-      
-      if (response && response.data && response.data.data) {
-        const { isFavorite } = response.data.data;
-        
-        if (isFavorite) {
-          setFavoriteDestinations([...favoriteDestinations, destinationId]);
-          toast.success("Added to favorites");
-        } else {
-          setFavoriteDestinations(favoriteDestinations.filter(id => id !== destinationId));
-          toast.success("Removed from favorites");
-        }
-      }
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-      toast.error("Failed to update favorites. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isFavorite = (destinationId) => {
-    return favoriteDestinations.includes(destinationId);
-  };
+  const isFavorite = useCallback(
+    (destinationId) => {
+      return favoriteIds.has(destinationId);
+    },
+    [favoriteIds]
+  );
 
   const nextSlide = () => {
-    setCurrentIndex(prev => (prev >= maxIndex ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
     setIsAutoPlaying(false); // Stop auto-play when user interacts
   };
 
   const prevSlide = () => {
-    setCurrentIndex(prev => (prev <= 0 ? maxIndex : prev - 1));
+    setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
     setIsAutoPlaying(false); // Stop auto-play when user interacts
   };
 
@@ -161,17 +130,55 @@ export default function DestinationsCarousel({
     }
   };
 
+  // Handle empty or invalid destinations
   if (!destinations || destinations.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center">
-          <svg className="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          <svg
+            className="w-12 h-12 text-purple-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+            />
           </svg>
         </div>
-        <h3 className="text-xl font-semibold text-gray-300 mb-2">No destinations found</h3>
-        <p className="text-gray-500">Try adjusting your search criteria or explore our destinations.</p>
+        <h3 className="text-xl font-semibold text-gray-300 mb-2">
+          No destinations found
+        </h3>
+        <p className="text-gray-500">
+          Try adjusting your search criteria or explore our destinations.
+        </p>
+      </div>
+    );
+  }
+
+  // Validate required props
+  if (
+    !onDestinationClick ||
+    !onCompareToggle ||
+    !onQuickBook ||
+    !setCurrentIndex
+  ) {
+    console.error("DestinationsCarousel: Missing required callback props");
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-xl font-semibold text-red-400 mb-2">
+          Configuration Error
+        </h3>
+        <p className="text-gray-500">Please check component configuration.</p>
       </div>
     );
   }
@@ -179,28 +186,28 @@ export default function DestinationsCarousel({
   return (
     <div className="relative w-full group">
       {/* Carousel Container */}
-      <div 
+      <div
         ref={carouselRef}
         className="relative overflow-hidden rounded-2xl w-full"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        style={{ width: '100%' }}
+        style={{ width: "100%" }}
       >
         <motion.div
           className="flex transition-transform duration-700 ease-out"
           style={{
             transform: `translateX(-${currentIndex * (100 / itemsPerView)}%)`,
-            width: `${(destinations.length / itemsPerView) * 100}%`
+            width: `${(destinations.length / itemsPerView) * 100}%`,
           }}
         >
-          {destinations.map((destination, index) => (
+          {destinations.map((destination) => (
             <motion.div
               key={destination._id}
               className="flex-shrink-0 px-2"
-              style={{ 
+              style={{
                 width: `${100 / itemsPerView}%`,
                 minWidth: `${100 / itemsPerView}%`,
-                maxWidth: `${100 / itemsPerView}%`
+                maxWidth: `${100 / itemsPerView}%`,
               }}
               variants={cardVariants}
               initial="hidden"
@@ -220,29 +227,31 @@ export default function DestinationsCarousel({
                       e.target.src = `https://source.unsplash.com/random/400x300?${destination.title}`;
                     }}
                   />
-                  
+
                   {/* Simple overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  
+
                   {/* Top badges */}
                   <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
                     {/* Rating */}
                     <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-md">
                       <FiStar className="w-3 h-3 text-yellow-400 fill-current" />
-                      <span className="text-white text-xs font-medium">{destination.rating}</span>
+                      <span className="text-white text-xs font-medium">
+                        {destination.rating}
+                      </span>
                     </div>
-                    
+
                     {/* Favorite */}
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       className={`p-2 rounded-md backdrop-blur-sm transition-all duration-200 ${
                         isFavorite(destination._id)
-                          ? 'bg-red-500/80 text-white'
-                          : 'bg-black/50 text-white hover:bg-red-500/50'
+                          ? "bg-red-500/80 text-white"
+                          : "bg-black/50 text-white hover:bg-red-500/50"
                       }`}
                       onClick={(e) => handleToggleFavorite(e, destination._id)}
-                      disabled={loading}
+                      disabled={toggling}
                     >
                       {isFavorite(destination._id) ? (
                         <FaHeart className="w-3 h-3" />
@@ -251,13 +260,15 @@ export default function DestinationsCarousel({
                       )}
                     </motion.button>
                   </div>
-                  
+
                   {/* Price */}
                   <div className="absolute bottom-3 right-3 bg-purple-600 text-white px-3 py-1.5 rounded-md">
-                    <span className="text-sm font-bold">${destination.price}</span>
+                    <span className="text-sm font-bold">
+                      ${destination.price}
+                    </span>
                   </div>
                 </div>
-                
+
                 {/* Content */}
                 <div className="p-4">
                   {/* Title and Location */}
@@ -270,47 +281,47 @@ export default function DestinationsCarousel({
                       <span className="text-sm">{destination.location}</span>
                     </div>
                   </div>
-                  
+
                   {/* Description */}
                   <p className="text-gray-300 text-sm leading-relaxed mb-4 line-clamp-2">
                     {destination.description}
                   </p>
-                  
+
                   {/* Quick info */}
                   <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
                     <div className="flex items-center gap-1">
                       <FiClock className="w-3 h-3" />
-                      <span>3-5 days</span>
+                      <span>{destination.duration || "3-5 days"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <FiUsers className="w-3 h-3" />
-                      <span>2-8 people</span>
+                      <span>{destination.groupSize || "2-8 people"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <FiTrendingUp className="w-3 h-3" />
-                      <span>Popular</span>
+                      <span>{destination.category || "Popular"}</span>
                     </div>
                   </div>
-                  
+
                   {/* Reviews and Button */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
                       {[...Array(5)].map((_, i) => (
-                        <FiStar 
-                          key={i} 
+                        <FiStar
+                          key={i}
                           className={`w-3 h-3 ${
-                            i < Math.floor(destination.rating) 
-                              ? 'text-yellow-400 fill-current' 
-                              : 'text-gray-600'
-                          }`} 
+                            i < Math.floor(destination.rating)
+                              ? "text-yellow-400 fill-current"
+                              : "text-gray-600"
+                          }`}
                         />
                       ))}
                       <span className="text-xs text-gray-400 ml-1">
                         ({destination.ratingCount})
                       </span>
                     </div>
-                    
-                    <motion.button 
+
+                    <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
@@ -356,7 +367,9 @@ export default function DestinationsCarousel({
       {/* Dots Indicator */}
       {showDots && destinations.length > itemsPerView && (
         <div className="flex justify-center mt-8 gap-2">
-          {Array.from({ length: Math.ceil(destinations.length / itemsPerView) }).map((_, index) => (
+          {Array.from({
+            length: Math.ceil(destinations.length / itemsPerView),
+          }).map((_, index) => (
             <motion.button
               key={index}
               whileHover={{ scale: 1.2 }}
@@ -364,8 +377,8 @@ export default function DestinationsCarousel({
               onClick={() => setCurrentIndex(index)}
               className={`w-3 h-3 rounded-full transition-all duration-300 ${
                 index === currentIndex
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50'
-                  : 'bg-white/30 hover:bg-white/50'
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg shadow-purple-500/50"
+                  : "bg-white/30 hover:bg-white/50"
               }`}
             />
           ))}
@@ -386,6 +399,9 @@ DestinationsCarousel.propTypes = {
       ratingCount: PropTypes.number.isRequired,
       description: PropTypes.string.isRequired,
       price: PropTypes.number.isRequired,
+      duration: PropTypes.string,
+      groupSize: PropTypes.string,
+      category: PropTypes.string,
     })
   ).isRequired,
   onDestinationClick: PropTypes.func.isRequired,

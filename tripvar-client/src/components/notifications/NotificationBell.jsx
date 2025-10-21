@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FiBell, FiX, FiCheck, FiTrash2, FiExternalLink } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,13 +15,16 @@ export default function NotificationBell() {
   const { notifications, notificationStats, loading } = useSelector((state) => state.notifications);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedNotifications, setSelectedNotifications] = useState([]);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    // Fetch notifications and stats when component mounts
-    // Redux Toolkit's createAsyncThunk will handle duplicate prevention
-    dispatch(fetchUserNotifications({ limit: 10 }));
-    dispatch(fetchNotificationStats());
-  }, [dispatch]);
+    // Only fetch once when component mounts
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      dispatch(fetchUserNotifications({ limit: 10 }));
+      dispatch(fetchNotificationStats());
+    }
+  }, []);
 
   const handleMarkAsRead = async (notificationIds = []) => {
     try {

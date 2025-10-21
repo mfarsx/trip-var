@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import websocketService from '../services/websocketService';
 import logger from '../utils/logger';
@@ -53,7 +53,7 @@ export const useWebSocket = () => {
     websocketService.send(data);
   };
 
-  const subscribe = (event, callback) => {
+  const subscribe = useCallback((event, callback) => {
     const unsubscribe = websocketService.subscribe(event, callback);
     
     // Store the unsubscribe function
@@ -65,7 +65,7 @@ export const useWebSocket = () => {
       unsubscribe();
       currentListeners.delete(key);
     };
-  };
+  }, []);
 
   return {
     connectionState,
@@ -87,7 +87,7 @@ export const useWebSocketNotification = () => {
     });
 
     return unsubscribe;
-  }, [subscribe]);
+  }, []); // Remove subscribe from dependencies
 
   return notifications;
 };
@@ -102,7 +102,7 @@ export const useWebSocketBookingUpdates = () => {
     });
 
     return unsubscribe;
-  }, [subscribe]);
+  }, []); // Remove subscribe from dependencies
 
   return bookingUpdates;
 };
@@ -117,7 +117,7 @@ export const useWebSocketPaymentUpdates = () => {
     });
 
     return unsubscribe;
-  }, [subscribe]);
+  }, []); // Remove subscribe from dependencies
 
   return paymentUpdates;
 };

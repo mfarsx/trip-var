@@ -104,12 +104,12 @@ export const destinationApi = {
     if (params?.category) searchParams.append("category", params.category);
 
     const response = await api.get(`/destinations?${searchParams.toString()}`);
-    return response.data;
+    return response; // Return full response, unwrap in slice
   },
 
   getDestinationById: async (id) => {
     const response = await api.get(`/destinations/${id}`);
-    return response.data;
+    return response; // Return full response, unwrap in slice
   },
 
   searchDestinations: async (searchParams) => {
@@ -117,12 +117,12 @@ export const destinationApi = {
 
     // Add search term for title, description, and location
     if (searchParams.from) params.append("from", searchParams.from);
-    if (searchParams.to) params.append("search", searchParams.to);
+    if (searchParams.to) params.append("to", searchParams.to);
     if (searchParams.date) params.append("date", searchParams.date);
     if (searchParams.guests) params.append("guests", searchParams.guests);
 
     const response = await api.get(`/destinations?${params.toString()}`);
-    return response.data;
+    return response; // Return full response, unwrap in slice
   },
 };
 

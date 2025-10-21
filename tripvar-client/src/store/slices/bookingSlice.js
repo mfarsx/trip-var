@@ -9,7 +9,7 @@ export const createBooking = createAsyncThunk(
     try {
       const response = await bookingApi.createBooking(bookingData);
       toast.success("Booking created successfully!");
-      return response.data.booking;
+      return response.data.data.booking;
     } catch (error) {
       const message = error.response?.data?.message || "Failed to create booking";
       toast.error(message);
@@ -36,7 +36,7 @@ export const fetchBookingById = createAsyncThunk(
   async (bookingId, { rejectWithValue }) => {
     try {
       const response = await bookingApi.getBookingById(bookingId);
-      return response.data.booking;
+      return response.data.data.booking;
     } catch (error) {
       const message = error.response?.data?.message || "Failed to fetch booking";
       return rejectWithValue(message);
@@ -50,7 +50,7 @@ export const cancelBooking = createAsyncThunk(
     try {
       const response = await bookingApi.cancelBooking(bookingId, reason);
       toast.success("Booking cancelled successfully!");
-      return response.data.booking;
+      return response.data.data.booking;
     } catch (error) {
       const message = error.response?.data?.message || "Failed to cancel booking";
       toast.error(message);

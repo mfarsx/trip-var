@@ -87,3 +87,4 @@ ImageSlider.propTypes = {
 };
 
 export default ImageSlider;
+

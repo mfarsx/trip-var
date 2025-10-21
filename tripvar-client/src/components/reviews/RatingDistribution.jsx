@@ -2,7 +2,7 @@ import { FiStar } from 'react-icons/fi';
 import PropTypes from 'prop-types';
 
 export default function RatingDistribution({ ratingStats }) {
-  const { distribution, totalReviews } = ratingStats;
+  const { distribution = {}, totalReviews = 0 } = ratingStats || {};
 
   const getPercentage = (count) => {
     if (totalReviews === 0) return 0;
@@ -24,14 +24,14 @@ export default function RatingDistribution({ ratingStats }) {
             <div className="flex-1 bg-gray-600/30 rounded-full h-2">
               <div
                 className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${getPercentage(distribution[rating])}%` }}
+                style={{ width: `${getPercentage(distribution[rating] || 0)}%` }}
               ></div>
             </div>
             <span className="text-sm text-gray-400 w-12 text-right">
-              {distribution[rating]}
+              {distribution[rating] || 0}
             </span>
             <span className="text-sm text-gray-500 w-10 text-right">
-              ({getPercentage(distribution[rating])}%)
+              ({getPercentage(distribution[rating] || 0)}%)
             </span>
           </div>
         ))}

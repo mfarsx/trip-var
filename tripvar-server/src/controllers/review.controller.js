@@ -4,6 +4,7 @@ const Booking = require('../public/models/booking.model');
 const { ValidationError, NotFoundError, ConflictError } = require('../utils/errors');
 const { sendSuccess, sendCreated, sendPaginated } = require('../utils/response');
 const { info, error } = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // Create a new review
 const createReview = async(req, res, next) => {
@@ -123,7 +124,7 @@ const getDestinationReviews = async(req, res, next) => {
 
     // Get reviews with pagination
     const reviews = await Review.find({
-      destination: destinationId,
+      destination: new mongoose.Types.ObjectId(destinationId),
       status: 'approved'
     })
       .populate('user', 'name email')
@@ -133,7 +134,7 @@ const getDestinationReviews = async(req, res, next) => {
 
     // Get total count
     const total = await Review.countDocuments({
-      destination: destinationId,
+      destination: new mongoose.Types.ObjectId(destinationId),
       status: 'approved'
     });
 
@@ -141,7 +142,7 @@ const getDestinationReviews = async(req, res, next) => {
     const stats = await Review.aggregate([
       {
         $match: {
-          destination: destinationId,
+          destination: new mongoose.Types.ObjectId(destinationId),
           status: 'approved'
         }
       },

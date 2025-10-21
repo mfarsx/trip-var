@@ -1,4 +1,4 @@
-const BaseService = require('./base.service');
+const BaseService = require("./base.service");
 
 class DestinationService extends BaseService {
   constructor(repository) {
@@ -60,9 +60,13 @@ class DestinationService extends BaseService {
   }
 
   // Update destination rating
-  async updateDestinationRating(destinationId, newRating) {
+  async updateDestinationRating(destinationId, rating, ratingCount) {
     try {
-      return await this.repository.updateRating(destinationId, newRating);
+      return await this.repository.updateRating(
+        destinationId,
+        rating,
+        ratingCount
+      );
     } catch (error) {
       throw error;
     }
@@ -73,11 +77,11 @@ class DestinationService extends BaseService {
     try {
       const totalDestinations = await this.repository.count();
       const featuredDestinations = await this.repository.findFeatured();
-      
+
       return {
         totalDestinations,
         featuredCount: featuredDestinations.length,
-        averageRating: await this.getAverageRating()
+        averageRating: await this.getAverageRating(),
       };
     } catch (error) {
       throw error;
@@ -89,8 +93,11 @@ class DestinationService extends BaseService {
     try {
       const destinations = await this.repository.find();
       if (destinations.length === 0) return 0;
-      
-      const totalRating = destinations.reduce((sum, dest) => sum + (dest.averageRating || 0), 0);
+
+      const totalRating = destinations.reduce(
+        (sum, dest) => sum + (dest.rating || 0),
+        0
+      );
       return totalRating / destinations.length;
     } catch (error) {
       throw error;

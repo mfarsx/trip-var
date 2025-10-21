@@ -1,18 +1,20 @@
-const express = require('express');
-const { authenticate, authorize } = require('../middleware/auth');
-const { validateRequest, validationRules } = require('../config/security');
-const destinationController = require('../controllers/destination.controller');
+const express = require("express");
+const { authenticate, authorize } = require("../middleware/auth");
+const { validateRequest, validationRules } = require("../config/security");
+const destinationController = require("../controllers/destination.controller");
 
 const router = express.Router();
 
 // Public routes
-router.get('/', destinationController.getAllDestinations);
-router.get('/:id', destinationController.getDestinationById);
+router.get("/", destinationController.getAllDestinations);
+router.get("/:id", destinationController.getDestinationById);
+router.get("/:id/availability", destinationController.checkAvailability);
 
 // Admin only routes
-router.post('/',
+router.post(
+  "/",
   authenticate,
-  authorize('admin'),
+  authorize("admin"),
   [
     validationRules.destinationTitle,
     validationRules.destinationDescription,
@@ -20,15 +22,16 @@ router.post('/',
     validationRules.destinationRating,
     validationRules.destinationPrice,
     validationRules.destinationLocation,
-    validationRules.destinationCategory
+    validationRules.destinationCategory,
   ],
   validateRequest,
   destinationController.createDestination
 );
 
-router.put('/:id',
+router.put(
+  "/:id",
   authenticate,
-  authorize('admin'),
+  authorize("admin"),
   [
     validationRules.destinationTitle.optional(),
     validationRules.destinationDescription.optional(),
@@ -36,15 +39,16 @@ router.put('/:id',
     validationRules.destinationRating.optional(),
     validationRules.destinationPrice.optional(),
     validationRules.destinationLocation.optional(),
-    validationRules.destinationCategory.optional()
+    validationRules.destinationCategory.optional(),
   ],
   validateRequest,
   destinationController.updateDestination
 );
 
-router.patch('/:id',
+router.patch(
+  "/:id",
   authenticate,
-  authorize('admin'),
+  authorize("admin"),
   [
     validationRules.destinationTitle.optional(),
     validationRules.destinationDescription.optional(),
@@ -52,12 +56,17 @@ router.patch('/:id',
     validationRules.destinationRating.optional(),
     validationRules.destinationPrice.optional(),
     validationRules.destinationLocation.optional(),
-    validationRules.destinationCategory.optional()
+    validationRules.destinationCategory.optional(),
   ],
   validateRequest,
   destinationController.updateDestination
 );
 
-router.delete('/:id', authenticate, authorize('admin'), destinationController.deleteDestination);
+router.delete(
+  "/:id",
+  authenticate,
+  authorize("admin"),
+  destinationController.deleteDestination
+);
 
 module.exports = router;

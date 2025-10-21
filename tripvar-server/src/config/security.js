@@ -27,10 +27,10 @@ const securityConfig = {
     }
   }),
 
-  // Rate limiting configuration
-  generalLimiter: rateLimit({
+  // Rate limiting configuration - disabled in development
+  generalLimiter: process.env.NODE_ENV === 'development' ? (req, res, next) => next() : rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'development' ? 10000 : 100, // Much higher limit for development
+    max: 100, // limit each IP to 100 requests per windowMs
     message: {
       error: 'Too many requests from this IP, please try again later.',
       retryAfter: '15 minutes'
@@ -45,10 +45,10 @@ const securityConfig = {
     }
   }),
 
-  // Strict rate limiting for auth endpoints
-  authLimiter: rateLimit({
+  // Strict rate limiting for auth endpoints - disabled in development
+  authLimiter: process.env.NODE_ENV === 'development' ? (req, res, next) => next() : rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'development' ? 100 : 5, // Higher limit for development
+    max: 5, // limit each IP to 5 auth requests per windowMs
     message: {
       error: 'Too many authentication attempts, please try again later.',
       retryAfter: '15 minutes'

@@ -1,4 +1,4 @@
-const BaseRepository = require('./base.repository');
+const BaseRepository = require("./base.repository");
 
 class DestinationRepository extends BaseRepository {
   constructor(model) {
@@ -8,11 +8,7 @@ class DestinationRepository extends BaseRepository {
   // Find destinations by location
   async findByLocation(location) {
     return await this.model.find({
-      $or: [
-        { city: { $regex: location, $options: 'i' } },
-        { country: { $regex: location, $options: 'i' } },
-        { region: { $regex: location, $options: 'i' } }
-      ]
+      location: { $regex: location, $options: "i" },
     });
   }
 
@@ -24,27 +20,26 @@ class DestinationRepository extends BaseRepository {
   // Find destinations by price range
   async findByPriceRange(minPrice, maxPrice) {
     return await this.model.find({
-      pricePerNight: {
+      price: {
         $gte: minPrice,
-        $lte: maxPrice
-      }
+        $lte: maxPrice,
+      },
     });
   }
 
   // Find featured destinations
   async findFeatured() {
-    return await this.model.find({ isFeatured: true });
+    return await this.model.find({ featured: true });
   }
 
   // Search destinations
   async searchDestinations(query, filters = {}) {
     const searchQuery = {
       $or: [
-        { name: { $regex: query, $options: 'i' } },
-        { description: { $regex: query, $options: 'i' } },
-        { city: { $regex: query, $options: 'i' } },
-        { country: { $regex: query, $options: 'i' } }
-      ]
+        { title: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+        { location: { $regex: query, $options: "i" } },
+      ],
     };
 
     // Apply additional filters
@@ -52,26 +47,26 @@ class DestinationRepository extends BaseRepository {
       searchQuery.category = filters.category;
     }
     if (filters.minPrice || filters.maxPrice) {
-      searchQuery.pricePerNight = {};
+      searchQuery.price = {};
       if (filters.minPrice) {
-        searchQuery.pricePerNight.$gte = filters.minPrice;
+        searchQuery.price.$gte = filters.minPrice;
       }
       if (filters.maxPrice) {
-        searchQuery.pricePerNight.$lte = filters.maxPrice;
+        searchQuery.price.$lte = filters.maxPrice;
       }
     }
     if (filters.rating) {
-      searchQuery.averageRating = { $gte: filters.rating };
+      searchQuery.rating = { $gte: filters.rating };
     }
 
     return await this.model.find(searchQuery);
   }
 
   // Update destination rating
-  async updateRating(destinationId, newRating) {
+  async updateRating(destinationId, rating, ratingCount) {
     return await this.model.findByIdAndUpdate(
       destinationId,
-      { $set: { averageRating: newRating } },
+      { $set: { rating: rating, ratingCount: ratingCount } },
       { new: true }
     );
   }
@@ -79,8 +74,8 @@ class DestinationRepository extends BaseRepository {
   // Get popular destinations
   async getPopular(limit = 10) {
     return await this.model
-      .find({ isActive: true })
-      .sort({ averageRating: -1, reviewCount: -1 })
+      .find()
+      .sort({ rating: -1, ratingCount: -1 })
       .limit(limit);
   }
 }

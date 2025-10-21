@@ -148,36 +148,49 @@ reviewSchema.virtual('age').get(function() {
 
 // Static method to calculate average rating for a destination
 reviewSchema.statics.calculateAverageRating = async function(destinationId) {
-  const stats = await this.aggregate([
-    {
-      $match: {
-        destination: destinationId,
-        status: 'approved'
+  try {
+    const stats = await this.aggregate([
+      {
+        $match: {
+          destination: destinationId,
+          status: 'approved'
+        }
+      },
+      {
+        $group: {
+          _id: '$destination',
+          nRating: { $sum: 1 },
+          avgRating: { $avg: '$rating' },
+          avgCleanliness: { $avg: '$ratings.cleanliness' },
+          avgLocation: { $avg: '$ratings.location' },
+          avgValue: { $avg: '$ratings.value' },
+          avgService: { $avg: '$ratings.service' }
+        }
       }
-    },
-    {
-      $group: {
-        _id: '$destination',
-        nRating: { $sum: 1 },
-        avgRating: { $avg: '$rating' },
-        avgCleanliness: { $avg: '$ratings.cleanliness' },
-        avgLocation: { $avg: '$ratings.location' },
-        avgValue: { $avg: '$ratings.value' },
-        avgService: { $avg: '$ratings.service' }
-      }
-    }
-  ]);
+    ]);
 
-  if (stats.length > 0) {
-    await mongoose.model('Destination').findByIdAndUpdate(destinationId, {
-      rating: Math.round(stats[0].avgRating * 10) / 10,
-      ratingCount: stats[0].nRating
-    });
-  } else {
-    await mongoose.model('Destination').findByIdAndUpdate(destinationId, {
-      rating: 0,
-      ratingCount: 0
-    });
+    const Destination = mongoose.model('Destination');
+    
+    if (stats.length > 0) {
+      const newRating = Math.round(stats[0].avgRating * 10) / 10;
+      const newCount = stats[0].nRating;
+      
+      await Destination.findByIdAndUpdate(destinationId, {
+        rating: newRating,
+        ratingCount: newCount
+      });
+      
+      console.log(`Updated destination ${destinationId} rating: ${newRating} (${newCount} reviews)`);
+    } else {
+      await Destination.findByIdAndUpdate(destinationId, {
+        rating: 0,
+        ratingCount: 0
+      });
+      
+      console.log(`Reset destination ${destinationId} rating to 0 (no approved reviews)`);
+    }
+  } catch (error) {
+    console.error('Error calculating average rating:', error);
   }
 };
 
@@ -186,9 +199,23 @@ reviewSchema.post('save', function() {
   this.constructor.calculateAverageRating(this.destination);
 });
 
-// Post-remove middleware to update destination rating
-reviewSchema.post('remove', function() {
+// Post-deleteOne middleware to update destination rating
+reviewSchema.post('deleteOne', function() {
   this.constructor.calculateAverageRating(this.destination);
+});
+
+// Post-findOneAndDelete middleware to update destination rating
+reviewSchema.post('findOneAndDelete', function() {
+  this.constructor.calculateAverageRating(this.destination);
+});
+
+// Post-deleteMany middleware to update destination rating
+reviewSchema.post('deleteMany', function() {
+  // This is called when multiple reviews are deleted
+  // We need to update all affected destinations
+  if (this.getQuery && this.getQuery().destination) {
+    this.constructor.calculateAverageRating(this.getQuery().destination);
+  }
 });
 
 const Review = mongoose.model('Review', reviewSchema);

@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for both development and production
 
 # Base stage
-FROM node:20-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /usr/src/app
 RUN apk --no-cache add curl
 COPY package*.json ./

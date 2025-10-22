@@ -9,9 +9,10 @@ export const createBooking = createAsyncThunk(
     try {
       const response = await bookingApi.createBooking(bookingData);
       toast.success("Booking created successfully!");
-      return response.data.data.booking;
+      return response.data.booking;
     } catch (error) {
-      const message = error.response?.data?.message || "Failed to create booking";
+      const message =
+        error.response?.data?.message || "Failed to create booking";
       toast.error(message);
       return rejectWithValue(message);
     }
@@ -25,7 +26,8 @@ export const fetchUserBookings = createAsyncThunk(
       const response = await bookingApi.getUserBookings(params);
       return response.data;
     } catch (error) {
-      const message = error.response?.data?.message || "Failed to fetch bookings";
+      const message =
+        error.response?.data?.message || "Failed to fetch bookings";
       return rejectWithValue(message);
     }
   }
@@ -36,9 +38,10 @@ export const fetchBookingById = createAsyncThunk(
   async (bookingId, { rejectWithValue }) => {
     try {
       const response = await bookingApi.getBookingById(bookingId);
-      return response.data.data.booking;
+      return response.data.booking;
     } catch (error) {
-      const message = error.response?.data?.message || "Failed to fetch booking";
+      const message =
+        error.response?.data?.message || "Failed to fetch booking";
       return rejectWithValue(message);
     }
   }
@@ -50,9 +53,10 @@ export const cancelBooking = createAsyncThunk(
     try {
       const response = await bookingApi.cancelBooking(bookingId, reason);
       toast.success("Booking cancelled successfully!");
-      return response.data.data.booking;
+      return response.data.booking;
     } catch (error) {
-      const message = error.response?.data?.message || "Failed to cancel booking";
+      const message =
+        error.response?.data?.message || "Failed to cancel booking";
       toast.error(message);
       return rejectWithValue(message);
     }
@@ -63,10 +67,15 @@ export const checkAvailability = createAsyncThunk(
   "booking/checkAvailability",
   async ({ destinationId, checkInDate, checkOutDate }, { rejectWithValue }) => {
     try {
-      const response = await bookingApi.checkAvailability(destinationId, checkInDate, checkOutDate);
+      const response = await bookingApi.checkAvailability(
+        destinationId,
+        checkInDate,
+        checkOutDate
+      );
       return response.data;
     } catch (error) {
-      const message = error.response?.data?.message || "Failed to check availability";
+      const message =
+        error.response?.data?.message || "Failed to check availability";
       return rejectWithValue(message);
     }
   }
@@ -79,12 +88,12 @@ const initialState = {
   pagination: {
     current: 1,
     pages: 1,
-    total: 0
+    total: 0,
   },
   loading: false,
   error: null,
   creating: false,
-  cancelling: false
+  cancelling: false,
 };
 
 const bookingSlice = createSlice({
@@ -99,7 +108,7 @@ const bookingSlice = createSlice({
     },
     clearAvailability: (state) => {
       state.availability = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -154,11 +163,16 @@ const bookingSlice = createSlice({
       })
       .addCase(cancelBooking.fulfilled, (state, action) => {
         state.cancelling = false;
-        const index = state.bookings.findIndex(booking => booking._id === action.payload._id);
+        const index = state.bookings.findIndex(
+          (booking) => booking._id === action.payload._id
+        );
         if (index !== -1) {
           state.bookings[index] = action.payload;
         }
-        if (state.currentBooking && state.currentBooking._id === action.payload._id) {
+        if (
+          state.currentBooking &&
+          state.currentBooking._id === action.payload._id
+        ) {
           state.currentBooking = action.payload;
         }
       })
@@ -180,8 +194,9 @@ const bookingSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       });
-  }
+  },
 });
 
-export const { clearError, clearCurrentBooking, clearAvailability } = bookingSlice.actions;
+export const { clearError, clearCurrentBooking, clearAvailability } =
+  bookingSlice.actions;
 export default bookingSlice.reducer;

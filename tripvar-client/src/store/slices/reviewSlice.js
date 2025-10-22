@@ -8,7 +8,7 @@ export const fetchDestinationReviews = createAsyncThunk(
   async ({ destinationId, params = {} }, { rejectWithValue }) => {
     try {
       const response = await reviewApi.getDestinationReviews(destinationId, params);
-      return response.data.data;
+      return response.data;
     } catch (error) {
       const message = error.response?.data?.message || "Failed to fetch reviews";
       return rejectWithValue(message);
@@ -22,7 +22,7 @@ export const createReview = createAsyncThunk(
     try {
       const response = await reviewApi.createReview(reviewData);
       toast.success("Review created successfully!");
-      return response.data.data.review;
+      return response.data.review;
     } catch (error) {
       const message = error.response?.data?.message || "Failed to create review";
       toast.error(message);
@@ -36,7 +36,7 @@ export const fetchUserReviews = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await reviewApi.getUserReviews(params);
-      return response.data.data;
+      return response.data;
     } catch (error) {
       const message = error.response?.data?.message || "Failed to fetch user reviews";
       return rejectWithValue(message);
@@ -50,7 +50,7 @@ export const updateReview = createAsyncThunk(
     try {
       const response = await reviewApi.updateReview(reviewId, reviewData);
       toast.success("Review updated successfully!");
-      return response.data.data.review;
+      return response.data.review;
     } catch (error) {
       const message = error.response?.data?.message || "Failed to update review";
       toast.error(message);
@@ -79,7 +79,7 @@ export const markReviewHelpful = createAsyncThunk(
   async (reviewId, { rejectWithValue }) => {
     try {
       const response = await reviewApi.markReviewHelpful(reviewId);
-      return { reviewId, ...response.data.data };
+      return { reviewId, ...response.data };
     } catch (error) {
       const message = error.response?.data?.message || "Failed to mark review as helpful";
       return rejectWithValue(message);

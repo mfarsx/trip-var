@@ -35,6 +35,7 @@ export const bookingFormSlice = createSlice({
       state.availability = null;
       state.availabilityChecked = false;
       state.pricingPreview = null;
+      state.bookingSuccess = false;
       state.error = null;
     },
     

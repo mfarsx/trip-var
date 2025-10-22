@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { fetchDestinationById } from "../../store/slices/destinationSlice";
+import { setBookingSuccess } from "../../store/slices/bookingFormSlice";
 import { useBookingForm } from "../../hooks/useBookingForm";
 import DestinationHeader from "./DestinationHeader";
 import BookingForm from "./BookingForm";
@@ -81,6 +82,13 @@ export default function DestinationDetail({ destination, onBack }) {
       }, 500);
     }
   }, [searchParams, activateQuickBooking]);
+
+  // Reset booking success state when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(setBookingSuccess(false));
+    };
+  }, [dispatch]);
 
   const handleBookingFormSubmit = async (e) => {
     const isValid = await handleBookingSubmit(e);

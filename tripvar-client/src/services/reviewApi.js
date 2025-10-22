@@ -12,13 +12,13 @@ export const reviewApi = {
     const response = await api.get(
       `/reviews/destination/${destinationId}?${queryParams.toString()}`
     );
-    return response;
+    return response.data;
   },
 
   // Create a new review
   createReview: async (reviewData) => {
     const response = await api.post("/reviews", reviewData);
-    return response;
+    return response.data;
   },
 
   // Get user's reviews
@@ -28,25 +28,25 @@ export const reviewApi = {
     if (params.limit) queryParams.append("limit", params.limit);
 
     const response = await api.get(`/reviews?${queryParams.toString()}`);
-    return response;
+    return response.data;
   },
 
   // Update a review
   updateReview: async (reviewId, reviewData) => {
     const response = await api.put(`/reviews/${reviewId}`, reviewData);
-    return response;
+    return response.data;
   },
 
   // Delete a review
   deleteReview: async (reviewId) => {
     const response = await api.delete(`/reviews/${reviewId}`);
-    return response;
+    return response.data;
   },
 
   // Mark review as helpful
   markReviewHelpful: async (reviewId) => {
     const response = await api.post(`/reviews/${reviewId}/likes`);
-    return response;
+    return response.data;
   },
 };
 

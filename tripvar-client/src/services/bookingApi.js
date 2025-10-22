@@ -27,7 +27,9 @@ export const bookingApi = {
 
   // Cancel a booking
   cancelBooking: async (bookingId, reason) => {
-    const response = await api.delete(`/bookings/${bookingId}`, { data: { reason } });
+    const response = await api.delete(`/bookings/${bookingId}`, {
+      data: { reason },
+    });
     return response.data;
   },
 
@@ -36,12 +38,14 @@ export const bookingApi = {
     const params = new URLSearchParams({
       destinationId,
       checkInDate,
-      checkOutDate
+      checkOutDate,
     });
 
-    const response = await api.get(`/bookings/availability?${params.toString()}`);
+    const response = await api.get(
+      `/bookings/availability?${params.toString()}`
+    );
     return response.data;
-  }
+  },
 };
 
 export default bookingApi;

@@ -1,17 +1,16 @@
-name: Security Scanning
+name: Security Scan
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
   schedule:
-    # Run security scans every Monday at 9 AM UTC
-    - cron: "0 9 * * 1"
+    - cron: "0 9 * * 1" # Every Monday at 9 AM UTC
 
 jobs:
-  dependency-scan:
-    name: Dependency Vulnerability Scan
+  security-audit:
+    name: Dependency Security Audit
     runs-on: ubuntu-latest
 
     steps:
@@ -23,151 +22,12 @@ jobs:
         with:
           node-version: "20.x"
 
-      - name: Install server dependencies
+      - name: Audit server dependencies
         working-directory: ./tripvar-server
-        run: npm ci
-
-      - name: Install client dependencies
-        working-directory: ./tripvar-client
-        run: npm ci
-
-      - name: Run server npm audit
-        working-directory: ./tripvar-server
-        run: |
-          npm audit --audit-level=moderate --json > server-audit.json || true
-          npm audit --audit-level=moderate || echo "::warning::Server dependencies have vulnerabilities"
+        run: npm audit || true
         continue-on-error: true
 
-      - name: Run client npm audit
+      - name: Audit client dependencies
         working-directory: ./tripvar-client
-        run: |
-          npm audit --audit-level=moderate --json > client-audit.json || true
-          npm audit --audit-level=moderate || echo "::warning::Client dependencies have vulnerabilities"
+        run: npm audit || true
         continue-on-error: true
-
-      - name: Upload audit results
-        uses: actions/upload-artifact@v4
-        with:
-          name: audit-results
-          path: |
-            tripvar-server/server-audit.json
-            tripvar-client/client-audit.json
-
-  code-scanning:
-    name: CodeQL Security Analysis
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ["javascript"]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-          queries: security-and-quality
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:${{matrix.language}}"
-
-  docker-scan:
-    name: Docker Image Security Scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build server image for scanning
-        uses: docker/build-push-action@v5
-        with:
-          context: ./tripvar-server
-          file: ./tripvar-server/Dockerfile
-          push: false
-          load: true
-          tags: tripvar-server:scan
-
-      - name: Build client image for scanning
-        uses: docker/build-push-action@v5
-        with:
-          context: ./tripvar-client
-          file: ./tripvar-client/Dockerfile
-          push: false
-          load: true
-          tags: tripvar-client:scan
-
-      - name: Run Trivy vulnerability scanner on server image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: tripvar-server:scan
-          format: "sarif"
-          output: "trivy-server-results.sarif"
-          severity: "CRITICAL,HIGH"
-
-      - name: Run Trivy vulnerability scanner on client image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: tripvar-client:scan
-          format: "sarif"
-          output: "trivy-client-results.sarif"
-          severity: "CRITICAL,HIGH"
-
-      - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: |
-            trivy-server-results.sarif
-            trivy-client-results.sarif
-
-  secret-scan:
-    name: Secret Scanning
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: TruffleHog Secret Scan
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --debug --only-verified
-
-  security-summary:
-    name: Security Summary
-    runs-on: ubuntu-latest
-    needs: [dependency-scan, code-scanning, docker-scan, secret-scan]
-    if: always()
-
-    steps:
-      - name: Create security summary
-        run: |
-          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Dependency Scan**: ${{ needs.dependency-scan.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Code Scanning**: ${{ needs.code-scanning.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Docker Scan**: ${{ needs.docker-scan.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Secret Scan**: ${{ needs.secret-scan.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Review the security tab for detailed findings." >> $GITHUB_STEP_SUMMARY

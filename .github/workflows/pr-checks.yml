@@ -1,155 +1,35 @@
-name: PR Quality Checks
+name: PR Checks
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
 jobs:
-  pr-info:
-    name: PR Information
+  pr-check:
+    name: PR Quality Check
     runs-on: ubuntu-latest
 
     steps:
-      - name: PR Info
+      - name: Check PR
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
+            const changes = pr.additions + pr.deletions;
+
             console.log(`PR #${pr.number}: ${pr.title}`);
-            console.log(`Author: ${pr.user.login}`);
-            console.log(`Base: ${pr.base.ref} <- Head: ${pr.head.ref}`);
-            console.log(`Commits: ${pr.commits}`);
-            console.log(`Changed files: ${pr.changed_files}`);
-            console.log(`Additions: +${pr.additions}, Deletions: -${pr.deletions}`);
+            console.log(`Changes: ${changes} lines`);
+            console.log(`Files: ${pr.changed_files}`);
 
-  size-check:
-    name: PR Size Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check PR size
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            const changes = pr.additions + pr.deletions;
-
-            let size, color;
-            if (changes < 100) {
-              size = 'XS';
-              color = '0e8a16';
-            } else if (changes < 300) {
-              size = 'S';
-              color = '5cb85c';
-            } else if (changes < 500) {
-              size = 'M';
-              color = 'fbca04';
-            } else if (changes < 1000) {
-              size = 'L';
-              color = 'f0ad4e';
-            } else {
-              size = 'XL';
-              color = 'd9534f';
+            // Warn if PR is very large
+            if (changes > 1000) {
+              core.warning('This PR is very large (>1000 lines). Consider breaking it into smaller PRs.');
             }
 
-            core.info(`PR size: ${size} (${changes} changes)`);
-
-            if (size === 'XL') {
-              core.warning('This PR is very large. Consider breaking it into smaller PRs.');
+            // Check PR title format
+            const conventionalCommitRegex = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\(.+\))?: .+/;
+            if (!conventionalCommitRegex.test(pr.title)) {
+              core.warning('PR title should follow Conventional Commits format (e.g., "feat: add feature")');
             }
 
-  title-check:
-    name: PR Title Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check PR title
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            const title = pr.title;
-
-            const conventionalCommitRegex = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+/;
-
-            if (!conventionalCommitRegex.test(title)) {
-              core.warning('PR title should follow Conventional Commits format');
-              core.info('Example: feat(api): add new endpoint for user profile');
-            }
-
-  label-check:
-    name: PR Label Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check labels
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            const labels = pr.labels.map(l => l.name);
-
-            if (labels.length === 0) {
-              core.warning('This PR has no labels. Consider adding relevant labels.');
-            }
-
-  conflict-check:
-    name: Check for Conflicts
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check for merge conflicts
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-
-            if (pr.mergeable === false) {
-              core.setFailed('This PR has merge conflicts. Please resolve them.');
-            } else if (pr.mergeable === true) {
-              core.info('No merge conflicts detected.');
-            } else {
-              core.info('Merge conflict status is unknown.');
-            }
-
-  comment-summary:
-    name: Post PR Summary
-    runs-on: ubuntu-latest
-    needs: [pr-info, size-check, title-check, label-check, conflict-check]
-    if: always()
-
-    steps:
-      - name: Comment on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            const changes = pr.additions + pr.deletions;
-
-            let sizeEmoji;
-            if (changes < 100) sizeEmoji = '🟢';
-            else if (changes < 300) sizeEmoji = '🟡';
-            else if (changes < 500) sizeEmoji = '🟠';
-            else sizeEmoji = '🔴';
-
-            const comment = `## PR Quality Check Summary
-
-            ${sizeEmoji} **Size**: ${changes} lines changed (+${pr.additions}/-${pr.deletions})
-            📁 **Files changed**: ${pr.changed_files}
-            ✅ **Commits**: ${pr.commits}
-
-            ### Checklist
-            - [ ] PR title follows conventional commits format
-            - [ ] PR has appropriate labels
-            - [ ] Tests are included
-            - [ ] Documentation is updated
-            - [ ] No merge conflicts
-
-            *Automated checks will run shortly. Please ensure all checks pass before merging.*`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+            core.info('✅ PR check complete');

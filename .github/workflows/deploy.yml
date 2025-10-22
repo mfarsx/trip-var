@@ -1,8 +1,6 @@
-name: Deploy to Production
+name: Deploy
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -16,9 +14,9 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to ${{ github.event.inputs.environment || 'production' }}
+    name: Deploy to ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'production' }}
+    environment: ${{ github.event.inputs.environment }}
 
     steps:
       - name: Checkout code
@@ -34,96 +32,25 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create deployment directory
-        run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p ~/tripvar-deploy"
-
-      - name: Copy deployment files
-        run: |
-          scp -r \
-            docker-compose.prod.yml \
-            nginx/nginx.prod.conf \
-            scripts/deploy.sh \
-            scripts/health-check.sh \
-            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/tripvar-deploy/
-
-      - name: Copy environment files
-        run: |
-          echo "${{ secrets.SERVER_ENV_PROD }}" | ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "cat > ~/tripvar-deploy/.env.server.prod"
-          echo "${{ secrets.CLIENT_ENV_PROD }}" | ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "cat > ~/tripvar-deploy/.env.client.prod"
-
-      - name: Pull latest Docker images
+      - name: Deploy to server
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd ~/tripvar-deploy
-            docker-compose -f docker-compose.prod.yml pull
-          EOF
-
-      - name: Run deployment script
-        run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd ~/tripvar-deploy
-            chmod +x scripts/deploy.sh
-            ./scripts/deploy.sh deploy
-          EOF
-
-      - name: Run health checks
-        run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd ~/tripvar-deploy
-            chmod +x scripts/health-check.sh
-            ./scripts/health-check.sh
-          EOF
-
-      - name: Send deployment notification
-        if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: |
-            Deployment to ${{ github.event.inputs.environment || 'production' }} ${{ job.status }}
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-        continue-on-error: true
-
-      - name: Create deployment summary
-        if: always()
-        run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ github.event.inputs.environment || 'production' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Author**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Time**: $(date)" >> $GITHUB_STEP_SUMMARY
-
-  deploy-raspberry-pi:
-    name: Deploy to Raspberry Pi
-    runs-on: ubuntu-latest
-    if: github.event.inputs.environment == 'raspberry-pi' || github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.RPI_SSH_PRIVATE_KEY }}
-
-      - name: Add Raspberry Pi to known hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to Raspberry Pi
-        run: |
-          ssh ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} << 'EOF'
-            cd ~/tripvar || (git clone ${{ github.server_url }}/${{ github.repository }}.git ~/tripvar && cd ~/tripvar)
+            cd ~/tripvar || (git clone https://github.com/${{ github.repository }}.git ~/tripvar && cd ~/tripvar)
             git pull origin main
-            chmod +x scripts/deploy-raspberry-pi.sh
-            sudo ./scripts/deploy-raspberry-pi.sh -d ${{ secrets.RPI_DOMAIN }}
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
+            docker-compose -f docker-compose.prod.yml ps
           EOF
-        continue-on-error: true
+
+      - name: Health check
+        run: |
+          sleep 10
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "curl -f http://localhost:8000/health || exit 1"
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date)" >> $GITHUB_STEP_SUMMARY

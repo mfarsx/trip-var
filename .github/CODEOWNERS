@@ -1,0 +1,32 @@
+# CODEOWNERS file
+# Define individuals or teams responsible for code in this repository
+# https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @mfarsx
+
+# Server-side code
+/tripvar-server/ @mfarsx
+
+# Client-side code
+/tripvar-client/ @mfarsx
+
+# CI/CD configuration
+/.github/ @mfarsx
+
+# Docker configuration
+docker-compose*.yml @mfarsx
+Dockerfile* @mfarsx
+
+# Deployment scripts
+/scripts/ @mfarsx
+
+# Documentation
+*.md @mfarsx
+/docs/ @mfarsx
+
+# Configuration files
+*.config.js @mfarsx
+*.config.ts @mfarsx
+.env* @mfarsx
+

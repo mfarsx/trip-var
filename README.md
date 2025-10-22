@@ -6,6 +6,11 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-8.9.5-green)
 ![Redis](https://img.shields.io/badge/Redis-alpine-blue)
 
+[![Test Suite](https://github.com/mfarsx/tripvar/actions/workflows/test.yml/badge.svg)](https://github.com/mfarsx/tripvar/actions/workflows/test.yml)
+[![Build](https://github.com/mfarsx/tripvar/actions/workflows/build.yml/badge.svg)](https://github.com/mfarsx/tripvar/actions/workflows/build.yml)
+[![Security](https://github.com/mfarsx/tripvar/actions/workflows/security.yml/badge.svg)](https://github.com/mfarsx/tripvar/actions/workflows/security.yml)
+[![Deploy](https://github.com/mfarsx/tripvar/actions/workflows/deploy.yml/badge.svg)](https://github.com/mfarsx/tripvar/actions/workflows/deploy.yml)
+
 A full-stack travel planning application built with modern web technologies, featuring destination discovery, booking management, and user authentication.
 
 ## 🏗️ Architecture
@@ -282,6 +287,7 @@ chmod +x scripts/deploy.sh
 ```
 
 **Production Features:**
+
 - ✅ SSL/HTTPS support
 - ✅ Security hardening (Helmet, Rate Limiting, CORS)
 - ✅ Enhanced logging and monitoring
@@ -307,6 +313,46 @@ chmod +x scripts/deploy.sh
 - Write meaningful commit messages
 - Test your changes before submitting
 - Update documentation as needed
+
+## 🔄 CI/CD Pipeline
+
+This project features a comprehensive CI/CD pipeline powered by GitHub Actions.
+
+### Automated Workflows
+
+- **Test Suite**: Runs unit tests, integration tests, and coverage reports on every PR
+- **Build**: Builds and pushes Docker images to GitHub Container Registry
+- **Security Scanning**: Automated vulnerability scanning with CodeQL, Trivy, and TruffleHog
+- **Deployment**: Automated deployment to production on merge to main
+- **PR Quality Checks**: Validates PR size, title format, and code quality
+
+### Quick Start
+
+1. **Setup CI/CD** (15 minutes)
+
+   ```bash
+   # See the quick start guide
+   cat CI_CD_QUICK_START.md
+   ```
+
+2. **Configure Secrets** (5 minutes)
+
+   ```bash
+   # Follow the secrets setup guide
+   cat .github/SECRETS_SETUP.md
+   ```
+
+3. **Deploy**
+   ```bash
+   # Merge to main triggers automatic deployment
+   git push origin main
+   ```
+
+### Documentation
+
+- 📘 [Complete CI/CD Documentation](CI_CD_DOCUMENTATION.md)
+- 🚀 [Quick Start Guide](CI_CD_QUICK_START.md)
+- 🔐 [Secrets Setup Guide](.github/SECRETS_SETUP.md)
 
 ## 📄 License
 

@@ -1,257 +1,130 @@
-name: Deploy
+name: Deploy to Production
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy to'
+        description: "Environment to deploy to"
         required: true
-        default: 'staging'
+        default: "production"
         type: choice
         options:
-          - staging
           - production
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+          - staging
 
 jobs:
-  # Build and Test
-  build-and-test:
-    name: Build and Test
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'production' }}
     runs-on: ubuntu-latest
-    
-    services:
-      mongodb:
-        image: mongo:7.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      redis:
-        image: redis:7.2-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    environment: ${{ github.event.inputs.environment || 'production' }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          node-version: '18'
-          cache: 'npm'
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Install dependencies
+      - name: Add server to known hosts
         run: |
-          cd tripvar-server && npm ci
-          cd ../tripvar-client && npm ci
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Run tests
+      - name: Create deployment directory
         run: |
-          # Server tests
-          cd tripvar-server
-          npm run test:coverage
-          cd ../tripvar-client
-          npm run test:coverage
-        env:
-          NODE_ENV: test
-          MONGODB_URI: mongodb://localhost:27017/tripvar-test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: test-jwt-secret-key-for-testing-only
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p ~/tripvar-deploy"
 
-      - name: Build client
-        working-directory: ./tripvar-client
-        run: npm run build
-        env:
-          NODE_ENV: production
-          VITE_API_URL: ${{ secrets.API_URL }}
-
-  # Build Docker Images
-  build-images:
-    name: Build Docker Images
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    permissions:
-      contents: read
-      packages: write
-
-    strategy:
-      matrix:
-        service: [server, client]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./tripvar-${{ matrix.service }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
-
-  # Deploy to Staging
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: build-images
-    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
-    environment: staging
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to staging
+      - name: Copy deployment files
         run: |
-          echo "Deploying to staging environment..."
-          # Add your staging deployment commands here
-          # For example, using Docker Compose or Kubernetes
-          
-          # Example with Docker Compose:
-          # docker-compose -f docker-compose.staging.yml up -d
-          
-          # Example with Kubernetes:
-          # kubectl apply -f k8s/staging/
-          
-          echo "Staging deployment completed"
+          scp -r \
+            docker-compose.prod.yml \
+            nginx/nginx.prod.conf \
+            scripts/deploy.sh \
+            scripts/health-check.sh \
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/tripvar-deploy/
+
+      - name: Copy environment files
+        run: |
+          echo "${{ secrets.SERVER_ENV_PROD }}" | ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "cat > ~/tripvar-deploy/.env.server.prod"
+          echo "${{ secrets.CLIENT_ENV_PROD }}" | ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} "cat > ~/tripvar-deploy/.env.client.prod"
+
+      - name: Pull latest Docker images
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ~/tripvar-deploy
+            docker-compose -f docker-compose.prod.yml pull
+          EOF
+
+      - name: Run deployment script
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ~/tripvar-deploy
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh deploy
+          EOF
 
       - name: Run health checks
         run: |
-          echo "Running health checks..."
-          # Add health check commands here
-          # curl -f ${{ secrets.STAGING_URL }}/health
-          echo "Health checks completed"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ~/tripvar-deploy
+            chmod +x scripts/health-check.sh
+            ./scripts/health-check.sh
+          EOF
 
-      - name: Notify deployment
-        run: |
-          echo "Staging deployment successful!"
-          # Add notification logic here (Slack, Discord, etc.)
-
-  # Deploy to Production
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build-images, deploy-staging]
-    if: github.event.inputs.environment == 'production'
-    environment: production
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to production
-        run: |
-          echo "Deploying to production environment..."
-          # Add your production deployment commands here
-          
-          # Example with Docker Compose:
-          # docker-compose -f docker-compose.prod.yml up -d
-          
-          # Example with Kubernetes:
-          # kubectl apply -f k8s/production/
-          
-          echo "Production deployment completed"
-
-      - name: Run health checks
-        run: |
-          echo "Running production health checks..."
-          # Add health check commands here
-          # curl -f ${{ secrets.PRODUCTION_URL }}/health
-          echo "Health checks completed"
-
-      - name: Create release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Send deployment notification
+        if: always()
+        uses: 8398a7/action-slack@v3
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
-          body: |
-            Automated deployment to production
-            
-            Changes in this release:
-            - See commit history for details
-            
-            Deployment completed at: ${{ github.event.head_commit.timestamp }}
-          draft: false
-          prerelease: false
+          status: ${{ job.status }}
+          text: |
+            Deployment to ${{ github.event.inputs.environment || 'production' }} ${{ job.status }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true
 
-      - name: Notify deployment
+      - name: Create deployment summary
+        if: always()
         run: |
-          echo "Production deployment successful!"
-          # Add notification logic here (Slack, Discord, etc.)
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ github.event.inputs.environment || 'production' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date)" >> $GITHUB_STEP_SUMMARY
 
-  # Rollback (Manual trigger)
-  rollback:
-    name: Rollback Deployment
+  deploy-raspberry-pi:
+    name: Deploy to Raspberry Pi
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'rollback'
-    environment: production
+    if: github.event.inputs.environment == 'raspberry-pi' || github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Rollback deployment
-        run: |
-          echo "Rolling back deployment..."
-          # Add rollback commands here
-          
-          # Example with Docker Compose:
-          # docker-compose -f docker-compose.prod.yml down
-          # docker-compose -f docker-compose.prod.yml up -d --scale server=0
-          # docker-compose -f docker-compose.prod.yml up -d
-          
-          echo "Rollback completed"
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.RPI_SSH_PRIVATE_KEY }}
 
-      - name: Verify rollback
+      - name: Add Raspberry Pi to known hosts
         run: |
-          echo "Verifying rollback..."
-          # Add verification commands here
-          # curl -f ${{ secrets.PRODUCTION_URL }}/health
-          echo "Rollback verification completed"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Notify rollback
+      - name: Deploy to Raspberry Pi
         run: |
-          echo "Rollback completed successfully!"
-          # Add notification logic here
+          ssh ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} << 'EOF'
+            cd ~/tripvar || (git clone ${{ github.server_url }}/${{ github.repository }}.git ~/tripvar && cd ~/tripvar)
+            git pull origin main
+            chmod +x scripts/deploy-raspberry-pi.sh
+            sudo ./scripts/deploy-raspberry-pi.sh -d ${{ secrets.RPI_DOMAIN }}
+          EOF
+        continue-on-error: true

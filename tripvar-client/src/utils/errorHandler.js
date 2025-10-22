@@ -3,8 +3,9 @@
  */
 class ErrorHandler {
   constructor() {
-    this.errorReportingEnabled = import.meta.env.VITE_ENABLE_ERROR_REPORTING === 'true';
-    this.debugMode = import.meta.env.VITE_ENABLE_DEBUG_LOGGING === 'true';
+    this.errorReportingEnabled =
+      import.meta.env.VITE_ENABLE_ERROR_REPORTING === "true";
+    this.debugMode = import.meta.env.VITE_ENABLE_DEBUG_LOGGING === "true";
     this.errorBoundary = null;
     this.errorQueue = [];
     this.maxQueueSize = 50;
@@ -24,7 +25,7 @@ class ErrorHandler {
    * @param {Object} errorInfo - Additional error information
    * @param {string} context - Error context
    */
-  handleError(error, errorInfo = {}, context = 'Unknown') {
+  handleError(error, errorInfo = {}, context = "Unknown") {
     const errorData = {
       message: error.message,
       stack: error.stack,
@@ -35,7 +36,7 @@ class ErrorHandler {
       url: window.location.href,
       userId: this.getCurrentUserId(),
       sessionId: this.getSessionId(),
-      ...errorInfo
+      ...errorInfo,
     };
 
     // Log error locally
@@ -57,7 +58,7 @@ class ErrorHandler {
       this.errorBoundary.setState({
         hasError: true,
         error: error,
-        errorInfo: errorInfo
+        errorInfo: errorInfo,
       });
     }
   }
@@ -69,7 +70,7 @@ class ErrorHandler {
    */
   handleApiError(error, config = {}) {
     const errorData = {
-      type: 'API_ERROR',
+      type: "API_ERROR",
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -78,7 +79,7 @@ class ErrorHandler {
       method: config.method,
       timestamp: new Date().toISOString(),
       userId: this.getCurrentUserId(),
-      sessionId: this.getSessionId()
+      sessionId: this.getSessionId(),
     };
 
     // Log error locally
@@ -99,39 +100,59 @@ class ErrorHandler {
   /**
    * Handle specific API error types
    * @param {Object} error - Axios error object
-   * @param {Object} config - Request configuration
    */
-  handleSpecificApiError(error, config) {
+  handleSpecificApiError(error) {
     const status = error.response?.status;
     const errorData = error.response?.data;
 
     switch (status) {
       case 400:
-        this.showUserError(new Error('Invalid request. Please check your input.'), 'API');
+        this.showUserError(
+          new Error("Invalid request. Please check your input."),
+          "API"
+        );
         break;
       case 401:
         this.handleUnauthorizedError();
         break;
       case 403:
-        this.showUserError(new Error('You do not have permission to perform this action.'), 'API');
+        this.showUserError(
+          new Error("You do not have permission to perform this action."),
+          "API"
+        );
         break;
       case 404:
-        this.showUserError(new Error('The requested resource was not found.'), 'API');
+        this.showUserError(
+          new Error("The requested resource was not found."),
+          "API"
+        );
         break;
       case 422:
         this.handleValidationError(errorData);
         break;
       case 429:
-        this.showUserError(new Error('Too many requests. Please try again later.'), 'API');
+        this.showUserError(
+          new Error("Too many requests. Please try again later."),
+          "API"
+        );
         break;
       case 500:
-        this.showUserError(new Error('Server error. Please try again later.'), 'API');
+        this.showUserError(
+          new Error("Server error. Please try again later."),
+          "API"
+        );
         break;
       case 503:
-        this.showUserError(new Error('Service temporarily unavailable. Please try again later.'), 'API');
+        this.showUserError(
+          new Error("Service temporarily unavailable. Please try again later."),
+          "API"
+        );
         break;
       default:
-        this.showUserError(new Error('An unexpected error occurred. Please try again.'), 'API');
+        this.showUserError(
+          new Error("An unexpected error occurred. Please try again."),
+          "API"
+        );
     }
   }
 
@@ -140,11 +161,11 @@ class ErrorHandler {
    */
   handleUnauthorizedError() {
     // Clear authentication data
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
     // Redirect to login
-    window.location.href = '/login';
+    window.location.href = "/login";
   }
 
   /**
@@ -153,10 +174,18 @@ class ErrorHandler {
    */
   handleValidationError(errorData) {
     if (errorData?.details && Array.isArray(errorData.details)) {
-      const validationMessages = errorData.details.map(detail => detail.message).join(', ');
-      this.showUserError(new Error(`Validation failed: ${validationMessages}`), 'API');
+      const validationMessages = errorData.details
+        .map((detail) => detail.message)
+        .join(", ");
+      this.showUserError(
+        new Error(`Validation failed: ${validationMessages}`),
+        "API"
+      );
     } else {
-      this.showUserError(new Error(errorData?.message || 'Validation failed'), 'API');
+      this.showUserError(
+        new Error(errorData?.message || "Validation failed"),
+        "API"
+      );
     }
   }
 
@@ -166,8 +195,8 @@ class ErrorHandler {
    */
   logError(errorData) {
     if (this.debugMode) {
-      console.group('🚨 Error Handler');
-      console.error('Error:', errorData);
+      console.group("🚨 Error Handler");
+      console.error("Error:", errorData);
       console.groupEnd();
     }
   }
@@ -178,7 +207,7 @@ class ErrorHandler {
    */
   addToQueue(errorData) {
     this.errorQueue.push(errorData);
-    
+
     // Maintain queue size
     if (this.errorQueue.length > this.maxQueueSize) {
       this.errorQueue.shift();
@@ -194,22 +223,22 @@ class ErrorHandler {
       // Report to Sentry if available
       if (window.Sentry) {
         window.Sentry.captureException(new Error(errorData.message), {
-          extra: errorData
+          extra: errorData,
         });
       }
 
       // Report to custom error reporting service
       if (import.meta.env.VITE_ERROR_REPORTING_URL) {
         await fetch(import.meta.env.VITE_ERROR_REPORTING_URL, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(errorData)
+          body: JSON.stringify(errorData),
         });
       }
     } catch (reportingError) {
-      console.error('Failed to report error:', reportingError);
+      console.error("Failed to report error:", reportingError);
     }
   }
 
@@ -220,19 +249,21 @@ class ErrorHandler {
    */
   showUserError(error, context) {
     // Import toast dynamically to avoid circular dependencies
-    import('react-hot-toast').then(({ toast }) => {
-      toast.error(this.getUserFriendlyMessage(error, context), {
-        duration: 5000,
-        position: 'top-right',
-        style: {
-          background: '#ef4444',
-          color: '#fff',
-        },
+    import("react-hot-toast")
+      .then(({ default: toast }) => {
+        toast.error(this.getUserFriendlyMessage(error, context), {
+          duration: 5000,
+          position: "top-right",
+          style: {
+            background: "#ef4444",
+            color: "#fff",
+          },
+        });
+      })
+      .catch(() => {
+        // Fallback to alert if toast is not available
+        alert(this.getUserFriendlyMessage(error, context));
       });
-    }).catch(() => {
-      // Fallback to alert if toast is not available
-      alert(this.getUserFriendlyMessage(error, context));
-    });
   }
 
   /**
@@ -243,23 +274,24 @@ class ErrorHandler {
    */
   getUserFriendlyMessage(error, context) {
     const messages = {
-      'API': 'Something went wrong while communicating with the server. Please try again.',
-      'NETWORK': 'Network error. Please check your internet connection and try again.',
-      'VALIDATION': 'Please check your input and try again.',
-      'AUTHENTICATION': 'Please log in to continue.',
-      'AUTHORIZATION': 'You do not have permission to perform this action.',
-      'NOT_FOUND': 'The requested resource was not found.',
-      'SERVER': 'Server error. Please try again later.',
-      'UNKNOWN': 'An unexpected error occurred. Please try again.'
+      API: "Something went wrong while communicating with the server. Please try again.",
+      NETWORK:
+        "Network error. Please check your internet connection and try again.",
+      VALIDATION: "Please check your input and try again.",
+      AUTHENTICATION: "Please log in to continue.",
+      AUTHORIZATION: "You do not have permission to perform this action.",
+      NOT_FOUND: "The requested resource was not found.",
+      SERVER: "Server error. Please try again later.",
+      UNKNOWN: "An unexpected error occurred. Please try again.",
     };
 
     // Check if error message is already user-friendly
-    if (error.message && !error.message.includes('Error:') && !error.stack) {
+    if (error.message && !error.message.includes("Error:") && !error.stack) {
       return error.message;
     }
 
     // Return context-specific message
-    return messages[context] || messages['UNKNOWN'];
+    return messages[context] || messages["UNKNOWN"];
   }
 
   /**
@@ -268,7 +300,7 @@ class ErrorHandler {
    */
   getCurrentUserId() {
     try {
-      const user = localStorage.getItem('user');
+      const user = localStorage.getItem("user");
       return user ? JSON.parse(user).id : null;
     } catch {
       return null;
@@ -280,10 +312,10 @@ class ErrorHandler {
    * @returns {string} Session ID
    */
   getSessionId() {
-    let sessionId = sessionStorage.getItem('sessionId');
+    let sessionId = sessionStorage.getItem("sessionId");
     if (!sessionId) {
       sessionId = this.generateSessionId();
-      sessionStorage.setItem('sessionId', sessionId);
+      sessionStorage.setItem("sessionId", sessionId);
     }
     return sessionId;
   }
@@ -293,7 +325,9 @@ class ErrorHandler {
    * @returns {string} Session ID
    */
   generateSessionId() {
-    return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    return (
+      "session_" + Math.random().toString(36).substr(2, 9) + "_" + Date.now()
+    );
   }
 
   /**
@@ -320,16 +354,16 @@ class ErrorHandler {
       total: this.errorQueue.length,
       byType: {},
       byContext: {},
-      recent: this.errorQueue.slice(-10)
+      recent: this.errorQueue.slice(-10),
     };
 
-    this.errorQueue.forEach(error => {
+    this.errorQueue.forEach((error) => {
       // Count by type
-      const type = error.type || 'UNKNOWN';
+      const type = error.type || "UNKNOWN";
       stats.byType[type] = (stats.byType[type] || 0) + 1;
 
       // Count by context
-      const context = error.context || 'UNKNOWN';
+      const context = error.context || "UNKNOWN";
       stats.byContext[context] = (stats.byContext[context] || 0) + 1;
     });
 
@@ -341,18 +375,26 @@ class ErrorHandler {
 const errorHandler = new ErrorHandler();
 
 // Global error handlers
-window.addEventListener('error', (event) => {
-  errorHandler.handleError(event.error, {
-    filename: event.filename,
-    lineno: event.lineno,
-    colno: event.colno
-  }, 'GLOBAL');
+window.addEventListener("error", (event) => {
+  errorHandler.handleError(
+    event.error,
+    {
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    },
+    "GLOBAL"
+  );
 });
 
-window.addEventListener('unhandledrejection', (event) => {
-  errorHandler.handleError(new Error(event.reason), {
-    type: 'UNHANDLED_PROMISE_REJECTION'
-  }, 'PROMISE');
+window.addEventListener("unhandledrejection", (event) => {
+  errorHandler.handleError(
+    new Error(event.reason),
+    {
+      type: "UNHANDLED_PROMISE_REJECTION",
+    },
+    "PROMISE"
+  );
 });
 
 export default errorHandler;

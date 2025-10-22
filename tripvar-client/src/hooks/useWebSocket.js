@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSelector } from 'react-redux';
-import websocketService from '../services/websocketService';
-import logger from '../utils/logger';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useSelector } from "react-redux";
+import websocketService from "../services/websocketService";
+import logger from "../utils/logger";
 
 export const useWebSocket = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
-  const [connectionState, setConnectionState] = useState('DISCONNECTED');
+  const [connectionState, setConnectionState] = useState("DISCONNECTED");
   const [lastMessage, setLastMessage] = useState(null);
   const listenersRef = useRef(new Map());
 
@@ -16,35 +16,38 @@ export const useWebSocket = () => {
     } else {
       // Disconnect when user is not authenticated
       websocketService.disconnect();
-      setConnectionState('DISCONNECTED');
+      setConnectionState("DISCONNECTED");
     }
 
     // Listen for connection state changes
-    const unsubscribeConnected = websocketService.subscribe('connected', () => {
-      setConnectionState('CONNECTED');
+    const unsubscribeConnected = websocketService.subscribe("connected", () => {
+      setConnectionState("CONNECTED");
     });
 
-    const unsubscribeDisconnected = websocketService.subscribe('disconnected', () => {
-      setConnectionState('DISCONNECTED');
+    const unsubscribeDisconnected = websocketService.subscribe(
+      "disconnected",
+      () => {
+        setConnectionState("DISCONNECTED");
+      }
+    );
+
+    const unsubscribeError = websocketService.subscribe("error", (error) => {
+      logger.error("WebSocket error in hook", error);
     });
 
-    const unsubscribeError = websocketService.subscribe('error', (error) => {
-      logger.error('WebSocket error in hook', error);
-    });
-
-    const unsubscribeMessage = websocketService.subscribe('message', (data) => {
+    const unsubscribeMessage = websocketService.subscribe("message", (data) => {
       setLastMessage(data);
     });
 
     // Store unsubscribe functions
-    listenersRef.current.set('connected', unsubscribeConnected);
-    listenersRef.current.set('disconnected', unsubscribeDisconnected);
-    listenersRef.current.set('error', unsubscribeError);
-    listenersRef.current.set('message', unsubscribeMessage);
+    listenersRef.current.set("connected", unsubscribeConnected);
+    listenersRef.current.set("disconnected", unsubscribeDisconnected);
+    listenersRef.current.set("error", unsubscribeError);
+    listenersRef.current.set("message", unsubscribeMessage);
 
     return () => {
       // Cleanup listeners
-      listenersRef.current.forEach(unsubscribe => unsubscribe());
+      listenersRef.current.forEach((unsubscribe) => unsubscribe());
       listenersRef.current.clear();
     };
   }, [isAuthenticated]);
@@ -55,12 +58,12 @@ export const useWebSocket = () => {
 
   const subscribe = useCallback((event, callback) => {
     const unsubscribe = websocketService.subscribe(event, callback);
-    
+
     // Store the unsubscribe function
     const key = `${event}_${Date.now()}`;
     const currentListeners = listenersRef.current;
     currentListeners.set(key, unsubscribe);
-    
+
     return () => {
       unsubscribe();
       currentListeners.delete(key);
@@ -72,8 +75,8 @@ export const useWebSocket = () => {
     lastMessage,
     sendMessage,
     subscribe,
-    isConnected: connectionState === 'CONNECTED',
-    isConnecting: connectionState === 'CONNECTING'
+    isConnected: connectionState === "CONNECTED",
+    isConnecting: connectionState === "CONNECTING",
   };
 };
 
@@ -82,8 +85,8 @@ export const useWebSocketNotification = () => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = subscribe('notification', (notification) => {
-      setNotifications(prev => [notification, ...prev.slice(0, 9)]); // Keep last 10
+    const unsubscribe = subscribe("notification", (notification) => {
+      setNotifications((prev) => [notification, ...prev.slice(0, 9)]); // Keep last 10
     });
 
     return unsubscribe;
@@ -97,8 +100,8 @@ export const useWebSocketBookingUpdates = () => {
   const [bookingUpdates, setBookingUpdates] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = subscribe('booking_update', (booking) => {
-      setBookingUpdates(prev => [booking, ...prev.slice(0, 4)]); // Keep last 5
+    const unsubscribe = subscribe("booking_update", (booking) => {
+      setBookingUpdates((prev) => [booking, ...prev.slice(0, 4)]); // Keep last 5
     });
 
     return unsubscribe;
@@ -112,14 +115,42 @@ export const useWebSocketPaymentUpdates = () => {
   const [paymentUpdates, setPaymentUpdates] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = subscribe('payment_update', (payment) => {
-      setPaymentUpdates(prev => [payment, ...prev.slice(0, 4)]); // Keep last 5
+    const unsubscribe = subscribe("payment_update", (payment) => {
+      setPaymentUpdates((prev) => [payment, ...prev.slice(0, 4)]); // Keep last 5
     });
 
     return unsubscribe;
   }, []); // Remove subscribe from dependencies
 
   return paymentUpdates;
+};
+
+export const useWebSocketReviewUpdates = () => {
+  const { subscribe } = useWebSocket();
+  const [reviewUpdate, setReviewUpdate] = useState(null);
+
+  useEffect(() => {
+    // Subscribe to all review events
+    const unsubscribeCreated = subscribe("review_created", (review) => {
+      setReviewUpdate({ type: "created", review });
+    });
+
+    const unsubscribeUpdated = subscribe("review_updated", (review) => {
+      setReviewUpdate({ type: "updated", review });
+    });
+
+    const unsubscribeDeleted = subscribe("review_deleted", (payload) => {
+      setReviewUpdate({ type: "deleted", payload });
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+      unsubscribeDeleted();
+    };
+  }, []); // Remove subscribe from dependencies
+
+  return reviewUpdate;
 };
 
 export default useWebSocket;

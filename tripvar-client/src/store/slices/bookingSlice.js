@@ -109,6 +109,40 @@ const bookingSlice = createSlice({
     clearAvailability: (state) => {
       state.availability = null;
     },
+    // WebSocket event handlers
+    addBookingFromWebSocket: (state, action) => {
+      const newBooking = action.payload;
+
+      // Check if booking already exists (avoid duplicates)
+      const exists = state.bookings.some(
+        (booking) => booking._id === newBooking._id
+      );
+
+      if (!exists) {
+        // Add the new booking to the beginning of the list
+        state.bookings.unshift(newBooking);
+      }
+    },
+    updateBookingFromWebSocket: (state, action) => {
+      const updatedBooking = action.payload;
+
+      // Find and update the booking in list
+      const index = state.bookings.findIndex(
+        (booking) => booking._id === updatedBooking._id
+      );
+
+      if (index !== -1) {
+        state.bookings[index] = updatedBooking;
+      }
+
+      // Update currentBooking if viewing
+      if (
+        state.currentBooking &&
+        state.currentBooking._id === updatedBooking._id
+      ) {
+        state.currentBooking = updatedBooking;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -197,6 +231,11 @@ const bookingSlice = createSlice({
   },
 });
 
-export const { clearError, clearCurrentBooking, clearAvailability } =
-  bookingSlice.actions;
+export const {
+  clearError,
+  clearCurrentBooking,
+  clearAvailability,
+  addBookingFromWebSocket,
+  updateBookingFromWebSocket,
+} = bookingSlice.actions;
 export default bookingSlice.reducer;

@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { FiStar, FiX, FiRefreshCcw } from 'react-icons/fi';
-import { updateReview } from '../../store/slices/reviewSlice';
-import PropTypes from 'prop-types';
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { FiStar, FiX, FiRefreshCcw } from "react-icons/fi";
+import { updateReview } from "../../store/slices/reviewSlice";
+import PropTypes from "prop-types";
 
 export default function EditReviewModal({ review, onClose }) {
   const dispatch = useDispatch();
   const { updating } = useSelector((state) => state.reviews);
-  
+
   const [formData, setFormData] = useState({
-    title: '',
-    content: '',
+    title: "",
+    content: "",
     rating: 0,
     ratings: {
       cleanliness: 0,
       location: 0,
       value: 0,
-      service: 0
-    }
+      service: 0,
+    },
   });
 
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -25,19 +25,19 @@ export default function EditReviewModal({ review, onClose }) {
 
   useEffect(() => {
     setFormData({
-      title: review.title || '',
-      content: review.content || '',
+      title: review.title || "",
+      content: review.content || "",
       rating: review.rating || 0,
       ratings: {
         cleanliness: review.ratings?.cleanliness || 0,
         location: review.ratings?.location || 0,
         value: review.ratings?.value || 0,
-        service: review.ratings?.service || 0
-      }
+        service: review.ratings?.service || 0,
+      },
     });
   }, [review]);
 
-  const renderStars = (rating, hovered, onHover, onClick, size = 'w-5 h-5') => {
+  const renderStars = (rating, hovered, onHover, onClick, size = "w-5 h-5") => {
     return Array.from({ length: 5 }, (_, i) => (
       <button
         key={i}
@@ -49,7 +49,9 @@ export default function EditReviewModal({ review, onClose }) {
       >
         <FiStar
           className={`${size} ${
-            i < (hovered || rating) ? 'text-yellow-400 fill-current' : 'text-gray-400'
+            i < (hovered || rating)
+              ? "text-yellow-400 fill-current"
+              : "text-gray-400"
           } transition-colors`}
         />
       </button>
@@ -58,44 +60,64 @@ export default function EditReviewModal({ review, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.title.trim() || !formData.content.trim() || formData.rating === 0) {
-      alert('Please fill in all required fields and provide a rating');
+
+    if (
+      !formData.title.trim() ||
+      !formData.content.trim() ||
+      formData.rating === 0
+    ) {
+      alert("Please fill in all required fields and provide a rating");
       return;
     }
 
+    // Filter out ratings that are 0 (unset) to avoid validation errors
+    const filteredRatings = {};
+    if (formData.ratings.cleanliness > 0)
+      filteredRatings.cleanliness = formData.ratings.cleanliness;
+    if (formData.ratings.location > 0)
+      filteredRatings.location = formData.ratings.location;
+    if (formData.ratings.value > 0)
+      filteredRatings.value = formData.ratings.value;
+    if (formData.ratings.service > 0)
+      filteredRatings.service = formData.ratings.service;
+
     try {
-      await dispatch(updateReview({
-        reviewId: review._id,
-        reviewData: {
-          title: formData.title,
-          content: formData.content,
-          rating: formData.rating,
-          ratings: formData.ratings
-        }
-      })).unwrap();
-      
+      await dispatch(
+        updateReview({
+          reviewId: review._id,
+          reviewData: {
+            title: formData.title,
+            content: formData.content,
+            rating: formData.rating,
+            // Only include ratings if at least one sub-rating is set
+            ...(Object.keys(filteredRatings).length > 0 && {
+              ratings: filteredRatings,
+            }),
+          },
+        })
+      ).unwrap();
+
       onClose();
     } catch (error) {
-      console.error('Failed to update review:', error);
+      console.error("Failed to update review:", error);
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubRatingChange = (category, rating) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       ratings: {
         ...prev.ratings,
-        [category]: rating
-      }
+        [category]: rating,
+      },
     }));
   };
 
@@ -124,10 +146,11 @@ export default function EditReviewModal({ review, onClose }) {
                   formData.rating,
                   hoveredRating,
                   setHoveredRating,
-                  (rating) => setFormData(prev => ({ ...prev, rating }))
+                  (rating) => setFormData((prev) => ({ ...prev, rating }))
                 )}
                 <span className="text-gray-400 ml-2">
-                  {formData.rating > 0 && `${formData.rating} star${formData.rating > 1 ? 's' : ''}`}
+                  {formData.rating > 0 &&
+                    `${formData.rating} star${formData.rating > 1 ? "s" : ""}`}
                 </span>
               </div>
             </div>
@@ -139,20 +162,26 @@ export default function EditReviewModal({ review, onClose }) {
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { key: 'cleanliness', label: 'Cleanliness' },
-                  { key: 'location', label: 'Location' },
-                  { key: 'value', label: 'Value for Money' },
-                  { key: 'service', label: 'Service' }
+                  { key: "cleanliness", label: "Cleanliness" },
+                  { key: "location", label: "Location" },
+                  { key: "value", label: "Value for Money" },
+                  { key: "service", label: "Service" },
                 ].map(({ key, label }) => (
                   <div key={key}>
-                    <label className="block text-sm text-gray-400 mb-1">{label}</label>
+                    <label className="block text-sm text-gray-400 mb-1">
+                      {label}
+                    </label>
                     <div className="flex items-center gap-1">
                       {renderStars(
                         formData.ratings[key],
                         hoveredSubRating[key],
-                        (rating) => setHoveredSubRating(prev => ({ ...prev, [key]: rating })),
+                        (rating) =>
+                          setHoveredSubRating((prev) => ({
+                            ...prev,
+                            [key]: rating,
+                          })),
                         (rating) => handleSubRatingChange(key, rating),
-                        'w-4 h-4'
+                        "w-4 h-4"
                       )}
                     </div>
                   </div>
@@ -162,7 +191,10 @@ export default function EditReviewModal({ review, onClose }) {
 
             {/* Review Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Review Title *
               </label>
               <input
@@ -179,7 +211,10 @@ export default function EditReviewModal({ review, onClose }) {
 
             {/* Review Content */}
             <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="content"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Your Review *
               </label>
               <textarea
@@ -205,7 +240,12 @@ export default function EditReviewModal({ review, onClose }) {
               </button>
               <button
                 type="submit"
-                disabled={updating || !formData.title.trim() || !formData.content.trim() || formData.rating === 0}
+                disabled={
+                  updating ||
+                  !formData.title.trim() ||
+                  !formData.content.trim() ||
+                  formData.rating === 0
+                }
                 className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {updating ? (
@@ -214,7 +254,7 @@ export default function EditReviewModal({ review, onClose }) {
                     Updating...
                   </>
                 ) : (
-                  'Update Review'
+                  "Update Review"
                 )}
               </button>
             </div>
@@ -232,11 +272,11 @@ EditReviewModal.propTypes = {
     content: PropTypes.string.isRequired,
     rating: PropTypes.number.isRequired,
     ratings: PropTypes.shape({
-      cleanliness: PropTypes.number.isRequired,
-      location: PropTypes.number.isRequired,
-      value: PropTypes.number.isRequired,
-      service: PropTypes.number.isRequired
-    }).isRequired
+      cleanliness: PropTypes.number,
+      location: PropTypes.number,
+      value: PropTypes.number,
+      service: PropTypes.number,
+    }),
   }).isRequired,
-  onClose: PropTypes.func.isRequired
+  onClose: PropTypes.func.isRequired,
 };

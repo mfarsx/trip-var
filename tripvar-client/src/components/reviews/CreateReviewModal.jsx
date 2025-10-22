@@ -1,29 +1,33 @@
-import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { FiStar, FiX, FiRefreshCcw } from 'react-icons/fi';
-import { createReview } from '../../store/slices/reviewSlice';
-import PropTypes from 'prop-types';
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { FiStar, FiX, FiRefreshCcw } from "react-icons/fi";
+import { createReview } from "../../store/slices/reviewSlice";
+import PropTypes from "prop-types";
 
-export default function CreateReviewModal({ destination, onClose, onReviewCreated }) {
+export default function CreateReviewModal({
+  destination,
+  onClose,
+  onReviewCreated,
+}) {
   const dispatch = useDispatch();
   const { creating } = useSelector((state) => state.reviews);
-  
+
   const [formData, setFormData] = useState({
-    title: '',
-    content: '',
+    title: "",
+    content: "",
     rating: 0,
     ratings: {
       cleanliness: 0,
       location: 0,
       value: 0,
-      service: 0
-    }
+      service: 0,
+    },
   });
 
   const [hoveredRating, setHoveredRating] = useState(0);
   const [hoveredSubRating, setHoveredSubRating] = useState({});
 
-  const renderStars = (rating, hovered, onHover, onClick, size = 'w-5 h-5') => {
+  const renderStars = (rating, hovered, onHover, onClick, size = "w-5 h-5") => {
     return Array.from({ length: 5 }, (_, i) => (
       <button
         key={i}
@@ -35,7 +39,9 @@ export default function CreateReviewModal({ destination, onClose, onReviewCreate
       >
         <FiStar
           className={`${size} ${
-            i < (hovered || rating) ? 'text-yellow-400 fill-current' : 'text-gray-400'
+            i < (hovered || rating)
+              ? "text-yellow-400 fill-current"
+              : "text-gray-400"
           } transition-colors`}
         />
       </button>
@@ -44,60 +50,80 @@ export default function CreateReviewModal({ destination, onClose, onReviewCreate
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.title.trim() || !formData.content.trim() || formData.rating === 0) {
-      alert('Please fill in all required fields and provide a rating');
+
+    if (
+      !formData.title.trim() ||
+      !formData.content.trim() ||
+      formData.rating === 0
+    ) {
+      alert("Please fill in all required fields and provide a rating");
       return;
     }
 
+    // Filter out ratings with value 0 (not provided)
+    const filteredRatings = Object.entries(formData.ratings).reduce(
+      (acc, [key, value]) => {
+        if (value > 0) {
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {}
+    );
+
     try {
-      await dispatch(createReview({
-        destinationId: destination._id,
-        title: formData.title,
-        content: formData.content,
-        rating: formData.rating,
-        ratings: formData.ratings
-      })).unwrap();
-      
+      await dispatch(
+        createReview({
+          destinationId: destination._id,
+          title: formData.title,
+          content: formData.content,
+          rating: formData.rating,
+          ratings:
+            Object.keys(filteredRatings).length > 0
+              ? filteredRatings
+              : undefined,
+        })
+      ).unwrap();
+
       // Reset form
       setFormData({
-        title: '',
-        content: '',
+        title: "",
+        content: "",
         rating: 0,
         ratings: {
           cleanliness: 0,
           location: 0,
           value: 0,
-          service: 0
-        }
+          service: 0,
+        },
       });
-      
+
       // Call the callback if provided
       if (onReviewCreated) {
         onReviewCreated();
       }
-      
+
       onClose();
     } catch (error) {
-      console.error('Failed to create review:', error);
+      console.error("Failed to create review:", error);
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubRatingChange = (category, rating) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       ratings: {
         ...prev.ratings,
-        [category]: rating
-      }
+        [category]: rating,
+      },
     }));
   };
 
@@ -131,10 +157,11 @@ export default function CreateReviewModal({ destination, onClose, onReviewCreate
                   formData.rating,
                   hoveredRating,
                   setHoveredRating,
-                  (rating) => setFormData(prev => ({ ...prev, rating }))
+                  (rating) => setFormData((prev) => ({ ...prev, rating }))
                 )}
                 <span className="text-gray-400 ml-2">
-                  {formData.rating > 0 && `${formData.rating} star${formData.rating > 1 ? 's' : ''}`}
+                  {formData.rating > 0 &&
+                    `${formData.rating} star${formData.rating > 1 ? "s" : ""}`}
                 </span>
               </div>
             </div>
@@ -146,20 +173,26 @@ export default function CreateReviewModal({ destination, onClose, onReviewCreate
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { key: 'cleanliness', label: 'Cleanliness' },
-                  { key: 'location', label: 'Location' },
-                  { key: 'value', label: 'Value for Money' },
-                  { key: 'service', label: 'Service' }
+                  { key: "cleanliness", label: "Cleanliness" },
+                  { key: "location", label: "Location" },
+                  { key: "value", label: "Value for Money" },
+                  { key: "service", label: "Service" },
                 ].map(({ key, label }) => (
                   <div key={key}>
-                    <label className="block text-sm text-gray-400 mb-1">{label}</label>
+                    <label className="block text-sm text-gray-400 mb-1">
+                      {label}
+                    </label>
                     <div className="flex items-center gap-1">
                       {renderStars(
                         formData.ratings[key],
                         hoveredSubRating[key],
-                        (rating) => setHoveredSubRating(prev => ({ ...prev, [key]: rating })),
+                        (rating) =>
+                          setHoveredSubRating((prev) => ({
+                            ...prev,
+                            [key]: rating,
+                          })),
                         (rating) => handleSubRatingChange(key, rating),
-                        'w-4 h-4'
+                        "w-4 h-4"
                       )}
                     </div>
                   </div>
@@ -169,7 +202,10 @@ export default function CreateReviewModal({ destination, onClose, onReviewCreate
 
             {/* Review Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Review Title *
               </label>
               <input
@@ -186,7 +222,10 @@ export default function CreateReviewModal({ destination, onClose, onReviewCreate
 
             {/* Review Content */}
             <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="content"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Your Review *
               </label>
               <textarea
@@ -212,7 +251,12 @@ export default function CreateReviewModal({ destination, onClose, onReviewCreate
               </button>
               <button
                 type="submit"
-                disabled={creating || !formData.title.trim() || !formData.content.trim() || formData.rating === 0}
+                disabled={
+                  creating ||
+                  !formData.title.trim() ||
+                  !formData.content.trim() ||
+                  formData.rating === 0
+                }
                 className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {creating ? (
@@ -221,7 +265,7 @@ export default function CreateReviewModal({ destination, onClose, onReviewCreate
                     Submitting...
                   </>
                 ) : (
-                  'Submit Review'
+                  "Submit Review"
                 )}
               </button>
             </div>
@@ -236,7 +280,8 @@ CreateReviewModal.propTypes = {
   destination: PropTypes.shape({
     _id: PropTypes.string.isRequired,
     title: PropTypes.string.isRequired,
-    location: PropTypes.string.isRequired
+    location: PropTypes.string.isRequired,
   }).isRequired,
-  onClose: PropTypes.func.isRequired
+  onClose: PropTypes.func.isRequired,
+  onReviewCreated: PropTypes.func,
 };

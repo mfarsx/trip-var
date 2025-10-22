@@ -1,15 +1,25 @@
-import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { FiStar, FiThumbsUp, FiUser, FiCalendar, FiEdit3, FiTrash2 } from 'react-icons/fi';
-import { markReviewHelpful, deleteReview } from '../../store/slices/reviewSlice';
-import EditReviewModal from './EditReviewModal';
-import PropTypes from 'prop-types';
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  FiStar,
+  FiThumbsUp,
+  FiUser,
+  FiCalendar,
+  FiEdit3,
+  FiTrash2,
+} from "react-icons/fi";
+import {
+  markReviewHelpful,
+  deleteReview,
+} from "../../store/slices/reviewSlice";
+import EditReviewModal from "./EditReviewModal";
+import PropTypes from "prop-types";
 
 export default function ReviewCard({ review }) {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { deleting } = useSelector((state) => state.reviews);
-  
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [isHelpful, setIsHelpful] = useState(false);
 
@@ -18,17 +28,17 @@ export default function ReviewCard({ review }) {
       <FiStar
         key={i}
         className={`w-4 h-4 ${
-          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-400'
+          i < rating ? "text-yellow-400 fill-current" : "text-gray-400"
         }`}
       />
     ));
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -37,16 +47,16 @@ export default function ReviewCard({ review }) {
       await dispatch(markReviewHelpful(review._id)).unwrap();
       setIsHelpful(!isHelpful);
     } catch (error) {
-      console.error('Failed to mark review as helpful:', error);
+      console.error("Failed to mark review as helpful:", error);
     }
   };
 
   const handleDeleteReview = async () => {
-    if (window.confirm('Are you sure you want to delete this review?')) {
+    if (window.confirm("Are you sure you want to delete this review?")) {
       try {
         await dispatch(deleteReview(review._id)).unwrap();
       } catch (error) {
-        console.error('Failed to delete review:', error);
+        console.error("Failed to delete review:", error);
       }
     }
   };
@@ -68,11 +78,9 @@ export default function ReviewCard({ review }) {
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <div className="flex">
-            {renderStars(review.rating)}
-          </div>
+          <div className="flex">{renderStars(review.rating)}</div>
           {isOwner && (
             <div className="flex gap-1">
               <button
@@ -114,25 +122,19 @@ export default function ReviewCard({ review }) {
           {review.ratings.location && (
             <div className="text-sm">
               <span className="text-gray-400">Location:</span>
-              <div className="flex">
-                {renderStars(review.ratings.location)}
-              </div>
+              <div className="flex">{renderStars(review.ratings.location)}</div>
             </div>
           )}
           {review.ratings.value && (
             <div className="text-sm">
               <span className="text-gray-400">Value:</span>
-              <div className="flex">
-                {renderStars(review.ratings.value)}
-              </div>
+              <div className="flex">{renderStars(review.ratings.value)}</div>
             </div>
           )}
           {review.ratings.service && (
             <div className="text-sm">
               <span className="text-gray-400">Service:</span>
-              <div className="flex">
-                {renderStars(review.ratings.service)}
-              </div>
+              <div className="flex">{renderStars(review.ratings.service)}</div>
             </div>
           )}
         </div>
@@ -147,7 +149,7 @@ export default function ReviewCard({ review }) {
           <FiThumbsUp className="w-4 h-4" />
           <span>Helpful ({review.helpfulVotes})</span>
         </button>
-        
+
         {review.adminResponse && (
           <div className="text-sm text-blue-400">
             <span className="font-medium">Admin Response:</span>
@@ -172,21 +174,21 @@ ReviewCard.propTypes = {
     _id: PropTypes.string.isRequired,
     user: PropTypes.shape({
       _id: PropTypes.string.isRequired,
-      name: PropTypes.string.isRequired
+      name: PropTypes.string.isRequired,
     }).isRequired,
     createdAt: PropTypes.string.isRequired,
     rating: PropTypes.number.isRequired,
     title: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
     ratings: PropTypes.shape({
-      cleanliness: PropTypes.number.isRequired,
-      location: PropTypes.number.isRequired,
-      value: PropTypes.number.isRequired,
-      service: PropTypes.number.isRequired
-    }).isRequired,
+      cleanliness: PropTypes.number,
+      location: PropTypes.number,
+      value: PropTypes.number,
+      service: PropTypes.number,
+    }),
     helpfulVotes: PropTypes.number.isRequired,
     adminResponse: PropTypes.shape({
-      content: PropTypes.string.isRequired
-    })
-  }).isRequired
+      content: PropTypes.string.isRequired,
+    }),
+  }).isRequired,
 };

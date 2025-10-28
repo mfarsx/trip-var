@@ -1,158 +1,128 @@
-# GitHub Actions Workflows
+# CI/CD Pipeline Documentation
 
-Simple and clean CI/CD workflows for TripVar.
+This directory contains the GitHub Actions workflows for the Tripvar project.
 
-## 📋 Workflows Overview
+## Workflow Overview
 
-### 1. `test.yml` - Test Suite
+### 1. Test Suite (`.github/workflows/test.yml`)
+**Triggers:** Push to main, PR events  
+**Purpose:** Runs unit and integration tests for both server and client
 
-**Trigger:** Push/PR to `main`
+- **test-server**: Runs Jest tests for the backend
+- **test-client**: Runs Vitest tests and builds the frontend
 
-Runs automated tests:
+Both jobs run in parallel on every push and pull request.
 
-- Server tests (`npm test`)
-- Client tests (`npm run test:run`)
-- Client build validation
+### 2. Security Scan (`.github/workflows/security.yml`)
+**Triggers:** Push to main, PR events, Weekly schedule (Mondays 9 AM UTC)  
+**Purpose:** Audits dependencies for known vulnerabilities
 
-### 2. `build.yml` - Docker Build
+- Runs `npm audit` on both server and client
+- Does not fail the workflow if vulnerabilities are found (warning only)
+- Scheduled to run weekly for proactive security monitoring
 
-**Trigger:** Push to `main`
+### 3. Build Images (`.github/workflows/build.yml`)
+**Triggers:** Push to main (after tests pass), Manual dispatch  
+**Purpose:** Builds and pushes Docker images to GitHub Container Registry (GHCR)
 
-Builds and publishes Docker images:
+- Builds production Docker images for both server and client
+- Pushes images with tags: `latest`, branch name, and commit SHA
+- Uses build caching for faster builds
+- Images are stored at `ghcr.io/<repo>-server` and `ghcr.io/<repo>-client`
 
-- Server image → `ghcr.io/mfarsx/trip-var-server:latest`
-- Client image → `ghcr.io/mfarsx/trip-var-client:latest`
+### 4. PR Quality Check (`.github/workflows/pr-checks.yml`)
+**Triggers:** PR opened, synchronized, or reopened  
+**Purpose:** Validates pull request quality
 
-### 3. `security.yml` - Security Scan
+- Checks PR size (warns if > 1000 lines)
+- Validates PR title follows Conventional Commits format
+- Provides feedback without blocking merge
 
-**Trigger:** Push/PR to `main` + Weekly (Mondays 9 AM)
+### 5. Deploy (`.github/workflows/deploy.yml`)
+**Triggers:** Manual dispatch only  
+**Purpose:** Deploys the application to production or staging
 
-Scans dependencies for vulnerabilities:
+- **Manual deployment** - requires selecting environment
+- Pulls pre-built images from GHCR (no building on server)
+- Updates containers on the target server
+- Runs health checks after deployment
+- Supports both `production` and `staging` environments
 
-- Server: `npm audit`
-- Client: `npm audit`
+## Required Secrets
 
-### 4. `pr-checks.yml` - PR Quality
+### For Deployment
+The following secrets must be configured in GitHub repository settings:
 
-**Trigger:** Every PR
+- `SSH_PRIVATE_KEY`: Private SSH key for server access
+- `SSH_USER`: SSH username for server access  
+- `SERVER_HOST`: IP address or domain of the deployment server
 
-Validates PR quality:
+### Automatic Secrets
+The following are automatically provided by GitHub Actions:
+- `GITHUB_TOKEN`: Automatically provided for GHCR authentication
 
-- Size check (warns if >1000 lines)
-- Title format validation (conventional commits)
-- Basic PR info logging
+## Docker Image Strategy
 
-### 5. `deploy.yml` - Manual Deploy
+### Build Process
+1. Images are built in GitHub Actions during push to main
+2. Images are pushed to GitHub Container Registry (GHCR)
+3. Images are tagged with: `latest`, commit SHA, and branch name
 
-**Trigger:** Manual via Actions tab
+### Deployment Process
+1. Manual trigger of deploy workflow
+2. SSH into deployment server
+3. Pull latest images from GHCR
+4. Deploy using `docker-compose.ghcr.yml`
+5. Health check verification
 
-Deploys to production:
+## Docker Compose Files
 
-- SSH to server
-- Pull latest code
-- Deploy with docker-compose
-- Run health check
+- `docker-compose.yml`: Development environment (builds locally)
+- `docker-compose.prod.yml`: Production builds from local source
+- `docker-compose.ghcr.yml`: Production pulls images from GHCR
 
-## 🔐 Required Secrets
+## Typical Workflow
 
-Configure these in: **Settings → Secrets and variables → Actions**
+### For Code Changes
+1. Developer creates a branch and pushes code
+2. **test.yml** runs automatically on push/PR
+3. **security.yml** runs automatically on push/PR
+4. **pr-checks.yml** runs on PR events
+5. After PR merge to main:
+   - **test.yml** runs tests
+   - **security.yml** runs security audit
+   - **build.yml** builds and pushes Docker images to GHCR
 
-| Secret            | Description                       | Example         |
-| ----------------- | --------------------------------- | --------------- |
-| `SSH_PRIVATE_KEY` | SSH private key for server access | `-----BEGIN...` |
-| `SSH_USER`        | Username for SSH                  | `ubuntu`        |
-| `SERVER_HOST`     | Server hostname or IP             | `example.com`   |
+### For Deployment
+1. Admin manually triggers **deploy.yml**
+2. Selects environment (production/staging)
+3. Workflow:
+   - SSHs to target server
+   - Pulls latest images from GHCR
+   - Updates containers
+   - Verifies health checks
 
-## 🚀 Usage
+## Best Practices
 
-### Run Tests
+1. **Always run tests before deployment**: Test workflow runs on every push
+2. **Security first**: Security audit runs weekly and on PRs
+3. **Manual deployments**: Deploy only when you're ready
+4. **Image versioning**: Images are tagged with commit SHAs for traceability
+5. **Health checks**: Deployment includes automatic health verification
 
-Tests run automatically on every PR and push to main.
+## Troubleshooting
 
-### Deploy to Production
+### Build fails
+- Check test outputs in test.yml workflow
+- Ensure all dependencies are up to date
+- Review Dockerfile for any build issues
 
-1. Go to **Actions** tab
-2. Click **Deploy** workflow
-3. Click **Run workflow**
-4. Select **production** or **staging**
-5. Click **Run workflow**
+### Deployment fails
+- Verify SSH secrets are correctly configured
+- Check server has Docker and Docker Compose installed
+- Ensure server has network access to GHCR
 
-### View Workflow Status
-
-Visit: https://github.com/mfarsx/trip-var/actions
-
-## 📊 Workflow Badges
-
-Add to README:
-
-```markdown
-![Tests](https://github.com/mfarsx/trip-var/actions/workflows/test.yml/badge.svg)
-![Build](https://github.com/mfarsx/trip-var/actions/workflows/build.yml/badge.svg)
-![Security](https://github.com/mfarsx/trip-var/actions/workflows/security.yml/badge.svg)
-```
-
-## 🛠️ Customization
-
-### Change Node Version
-
-Edit the `node-version` in `test.yml`:
-
-```yaml
-node-version: "20.x" # Change to 18.x, 22.x, etc.
-```
-
-### Change Docker Registry
-
-Edit `REGISTRY` in `build.yml`:
-
-```yaml
-REGISTRY: ghcr.io # Change to docker.io, etc.
-```
-
-### Modify Test Commands
-
-Edit test steps in `test.yml`:
-
-```yaml
-- name: Run tests
-  run: npm test # Change to your test command
-```
-
-## 📝 Notes
-
-- All workflows are designed to be simple and maintainable
-- No complex matrix strategies or external services required
-- Minimal secrets needed
-- Fast execution times
-- Clear, readable YAML
-
-## 🆘 Troubleshooting
-
-### Tests Failing?
-
-```bash
-# Run tests locally first
-cd tripvar-server && npm test
-cd tripvar-client && npm run test:run
-```
-
-### Build Failing?
-
-```bash
-# Test Docker build locally
-docker build -t test-server ./tripvar-server
-docker build -t test-client ./tripvar-client
-```
-
-### Deploy Failing?
-
-- Check SSH_PRIVATE_KEY secret is correct
-- Verify SERVER_HOST is accessible
-- Test SSH: `ssh USER@HOST`
-- Check server has Docker installed
-
-## 📚 Learn More
-
-- [GitHub Actions Docs](https://docs.github.com/en/actions)
-- [Docker Build Push Action](https://github.com/docker/build-push-action)
-- [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
+### Security audit warnings
+- Review reported vulnerabilities
+- Update dependencies if needed
+- Security scan doesn't block deployment but should be monitored

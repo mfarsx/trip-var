@@ -77,12 +77,18 @@ const createTestStore = (initialState = {}) => {
               location: 'Maldives',
               imageUrl: 'https://example.com/beach.jpg',
             },
-            checkIn: '2024-01-15',
-            checkOut: '2024-01-20',
-            guests: 2,
+            checkInDate: '2024-01-15',
+            checkOutDate: '2024-01-20',
+            numberOfGuests: 2,
             totalAmount: 2995,
+            totalNights: 5,
+            pricePerNight: 599,
             status: 'confirmed',
             createdAt: '2024-01-01T00:00:00Z',
+            bookingReference: 'BK001',
+            contactEmail: 'test@example.com',
+            paymentMethod: 'credit-card',
+            paymentStatus: 'paid',
           },
           {
             _id: '2',
@@ -92,12 +98,18 @@ const createTestStore = (initialState = {}) => {
               location: 'Switzerland',
               imageUrl: 'https://example.com/mountain.jpg',
             },
-            checkIn: '2024-02-01',
-            checkOut: '2024-02-05',
-            guests: 1,
+            checkInDate: '2024-02-01',
+            checkOutDate: '2024-02-05',
+            numberOfGuests: 1,
             totalAmount: 3995,
-            status: 'pending',
+            totalNights: 4,
+            pricePerNight: 998.75,
+            status: 'completed',
             createdAt: '2024-01-15T00:00:00Z',
+            bookingReference: 'BK002',
+            contactEmail: 'test2@example.com',
+            paymentMethod: 'paypal',
+            paymentStatus: 'paid',
           },
         ],
         cancelling: false,
@@ -137,12 +149,16 @@ describe('Bookings Component', () => {
               location: 'Maldives',
               imageUrl: 'https://example.com/beach.jpg',
             },
-            checkIn: '2024-01-15',
-            checkOut: '2024-01-20',
-            guests: 2,
+            checkInDate: '2024-01-15',
+            checkOutDate: '2024-01-20',
+            numberOfGuests: 2,
             totalAmount: 2995,
+            totalNights: 5,
+            pricePerNight: 599,
             status: 'confirmed',
             createdAt: '2024-01-01T00:00:00Z',
+            bookingReference: 'BK001',
+            contactEmail: 'test@example.com',
           },
           {
             _id: '2',
@@ -152,12 +168,16 @@ describe('Bookings Component', () => {
               location: 'Switzerland',
               imageUrl: 'https://example.com/mountain.jpg',
             },
-            checkIn: '2024-02-01',
-            checkOut: '2024-02-05',
-            guests: 1,
+            checkInDate: '2024-02-01',
+            checkOutDate: '2024-02-05',
+            numberOfGuests: 1,
             totalAmount: 3995,
-            status: 'pending',
+            totalNights: 4,
+            pricePerNight: 998.75,
+            status: 'completed',
             createdAt: '2024-01-15T00:00:00Z',
+            bookingReference: 'BK002',
+            contactEmail: 'test2@example.com',
           },
         ],
         cancelling: false,
@@ -172,45 +192,59 @@ describe('Bookings Component', () => {
   };
 
   describe('Rendering', () => {
-    it('renders bookings page with header and footer', () => {
+    it('renders bookings page with header and footer', async () => {
       renderBookings();
 
-      expect(screen.getByTestId('header')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('header')).toBeInTheDocument();
+      });
+      
       expect(screen.getByTestId('page-transition')).toBeInTheDocument();
       expect(screen.getByTestId('footer')).toBeInTheDocument();
     });
 
-    it('renders page title', () => {
+    it('renders page title', async () => {
       renderBookings();
 
-      expect(screen.getByText('My Bookings')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('My Bookings')).toBeInTheDocument();
+      });
     });
 
-    it('renders bookings list', () => {
+    it('renders bookings list', async () => {
       renderBookings();
 
-      expect(screen.getByText('Beach Paradise')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Beach Paradise')).toBeInTheDocument();
+      });
+      
       expect(screen.getByText('Mountain Retreat')).toBeInTheDocument();
       expect(screen.getByText('Maldives')).toBeInTheDocument();
       expect(screen.getByText('Switzerland')).toBeInTheDocument();
     });
 
-    it('renders booking details', () => {
+    it('renders booking details', async () => {
       renderBookings();
 
-      expect(screen.getByText('Jan 15, 2024')).toBeInTheDocument();
-      expect(screen.getByText('Jan 20, 2024')).toBeInTheDocument();
-      expect(screen.getByText('Feb 1, 2024')).toBeInTheDocument();
-      expect(screen.getByText('Feb 5, 2024')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/Jan 15, 2024/)).toBeInTheDocument();
+      });
+      
+      expect(screen.getByText(/Jan 20, 2024/)).toBeInTheDocument();
+      expect(screen.getByText(/Feb 1, 2024/)).toBeInTheDocument();
+      expect(screen.getByText(/Feb 5, 2024/)).toBeInTheDocument();
       expect(screen.getByText('$2,995')).toBeInTheDocument();
       expect(screen.getByText('$3,995')).toBeInTheDocument();
     });
 
-    it('renders booking status badges', () => {
+    it('renders booking status badges', async () => {
       renderBookings();
 
-      expect(screen.getByText('Confirmed')).toBeInTheDocument();
-      expect(screen.getByText('Pending')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Confirmed')).toBeInTheDocument();
+      });
+      
+      expect(screen.getByText('Completed')).toBeInTheDocument();
     });
   });
 
@@ -250,7 +284,7 @@ describe('Bookings Component', () => {
     it('filters bookings by search term', () => {
       renderBookings();
 
-      const searchInput = screen.getByPlaceholderText(/Search bookings/);
+      const searchInput = screen.getByPlaceholderText(/Search bookings by destination/);
       fireEvent.change(searchInput, { target: { value: 'Beach' } });
 
       expect(screen.getByText('Beach Paradise')).toBeInTheDocument();
@@ -261,6 +295,9 @@ describe('Bookings Component', () => {
       renderBookings();
 
       const statusFilter = screen.getByDisplayValue('All Statuses');
+      fireEvent.change(statusFilter, { target: { value: 'all' } });
+      
+      // Filter by status
       fireEvent.change(statusFilter, { target: { value: 'confirmed' } });
 
       expect(screen.getByText('Beach Paradise')).toBeInTheDocument();

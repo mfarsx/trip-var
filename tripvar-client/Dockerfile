@@ -1,15 +1,26 @@
-FROM node:20-alpine
+# Multi-stage Dockerfile for both development and production
+
+# Base stage
+FROM node:20-alpine AS base
 WORKDIR /app
-
-# Install dependencies (including dev dependencies for development)
 COPY package*.json ./
+
+# Development stage
+FROM base AS development
 RUN npm install
-
-# Copy source code
 COPY . .
-
-# Expose port
 EXPOSE 5173
-
-# Add error handling and startup information
 CMD ["sh", "-c", "echo '🚀 Starting Tripvar Client...' && npm run dev -- --host 0.0.0.0"]
+
+# Build stage
+FROM base AS build
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine AS production
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
